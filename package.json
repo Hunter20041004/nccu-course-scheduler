@@ -1,0 +1,18 @@
+{
+  "name": "nccu-course-scheduler",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "node scripts/build.mjs",
+    "test:unit": "node --test tests/course-data.test.mjs tests/planner-core.test.mjs tests/planner-storage.test.mjs tests/bundle-syntax.test.mjs",
+    "test": "npm run test:unit && npm run build && node --test tests/rendered-html.test.mjs",
+    "lint": "node --check src/app.mjs && node --check src/planner-core.mjs && node --check src/planner-storage.mjs && node --check scripts/build.mjs && node --check scripts/dev.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "type": "module"
+}

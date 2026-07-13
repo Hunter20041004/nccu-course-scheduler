@@ -1,0 +1,197 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import * as core from '../src/planner-core.mjs';
+
+const profile = {
+  level: 'undergrad',
+  year: 3,
+  programs: ['innovation'],
+  prerequisites: [],
+};
+
+test('marks a program-only junior course eligible for a matching year-three student', () => {
+  assert.equal(typeof core.evaluateEligibility, 'function');
+  assert.deepEqual(
+    core.evaluateEligibility({ minYear: 3, programs: ['innovation'] }, profile),
+    { status: 'eligible', reasons: [] },
+  );
+});
+
+test('marks a graduate course that opens to juniors as conditional for an undergraduate', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({ level: 'graduate', openToUndergradYear: 3 }, profile),
+    { status: 'conditional', reasons: ['碩士班課程，課綱開放大三以上，需確認學分認列'] },
+  );
+});
+
+test('marks a course with no current section unavailable', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({ available: false }, profile),
+    { status: 'unavailable', reasons: ['115-1 查無開課資料'] },
+  );
+});
+
+test('blocks a course when its prerequisite is missing', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({ prerequisites: ['statistics'] }, profile),
+    { status: 'blocked', reasons: ['缺少先修：statistics'] },
+  );
+});
+
+test('blocks a graduate-only course for an undergraduate', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({ level: 'graduate' }, profile),
+    { status: 'blocked', reasons: ['僅限碩、博士班'] },
+  );
+});
+
+test('reports a weekly conflict when two selected physical courses overlap', () => {
+  const selected = [
+    { id: 'agentic', title: 'Agentic AI', schedule: { day: 4, start: 790, end: 960 }, attendance: 'physical' },
+    { id: 'ai-tools', title: '人工智慧方法與工具', schedule: { day: 4, start: 790, end: 960 }, attendance: 'physical' },
+  ];
+
+  assert.deepEqual(core.findConflicts(selected), [
+    {
+      type: 'weekly',
+      courseIds: ['agentic', 'ai-tools'],
+      message: 'Agentic AI 與 人工智慧方法與工具 每週時段重疊',
+    },
+  ]);
+});
+
+test('does not reserve the weekly slot when an allowed remote course is taken asynchronously', () => {
+  const selected = [
+    { id: 'agentic', title: 'Agentic AI', schedule: { day: 4, start: 790, end: 960 }, attendance: 'physical' },
+    { id: 'ai-intro', title: '人工智慧導論', schedule: { day: 4, start: 790, end: 960 }, attendance: 'async' },
+  ];
+
+  assert.deepEqual(core.findConflicts(selected), []);
+});
+
+test('keeps a synchronous exam as a hard conflict for an asynchronously attended course', () => {
+  const selected = [
+    { id: 'agentic', title: 'Agentic AI', schedule: { day: 4, start: 790, end: 960 }, attendance: 'physical' },
+    {
+      id: 'ai-intro',
+      title: '人工智慧導論',
+      schedule: { day: 4, start: 790, end: 960 },
+      attendance: 'async',
+      events: [{ label: '實體考試', date: '2026-12-10', day: 4, start: 790, end: 960 }],
+    },
+  ];
+
+  assert.deepEqual(core.findConflicts(selected), [
+    {
+      type: 'event',
+      courseIds: ['ai-intro', 'agentic'],
+      message: '人工智慧導論的實體考試與 Agentic AI 時段重疊',
+    },
+  ]);
+});
+
+test('counts two full internship days and two free half-days for the concentrated plan', () => {
+  const selected = [
+    { id: 'ml', schedule: { day: 1, start: 790, end: 960 }, attendance: 'physical' },
+    { id: 'social', schedule: { day: 1, start: 970, end: 1140 }, attendance: 'physical' },
+    { id: 'hci', schedule: { day: 4, start: 550, end: 720 }, attendance: 'physical' },
+    { id: 'agentic', schedule: { day: 4, start: 790, end: 960 }, attendance: 'physical' },
+    { id: 'creative', schedule: { day: 4, start: 1090, end: 1260 }, attendance: 'physical' },
+    { id: 'salon', schedule: { day: 5, start: 790, end: 960 }, attendance: 'physical' },
+  ];
+
+  assert.deepEqual(core.calculateInternshipAvailability(selected), {
+    fullDays: [2, 3],
+    halfDays: [1, 5],
+    equivalentDays: 3,
+    meetsTarget: true,
+  });
+});
+
+test('does not remove a required course from the selection', () => {
+  const required = { id: 'agentic', title: 'Agentic AI', required: true };
+  assert.deepEqual(core.toggleCourse([required], required), [required]);
+});
+
+test('adds an available optional course to the selection', () => {
+  const optional = { id: 'hci', title: '人機互動', asyncAllowed: false };
+  assert.deepEqual(core.toggleCourse([], optional), [{ ...optional, attendance: 'physical' }]);
+});
+
+test('removes a selected optional course', () => {
+  const optional = { id: 'hci', title: '人機互動', required: false };
+  assert.deepEqual(core.toggleCourse([{ ...optional, attendance: 'physical' }], optional), []);
+});
+
+test('builds the concentrated preset from required and tagged courses', () => {
+  const courses = [
+    { id: 'agentic', required: true, credits: 3 },
+    { id: 'salon', required: true, credits: 2 },
+    { id: 'creative', required: true, credits: 3 },
+    { id: 'ml', presets: ['concentrated'], credits: 3 },
+    { id: 'social', presets: ['concentrated'], credits: 3 },
+    { id: 'hci', presets: ['concentrated'], credits: 3 },
+    { id: 'visualization', presets: ['balanced'], credits: 3 },
+  ];
+
+  assert.deepEqual(
+    core.applyPreset(courses, 'concentrated').map(({ id, attendance }) => ({ id, attendance })),
+    [
+      { id: 'agentic', attendance: 'physical' },
+      { id: 'salon', attendance: 'physical' },
+      { id: 'creative', attendance: 'physical' },
+      { id: 'ml', attendance: 'physical' },
+      { id: 'social', attendance: 'physical' },
+      { id: 'hci', attendance: 'physical' },
+    ],
+  );
+});
+
+test('applies asynchronous attendance configured by a preset', () => {
+  const course = {
+    id: 'smart-hci',
+    presets: ['async-first'],
+    presetAttendance: { 'async-first': 'async' },
+  };
+  assert.equal(core.applyPreset([course], 'async-first')[0].attendance, 'async');
+});
+
+test('normalizes a manually entered physical course into a schedulable block', () => {
+  assert.deepEqual(
+    core.createManualCourse({
+      title: '使用者新增課程',
+      credits: '2',
+      day: '2',
+      start: '09:10',
+      end: '12:00',
+      mode: 'physical',
+    }, 7),
+    {
+      id: 'manual-7',
+      title: '使用者新增課程',
+      credits: 2,
+      source: 'manual',
+      attendance: 'physical',
+      asyncAllowed: false,
+      required: false,
+      available: true,
+      schedule: { day: 2, start: 550, end: 720, label: '週二 09:10–12:00' },
+      conditions: ['手動新增，尚未查證官方資料'],
+    },
+  );
+});
+
+test('adds an eligible catalog course to the schedule', () => {
+  const hci = { id: 'hci', title: '人機互動', available: true, required: false };
+  assert.deepEqual(
+    core.toggleSelectableCourse([], hci, profile),
+    [{ ...hci, attendance: 'physical' }],
+  );
+});
+
+test('rejects a manual course whose end is not after its start', () => {
+  assert.deepEqual(
+    core.validateManualCourse({ title: '測試課', mode: 'physical', start: '12:00', end: '09:00' }),
+    { field: 'end', message: '結束時間必須晚於開始時間。' },
+  );
+});

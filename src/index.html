@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="整理候選課程、檢查衝堂與資格，保留至少兩天半實習時間。">
+  <title>政大排課｜實習友善課表規劃</title>
+  <style>/*__STYLES__*/</style>
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">NCCU · 115-1</p>
+      <h1>把課集中，替實習留下完整時間。</h1>
+      <p>三門必修已固定，右側點選候選課程，左側課表會立即更新。</p>
+    </div>
+    <button id="reset-plan" class="button button-secondary" type="button">恢復建議方案</button>
+  </header>
+
+  <main>
+    <section class="stats" aria-label="排課摘要">
+      <article><span>已選學分</span><strong id="credit-value">17</strong><small>固定必修 8 學分</small></article>
+      <article><span>可實習時間</span><strong id="internship-value">3 天</strong><small>目標至少 2.5 天</small></article>
+      <article><span>待處理提醒</span><strong id="warning-value">0</strong><small>衝堂、資格與重要日期</small></article>
+    </section>
+
+    <nav id="preset-picker" class="preset-picker" aria-label="建議排課方案">
+      <span>快速方案</span>
+      <button type="button" data-preset="concentrated">17 學分集中實體</button>
+      <button type="button" data-preset="async-first">17 學分非同步優先</button>
+      <button type="button" data-preset="lighter">14 學分較輕</button>
+    </nav>
+
+    <details class="profile-settings">
+      <summary>我的選課條件（用來判斷資格）</summary>
+      <form id="profile-form" class="profile-form">
+        <label>學制<select id="profile-level"><option value="undergrad">學士班</option><option value="graduate">碩博士班</option></select></label>
+        <label>年級<select id="profile-year"><option value="1">大一</option><option value="2">大二</option><option value="3">大三</option><option value="4">大四以上</option></select></label>
+        <label class="check-label"><input id="profile-innovation" type="checkbox">我具創新創業學程資格</label>
+        <label class="check-label"><input id="profile-statistics" type="checkbox">我已修過統計學 3 學分</label>
+      </form>
+    </details>
+
+    <div class="planner-layout">
+      <section class="panel schedule-panel" data-testid="schedule-panel" aria-labelledby="schedule-title">
+        <div class="section-heading"><div><p class="eyebrow">LEFT · MY WEEK</p><h2 id="schedule-title">課表</h2></div><span class="status-pill">實習時間達標</span></div>
+        <div id="schedule-grid" class="schedule-grid" aria-live="polite"></div>
+        <section class="async-section"><h3>非同步工作區</h3><div id="async-lane"></div></section>
+        <section class="warning-section"><h3>排課提醒</h3><div id="warning-list" aria-live="polite"></div></section>
+      </section>
+
+      <aside class="panel catalog-panel" data-testid="course-catalog" aria-labelledby="catalog-title">
+        <div class="section-heading"><div><p class="eyebrow">RIGHT · COURSE BANK</p><h2 id="catalog-title">24 門候選課程</h2></div><span id="catalog-count">24 / 24</span></div>
+        <div class="catalog-tools">
+          <label>搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
+          <label>篩選<select id="catalog-filter"><option value="all">全部</option><option value="selected">已加入</option><option value="remote">可非同步</option><option value="conditional">資格需確認</option></select></label>
+        </div>
+        <div id="catalog-list" class="catalog-list"></div>
+      </aside>
+    </div>
+
+    <details class="add-more">
+      <summary>加入更多課程或匯入截圖</summary>
+      <div class="add-grid">
+        <section><h2>手動新增</h2><div id="manual-form"></div></section>
+        <section><h2>備選清單截圖</h2><div id="screenshot-handoff"></div></section>
+      </div>
+    </details>
+  </main>
+  <script type="module">/*__SCRIPT__*/</script>
+</body>
+</html>
