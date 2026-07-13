@@ -109,6 +109,9 @@ export function toggleCourse(selected, course) {
 export function toggleSelectableCourse(selected, course, profile) {
   const eligibility = evaluateEligibility(course, profile);
   if (eligibility.status === 'blocked' || eligibility.status === 'unavailable') return selected;
+  if (course.variants?.length && !selected.some((item) => item.id === course.id)) {
+    return [...selected, { ...resolveCourseOption(course), attendance: 'physical' }];
+  }
   return toggleCourse(selected, course);
 }
 
@@ -138,6 +141,8 @@ export function resolveCourseOption(course, selection = {}) {
       ...course,
       ...variant,
       schedule: null,
+      selectedVariantId: variant.id,
+      selectedAdvisorId: null,
       optionStatus: 'pending',
       optionMessage: '請選擇指導老師',
     };
