@@ -27,7 +27,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .button-primary { background: var(--green); color: #fff; font-weight: 800; }
 .button:hover { filter: brightness(.93); }
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-.stats article, .panel, .add-more, .profile-settings { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.stats article, .panel, .add-more, .profile-settings, .internship-settings { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 .stats article { display: grid; gap: 5px; padding: 18px; }
 .stats span, .stats small { color: var(--muted); }
 .stats strong { font-family: Georgia, "Times New Roman", serif; font-size: 2rem; font-weight: 500; }
@@ -35,9 +35,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .preset-picker span { margin-right: 4px; color: var(--muted); font-size: .8rem; font-weight: 800; }
 .preset-picker button { border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); padding: 0 14px; cursor: pointer; }
 .preset-picker button:hover { border-color: var(--green); color: var(--green); }
-.profile-settings { margin: -4px 0 18px; padding: 0 16px; }
-.profile-settings summary { display: flex; align-items: center; cursor: pointer; font-size: .86rem; font-weight: 800; }
+.profile-settings, .internship-settings { margin: -4px 0 18px; padding: 0 16px; }
+.profile-settings summary, .internship-settings summary { display: flex; align-items: center; cursor: pointer; font-size: .86rem; font-weight: 800; }
 .profile-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 4px 0 16px; }
+.internship-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; padding: 4px 0 16px; }
+.internship-fixed-days { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; min-width: 0; margin: 2px 0 0; padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
+.internship-fixed-days[hidden] { display: none; }
+.internship-fixed-days legend { color: var(--muted); font-size: .78rem; font-weight: 800; padding: 0 5px; }
+.internship-status { grid-column: 1 / -1; }
 .check-label { display: flex; flex-direction: row; gap: 9px; align-items: center; min-height: 44px; color: var(--ink); }
 .check-label input { width: 18px; height: 18px; min-height: 18px; flex: 0 0 auto; accent-color: var(--green); }
 .planner-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(22rem, .85fr); gap: 18px; align-items: start; }
@@ -47,9 +52,28 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 h2, h3 { margin: 4px 0 0; }
 .section-heading h2 { font-family: Georgia, "Times New Roman", serif; font-size: 2rem; font-weight: 500; }
 .status-pill { background: var(--green-soft); color: var(--green); border-radius: 999px; padding: 8px 12px; font-size: .82rem; font-weight: 700; }
-.schedule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; margin-top: 16px; }
-.day { min-width: 0; padding-top: 12px; border-top: 2px solid var(--line); }
-.day h3 { margin-bottom: 10px; }
+.schedule-scroll { max-height: min(76vh, 980px); margin-top: 16px; overflow: auto; border: 1px solid var(--line); border-radius: 14px; background: #fff; overscroll-behavior: contain; }
+.nccu-grid { position: relative; display: grid; grid-template-columns: 76px repeat(6, minmax(112px, 1fr)); grid-template-rows: 44px repeat(16, 56px); min-width: 860px; isolation: isolate; }
+.weekday-header { position: sticky; top: 0; z-index: 6; grid-column: var(--grid-column); grid-row: 1; display: grid; place-items: center; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #f6f3ed; color: var(--ink); font-size: .8rem; font-weight: 850; letter-spacing: .05em; }
+.weekday-header:first-child { left: 0; z-index: 8; }
+.period-label { position: sticky; left: 0; z-index: 5; grid-column: 1; grid-row: var(--grid-row); display: grid; place-content: center; gap: 1px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #faf8f3; text-align: center; font-variant-numeric: tabular-nums; }
+.period-label strong { font-family: Georgia, "Times New Roman", serif; font-size: 1.05rem; }
+.period-label small { color: var(--muted); font-size: .62rem; }
+.period-label.is-special { background: #f0eee8; }
+.grid-cell { grid-column: var(--grid-column); grid-row: var(--grid-row); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #fff; }
+.grid-course { z-index: 3; grid-column: var(--grid-column); grid-row: var(--grid-row) / span var(--row-span); min-width: 0; margin: 3px; overflow: hidden; border: 1px solid #a5c7b0; border-radius: 9px; background: #e3f0e6; box-shadow: 0 2px 8px rgb(20 92 61 / 10%); }
+.grid-course button { display: flex; width: 100%; height: 100%; min-height: 0; flex-direction: column; align-items: flex-start; gap: 3px; overflow: hidden; border: 0; background: transparent; color: var(--ink); padding: 7px 8px; text-align: left; cursor: pointer; }
+.grid-course strong { max-width: 100%; font-size: .78rem; line-height: 1.22; }
+.grid-course span, .grid-course small { max-width: 100%; overflow: hidden; color: #3d5648; font-size: .65rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.grid-course.is-required { border-color: #0e4c31; background: var(--green); box-shadow: 0 3px 10px rgb(14 76 49 / 18%); }
+.grid-course.is-required button, .grid-course.is-required span, .grid-course.is-required small { color: #fff; }
+.grid-course.is-required button { cursor: default; }
+.grid-course.has-conflict { border: 2px solid #b7412d; background: #fff0ec; }
+.grid-course.is-required.has-conflict { background: #7e3024; }
+.internship-reservation { z-index: 2; grid-column: var(--grid-column); grid-row: var(--grid-row) / span var(--row-span); display: flex; min-width: 0; flex-direction: column; gap: 2px; margin: 4px; border: 1px dashed #3978a8; border-radius: 8px; background: rgb(221 239 251 / 82%); color: #174f79; padding: 7px; pointer-events: none; }
+.internship-reservation strong { font-size: .72rem; }
+.internship-reservation small { font-size: .62rem; font-variant-numeric: tabular-nums; }
+.internship-reservation.has-conflict { border: 2px dashed #b7412d; background: repeating-linear-gradient(135deg, #fff0ec, #fff0ec 7px, #f8d8d0 7px, #f8d8d0 14px); color: #7d281c; }
 .async-section, .warning-section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
 .catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; margin: 16px 0 6px; }
 label { display: grid; gap: 6px; color: var(--muted); font-size: .82rem; font-weight: 700; }
@@ -70,12 +94,9 @@ textarea { min-height: 112px; padding-block: 10px; resize: vertical; line-height
 .course-sections ul { margin: 2px 0 8px; padding-left: 20px; }
 .course-sections li + li { margin-top: 5px; }
 .attendance-control { margin: 10px 12px 0; }
-.day-courses { display: grid; gap: 10px; }
-.course-block { display: grid; gap: 5px; }
-.course-block > span { color: var(--muted); font-size: .76rem; font-weight: 700; }
-.course-block > button, .async-list button { display: flex; justify-content: space-between; gap: 10px; align-items: center; width: 100%; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); padding: 10px 12px; text-align: left; cursor: pointer; }
-.course-block > button small { color: var(--muted); }
-.course-block.is-required > button { border-color: #aac6b3; background: var(--green-soft); cursor: default; }
+.course-option-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px; padding: 12px; border: 1px solid #b9cabe; border-radius: 12px; background: #f3f8f4; }
+.course-option-controls p { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .75rem; line-height: 1.45; }
+.async-list button { display: flex; justify-content: space-between; gap: 10px; align-items: center; width: 100%; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--ink); padding: 10px 12px; text-align: left; cursor: pointer; }
 .async-list { display: flex; flex-wrap: wrap; gap: 8px; }
 .async-list button { width: auto; }
 .warning-section ul { margin-bottom: 0; padding-left: 20px; }
@@ -98,14 +119,16 @@ textarea { min-height: 112px; padding-block: 10px; resize: vertical; line-height
   .stats, .planner-layout, .add-grid { grid-template-columns: 1fr; }
   .schedule-panel { order: 1; }
   .catalog-panel { order: 2; position: static; max-height: none; }
-  .profile-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .profile-form, .internship-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .internship-fixed-days { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 520px) {
   .site-header, main { width: min(100% - 20px, 1480px); }
   .stats { grid-template-columns: 1fr; }
-  .schedule-grid, .catalog-tools, .manual-course-form, .profile-form { grid-template-columns: 1fr; }
+  .catalog-tools, .manual-course-form, .profile-form, .internship-form, .internship-fixed-days { grid-template-columns: 1fr; }
   .panel { padding: 15px; }
+  .course-option-controls { grid-template-columns: 1fr; }
   .preset-picker { display: grid; grid-template-columns: 1fr; }
   .preset-picker span { margin-bottom: 2px; }
 }

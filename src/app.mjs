@@ -9,6 +9,8 @@ const defaultProfile = {
 let profile = { ...defaultProfile };
 let courseStore = [...courses];
 let selected = applyPreset(courseStore, 'concentrated');
+let courseOptions = {};
+let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -26,10 +28,18 @@ function restoreState() {
     profile = { ...defaultProfile, ...saved.profile };
     courseStore = [...courses, ...(saved.manualCourses || [])];
     const attendance = saved.attendance || {};
+    courseOptions = saved.courseOptions || {};
+    const savedInternship = saved.internshipSettings;
+    if (savedInternship && !validateInternshipSettings(savedInternship)) {
+      internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, ...savedInternship, fixedDays: savedInternship.fixedDays || {} };
+    }
     selected = (saved.selectedIds || [])
       .map((id) => courseStore.find((course) => course.id === id))
       .filter(Boolean)
-      .map((course) => ({ ...course, attendance: attendance[course.id] || 'physical' }));
+      .map((course) => ({
+        ...resolveCourseOption(course, courseOptions[course.id]),
+        attendance: attendance[course.id] || 'physical',
+      }));
     courseStore.filter((course) => course.required).forEach((required) => {
       if (!selected.some((course) => course.id === required.id)) selected.push({ ...required, attendance: 'physical' });
     });
@@ -44,6 +54,8 @@ function persistState() {
     localStorage.setItem(STORAGE_KEY, serializePlannerState({
       selectedIds: selected.map((course) => course.id),
       attendance: Object.fromEntries(selected.map((course) => [course.id, course.attendance])),
+      courseOptions,
+      internshipSettings,
       profile,
       manualCourses,
     }));
@@ -63,38 +75,74 @@ function eligibilityLabel(status) {
 
 function renderStats() {
   const credits = selected.reduce((total, course) => total + Number(course.credits || 0), 0);
-  const availability = calculateInternshipAvailability(selected);
+  const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
   const conflicts = findConflicts(selected);
   const eligibilityWarnings = selected.filter((course) => evaluateEligibility(course, profile).status !== 'eligible');
   const specialEvents = selected.reduce((total, course) => total + (course.events || []).length, 0);
+  const optionWarnings = selected.filter((course) => course.optionStatus === 'pending' || course.optionStatus === 'flexible').length;
   byId('credit-value').textContent = `${credits} 學分`;
-  byId('internship-value').textContent = `${availability.equivalentDays} 天`;
-  byId('warning-value').textContent = String(conflicts.length + eligibilityWarnings.length + specialEvents);
-  document.querySelector('.status-pill').textContent = availability.meetsTarget ? '實習時間達標' : '實習時間不足';
+  byId('internship-value').textContent = `${internshipPlan.tentative ? '暫估 ' : ''}${internshipPlan.availableDays} / ${internshipSettings.targetDays} 天`;
+  byId('warning-value').textContent = String(conflicts.length + eligibilityWarnings.length + specialEvents + optionWarnings + internshipPlan.conflicts.length);
+  document.querySelector('.status-pill').textContent = internshipPlan.tentative
+    ? '實習時間待確認'
+    : (internshipPlan.meetsTarget ? '實習時間達標' : '實習時間不足');
 }
 
-function scheduleBlock(course) {
+function meetingsForCourse(course) {
+  if (course.attendance === 'async') return [];
+  if (course.meetings?.length) return course.meetings;
+  return course.schedule ? [course.schedule] : [];
+}
+
+function gridCourseBlock(course, meeting, conflictingIds) {
+  const placement = gridPlacement(meeting);
+  if (!placement) return '';
   const required = course.required;
-  return `<div class="course-block ${required ? 'is-required' : ''}">
-    <span>${escapeHtml(course.schedule?.label || '時間未定')}</span>
+  const stateClasses = [
+    required ? 'is-required' : '',
+    conflictingIds.has(course.id) ? 'has-conflict' : '',
+  ].filter(Boolean).join(' ');
+  return `<article class="grid-course ${stateClasses}" role="cell" style="--grid-column:${meeting.day + 1};--grid-row:${placement.rowStart};--row-span:${placement.rowSpan}">
     <button type="button" data-remove-course="${escapeHtml(course.id)}" ${required ? 'disabled' : ''} aria-label="${required ? '必修固定' : '移除'} ${escapeHtml(course.title)}">
-      <strong>${escapeHtml(course.title)}</strong><small>${required ? '必修固定' : '點擊移除'}</small>
+      <strong>${escapeHtml(course.title)}</strong>
+      <span>${escapeHtml(formatNccuSchedule(meeting, dayLabels))}</span>
+      <small>${escapeHtml(course.sectionCode || '')}${required ? ' · 必修固定' : ' · 點擊移除'}</small>
     </button>
+  </article>`;
+}
+
+function formatMinutes(value) {
+  return `${String(Math.floor(value / 60)).padStart(2, '0')}:${String(value % 60).padStart(2, '0')}`;
+}
+
+function internshipBlock(window, conflicted) {
+  const placement = gridPlacement(window);
+  if (!placement) return '';
+  const label = { full: '全天實習', morning: '上午實習', afternoon: '下午實習' }[window.mode];
+  return `<div class="internship-reservation ${conflicted ? 'has-conflict' : ''}" role="cell" style="--grid-column:${window.day + 1};--grid-row:${placement.rowStart};--row-span:${placement.rowSpan}">
+    <strong>${label}</strong><small>${formatMinutes(window.start)}–${formatMinutes(window.end)}</small>
   </div>`;
 }
 
 function renderSchedule() {
-  const physical = selected.filter((course) => course.attendance !== 'async' && course.schedule);
-  byId('schedule-grid').innerHTML = [1, 2, 3, 4, 5, 6].map((day) => {
-    const dayCourses = physical
-      .filter((course) => course.schedule.day === day)
-      .sort((first, second) => first.schedule.start - second.schedule.start);
-    return `<section class="day" aria-label="${dayLabels[day]}"><h3>${dayLabels[day]}</h3><div class="day-courses">
-      ${dayCourses.length ? dayCourses.map(scheduleBlock).join('') : '<p class="empty">沒有固定課程</p>'}
-    </div></section>`;
-  }).join('');
+  const conflicts = findConflicts(selected);
+  const conflictingIds = new Set(conflicts.flatMap(({ courseIds }) => courseIds));
+  const headers = ['節次', ...dayLabels.slice(1, 7)].map((label, index) => (
+    `<div class="weekday-header" role="columnheader" style="--grid-column:${index + 1}">${escapeHtml(label)}</div>`
+  )).join('');
+  const periodRows = NCCU_PERIODS.map((period, index) => `<div class="period-label ${period.special ? 'is-special' : ''}" data-period-code="${period.code}" role="rowheader" style="--grid-row:${index + 2}">
+      <strong>${period.code}</strong><small>${period.time}</small>
+    </div>${[1, 2, 3, 4, 5, 6].map((day) => `<div class="grid-cell" role="cell" style="--grid-column:${day + 1};--grid-row:${index + 2}"></div>`).join('')}`
+  ).join('');
+  const courseBlocks = selected.flatMap((course) => meetingsForCourse(course)
+    .map((meeting) => gridCourseBlock(course, meeting, conflictingIds))).join('');
+  const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
+  const conflictedWindows = new Set(internshipPlan.conflicts.map(({ window }) => window));
+  const internshipBlocks = internshipPlan.displayWindows
+    .map((window) => internshipBlock(window, conflictedWindows.has(window))).join('');
+  byId('schedule-grid').innerHTML = headers + periodRows + internshipBlocks + courseBlocks;
 
-  const asynchronous = selected.filter((course) => course.attendance === 'async' || !course.schedule);
+  const asynchronous = selected.filter((course) => course.attendance === 'async' || !meetingsForCourse(course).length);
   byId('async-lane').innerHTML = asynchronous.length
     ? `<div class="async-list">${asynchronous.map((course) => `<button type="button" data-remove-course="${escapeHtml(course.id)}">${escapeHtml(course.title)} · ${course.attendance === 'async' ? '非同步' : '時間未定'}</button>`).join('')}</div>`
     : '<p class="empty">目前沒有非同步或時間未定課程</p>';
@@ -102,9 +150,17 @@ function renderSchedule() {
 
 function renderWarnings() {
   const items = findConflicts(selected).map((conflict) => conflict.message);
+  const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
+  internshipPlan.conflicts.forEach((conflict) => {
+    items.push(`${dayLabels[conflict.window.day]}實習時段與 ${conflict.courseTitle} 重疊`);
+  });
+  if (internshipPlan.tentative) items.push('有實體課程尚未選定時段，實習可用天數目前為暫估。');
   selected.forEach((course) => {
     const eligibility = evaluateEligibility(course, profile);
     if (eligibility.status !== 'eligible') items.push(`${course.title}：${eligibility.reasons.join('、')}`);
+    if (course.optionStatus === 'pending' || course.optionStatus === 'flexible') {
+      items.push(`${course.title}：${course.optionMessage}`);
+    }
     (course.events || []).forEach((event) => items.push(`${course.title}：${event.date} ${event.label}`));
   });
   byId('warning-list').innerHTML = items.length
@@ -138,6 +194,20 @@ function renderCatalog() {
     const sections = course.sections?.length
       ? `<details class="course-sections"><summary>查看 ${course.sections.length} 個班別</summary><ul>${course.sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul></details>`
       : '';
+    const selectedVariant = selectedCourse?.variants?.find(({ id }) => id === selectedCourse.selectedVariantId);
+    const optionControls = selectedNow && course.variants?.length
+      ? `<div class="course-option-controls">
+          <label>正式課號<select data-course-variant="${escapeHtml(course.id)}">
+            <option value="">請選擇</option>
+            ${course.variants.map((variant) => `<option value="${escapeHtml(variant.id)}" ${selectedCourse?.selectedVariantId === variant.id ? 'selected' : ''}>${escapeHtml(variant.sectionCode || variant.id)} · ${escapeHtml(variant.teacher || '依指導老師')}</option>`).join('')}
+          </select></label>
+          ${selectedVariant?.advisors?.length ? `<label>指導老師與時段<select data-course-advisor="${escapeHtml(course.id)}">
+            <option value="">請選擇</option>
+            ${selectedVariant.advisors.map((advisor) => `<option value="${escapeHtml(advisor.id)}" ${selectedCourse.selectedAdvisorId === advisor.id ? 'selected' : ''}>${escapeHtml(advisor.teacher)} · ${escapeHtml(advisor.schedule?.label || '彈性時間')}</option>`).join('')}
+          </select></label>` : ''}
+          <p>${escapeHtml(selectedCourse?.optionMessage || '選定後會把對應時段放進左側課表。')}</p>
+        </div>`
+      : '';
     return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
       <button type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked || course.required ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small></span>
@@ -145,6 +215,7 @@ function renderCatalog() {
       </button>
       <ul class="course-conditions">${(course.conditions || []).slice(0, 3).map((condition) => `<li>${escapeHtml(condition)}</li>`).join('')}</ul>
       ${sections}
+      ${optionControls}
       ${attendance}
     </article>`;
   }).join('');
@@ -159,6 +230,7 @@ function renderAll() {
 
 restoreState();
 syncProfileForm();
+syncInternshipForm();
 renderAll();
 
 function syncProfileForm() {
@@ -177,6 +249,43 @@ byId('profile-form').addEventListener('change', () => {
   renderAll();
 });
 
+function syncInternshipForm() {
+  byId('internship-target').value = String(internshipSettings.targetDays);
+  byId('internship-start').value = internshipSettings.start;
+  byId('internship-end').value = internshipSettings.end;
+  byId('internship-mode').value = internshipSettings.mode;
+  byId('internship-fixed-days').hidden = internshipSettings.mode !== 'fixed';
+  document.querySelectorAll('[data-internship-day]').forEach((select) => {
+    select.value = internshipSettings.fixedDays[select.dataset.internshipDay] || 'none';
+  });
+}
+
+byId('internship-form').addEventListener('change', () => {
+  const fixedDays = Object.fromEntries([...document.querySelectorAll('[data-internship-day]')]
+    .map((select) => [select.dataset.internshipDay, select.value]));
+  const candidate = {
+    targetDays: Number(byId('internship-target').value),
+    start: byId('internship-start').value,
+    end: byId('internship-end').value,
+    mode: byId('internship-mode').value,
+    fixedDays,
+  };
+  const validation = validateInternshipSettings(candidate);
+  if (validation) {
+    byId('internship-status').textContent = validation.message;
+    syncInternshipForm();
+    byId(`internship-${validation.field}`).focus();
+    return;
+  }
+  internshipSettings = candidate;
+  byId('internship-status').textContent = candidate.mode === 'auto'
+    ? '已自動優先保留完整工作日，再補半天。'
+    : '已依指定星期保留；衝堂仍會顯示在課表上。';
+  syncInternshipForm();
+  persistState();
+  renderAll();
+});
+
 const catalogList = byId('catalog-list');
 catalogList.addEventListener('click', (event) => {
   const button = event.target.closest('[data-course-id]');
@@ -188,6 +297,19 @@ catalogList.addEventListener('click', (event) => {
 });
 
 catalogList.addEventListener('change', (event) => {
+  const optionSelect = event.target.closest('[data-course-variant], [data-course-advisor]');
+  if (optionSelect) {
+    const courseId = optionSelect.dataset.courseVariant || optionSelect.dataset.courseAdvisor;
+    const current = courseOptions[courseId] || {};
+    const selection = optionSelect.dataset.courseVariant
+      ? { variantId: optionSelect.value, advisorId: null }
+      : { ...current, advisorId: optionSelect.value };
+    courseOptions[courseId] = selection;
+    selected = applyCourseOption(selected, courseId, selection);
+    persistState();
+    renderAll();
+    return;
+  }
   const select = event.target.closest('[data-attendance-course]');
   if (!select) return;
   selected = selected.map((course) => course.id === select.dataset.attendanceCourse
@@ -220,7 +342,10 @@ byId('preset-picker').addEventListener('click', (event) => {
 byId('reset-plan').addEventListener('click', () => {
   selected = applyPreset(courseStore, 'concentrated');
   profile = { ...defaultProfile };
+  courseOptions = {};
+  internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
   syncProfileForm();
+  syncInternshipForm();
   persistState();
   renderAll();
 });

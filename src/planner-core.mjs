@@ -36,18 +36,24 @@ function overlaps(first, second) {
   return first.start < second.end && second.start < first.end;
 }
 
+function physicalMeetings(course) {
+  if (course.attendance === 'async') return [];
+  if (course.meetings?.length) return course.meetings;
+  return course.schedule ? [course.schedule] : [];
+}
+
 export function findConflicts(selected) {
   const conflicts = [];
   for (let index = 0; index < selected.length; index += 1) {
     for (let otherIndex = index + 1; otherIndex < selected.length; otherIndex += 1) {
       const first = selected[index];
       const second = selected[otherIndex];
-      if (
-        first.attendance !== 'async'
-        && second.attendance !== 'async'
-        && first.schedule?.day === second.schedule?.day
-        && overlaps(first.schedule, second.schedule)
-      ) {
+      const weeklyOverlap = physicalMeetings(first).some((firstMeeting) => (
+        physicalMeetings(second).some((secondMeeting) => (
+          firstMeeting.day === secondMeeting.day && overlaps(firstMeeting, secondMeeting)
+        ))
+      ));
+      if (weeklyOverlap) {
         conflicts.push({
           type: 'weekly',
           courseIds: [first.id, second.id],
@@ -59,12 +65,9 @@ export function findConflicts(selected) {
   selected.forEach((course) => {
     (course.events || []).forEach((event) => {
       selected.forEach((other) => {
-        if (
-          other.id !== course.id
-          && other.attendance !== 'async'
-          && other.schedule?.day === event.day
-          && overlaps(event, other.schedule)
-        ) {
+        if (other.id !== course.id && physicalMeetings(other).some((meeting) => (
+          meeting.day === event.day && overlaps(event, meeting)
+        ))) {
           conflicts.push({
             type: 'event',
             courseIds: [course.id, other.id],

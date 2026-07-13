@@ -42,10 +42,31 @@
       </form>
     </details>
 
+    <details class="internship-settings" open>
+      <summary>實習設定</summary>
+      <form id="internship-form" class="internship-form" novalidate>
+        <label>每週目標天數<input id="internship-target" type="number" min="0" max="5" step="0.5" value="2.5"></label>
+        <label>每日開始時間<input id="internship-start" type="time" value="09:00"></label>
+        <label>每日結束時間<input id="internship-end" type="time" value="18:00"></label>
+        <label>安排方式<select id="internship-mode"><option value="auto">自動找完整時段</option><option value="fixed">固定指定星期</option></select></label>
+        <fieldset id="internship-fixed-days" class="internship-fixed-days" hidden>
+          <legend>每個工作日要保留的時段</legend>
+          <label>週一<select data-internship-day="1"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+          <label>週二<select data-internship-day="2"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+          <label>週三<select data-internship-day="3"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+          <label>週四<select data-internship-day="4"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+          <label>週五<select data-internship-day="5"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+        </fieldset>
+        <p id="internship-status" class="form-status internship-status" aria-live="polite"></p>
+      </form>
+    </details>
+
     <div class="planner-layout">
       <section class="panel schedule-panel" data-testid="schedule-panel" aria-labelledby="schedule-title">
         <div class="section-heading"><div><p class="eyebrow">LEFT · MY WEEK</p><h2 id="schedule-title">課表</h2></div><span class="status-pill">實習時間達標</span></div>
-        <div id="schedule-grid" class="schedule-grid" aria-live="polite"></div>
+        <div class="schedule-scroll" aria-label="政大官方節次課表">
+          <div id="schedule-grid" class="nccu-grid" role="table" aria-live="polite"></div>
+        </div>
         <section class="async-section"><h3>非同步工作區</h3><div id="async-lane"></div></section>
         <section class="warning-section"><h3>排課提醒</h3><div id="warning-list" aria-live="polite"></div></section>
       </section>

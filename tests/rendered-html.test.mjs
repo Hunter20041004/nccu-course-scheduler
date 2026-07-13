@@ -61,3 +61,33 @@ test('requires a screenshot before starting the Codex handoff', async () => {
   assert.match(html, /if \(!byId\('screenshot-input'\)\.files\.length\)/);
   assert.match(html, /請先選擇一張課程備選清單截圖/);
 });
+
+test('renders the full NCCU period grid and spanning course blocks', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /class="schedule-scroll"/);
+  assert.match(html, /class="nccu-grid"/);
+  assert.match(html, /NCCU_PERIODS\.map/);
+  assert.match(html, /gridPlacement\(meeting\)/);
+  assert.match(html, /data-period-code/);
+  assert.match(html, /--row-span/);
+});
+
+test('lets a selected multi-option course choose its official section and advisor', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /data-course-variant/);
+  assert.match(html, /data-course-advisor/);
+  assert.match(html, /applyCourseOption\(selected, courseId, selection\)/);
+  assert.match(html, /courseOptions/);
+});
+
+test('offers automatic and fixed internship controls and paints reservations on the grid', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="internship-form"/);
+  assert.match(html, /id="internship-target"[^>]*step="0\.5"/);
+  assert.match(html, /id="internship-start"/);
+  assert.match(html, /id="internship-end"/);
+  assert.match(html, /id="internship-mode"/);
+  assert.match(html, /data-internship-day/);
+  assert.match(html, /calculateInternshipPlan\(selected, internshipSettings\)/);
+  assert.match(html, /class="internship-reservation/);
+});
