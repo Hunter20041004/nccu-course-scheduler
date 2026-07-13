@@ -16,9 +16,28 @@ const [template, styles, nccuPeriods, internshipPlanner, courseData, plannerCore
 const stripModuleSyntax = (source) => source
   .replace(/^import .*;\n/gm, '')
   .replace(/^export\s+/gm, '');
-const script = [nccuPeriods, internshipPlanner, courseData, plannerCore, plannerStorage, app]
-  .map(stripModuleSyntax)
-  .join('\n\n');
+const wrapModule = (source, namespace, exportNames) => {
+  const exports = exportNames.join(', ');
+  return `const ${namespace} = (() => {\n${stripModuleSyntax(source)}\nreturn { ${exports} };\n})();\nconst { ${exports} } = ${namespace};`;
+};
+const script = [
+  wrapModule(nccuPeriods, '__nccuPeriods', [
+    'toMinutes', 'NCCU_PERIODS', 'periodsForRange', 'formatNccuSchedule', 'gridPlacement',
+  ]),
+  wrapModule(internshipPlanner, '__internshipPlanner', [
+    'DEFAULT_INTERNSHIP_SETTINGS', 'validateInternshipSettings', 'calculateInternshipPlan',
+  ]),
+  wrapModule(courseData, '__courseData', ['courses', 'dayLabels']),
+  wrapModule(plannerCore, '__plannerCore', [
+    'evaluateEligibility', 'findConflicts', 'calculateInternshipAvailability', 'toggleCourse',
+    'toggleSelectableCourse', 'applyPreset', 'resolveCourseOption', 'applyCourseOption',
+    'validateManualCourse', 'createManualCourse',
+  ]),
+  wrapModule(plannerStorage, '__plannerStorage', [
+    'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState',
+  ]),
+  `(() => {\n${stripModuleSyntax(app)}\n})();`,
+].join('\n\n');
 
 const html = template
   .replace('/*__STYLES__*/', styles)
