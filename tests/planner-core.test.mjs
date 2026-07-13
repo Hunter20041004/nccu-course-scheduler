@@ -60,6 +60,25 @@ test('reports a weekly conflict when two selected physical courses overlap', () 
   ]);
 });
 
+test('reports a conflict from any meeting of a multi-meeting course', () => {
+  const selected = [
+    {
+      id: 'studio', title: '跨時段專題', attendance: 'physical',
+      meetings: [
+        { day: 2, start: 550, end: 720 },
+        { day: 4, start: 790, end: 960 },
+      ],
+    },
+    { id: 'agentic', title: 'Agentic AI', attendance: 'physical', schedule: { day: 4, start: 790, end: 960 } },
+  ];
+
+  assert.deepEqual(core.findConflicts(selected), [{
+    type: 'weekly',
+    courseIds: ['studio', 'agentic'],
+    message: '跨時段專題 與 Agentic AI 每週時段重疊',
+  }]);
+});
+
 test('does not reserve the weekly slot when an allowed remote course is taken asynchronously', () => {
   const selected = [
     { id: 'agentic', title: 'Agentic AI', schedule: { day: 4, start: 790, end: 960 }, attendance: 'physical' },
