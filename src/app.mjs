@@ -287,7 +287,9 @@ byId('internship-form').addEventListener('change', () => {
 });
 
 const catalogList = byId('catalog-list');
+const catalogClickGate = createCatalogClickGate();
 catalogList.addEventListener('click', (event) => {
+  if (catalogClickGate.consumeSuppression()) return;
   const button = event.target.closest('[data-course-id]');
   if (!button) return;
   const course = courseStore.find((item) => item.id === button.dataset.courseId);
@@ -299,6 +301,8 @@ catalogList.addEventListener('click', (event) => {
 catalogList.addEventListener('change', (event) => {
   const optionSelect = event.target.closest('[data-course-variant], [data-course-advisor]');
   if (optionSelect) {
+    catalogClickGate.suppressNext();
+    setTimeout(() => catalogClickGate.clearSuppression(), 0);
     const courseId = optionSelect.dataset.courseVariant || optionSelect.dataset.courseAdvisor;
     const current = courseOptions[courseId] || {};
     const selection = optionSelect.dataset.courseVariant

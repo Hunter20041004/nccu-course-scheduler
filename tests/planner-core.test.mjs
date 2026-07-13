@@ -288,3 +288,12 @@ test('applies a course option without changing its credits or attendance', () =>
   assert.equal(resolved.attendance, 'physical');
   assert.equal(resolved.teacher, '老師');
 });
+
+test('suppresses the follow-up catalog click caused by choosing a course option', () => {
+  const clickGate = core.createCatalogClickGate();
+
+  clickGate.suppressNext();
+
+  assert.equal(clickGate.consumeSuppression(), true);
+  assert.equal(clickGate.consumeSuppression(), false);
+});

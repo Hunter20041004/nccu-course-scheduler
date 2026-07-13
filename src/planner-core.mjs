@@ -165,6 +165,23 @@ export function applyCourseOption(selected, courseId, selection) {
     : course);
 }
 
+export function createCatalogClickGate() {
+  let suppressed = false;
+  return {
+    suppressNext() {
+      suppressed = true;
+    },
+    consumeSuppression() {
+      if (!suppressed) return false;
+      suppressed = false;
+      return true;
+    },
+    clearSuppression() {
+      suppressed = false;
+    },
+  };
+}
+
 function timeToMinutes(value) {
   const [hours, minutes] = value.split(':').map(Number);
   return (hours * 60) + minutes;
