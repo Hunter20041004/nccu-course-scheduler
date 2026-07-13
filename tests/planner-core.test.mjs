@@ -208,6 +208,18 @@ test('adds an eligible catalog course to the schedule', () => {
   );
 });
 
+test('adds a multi-option catalog course in a pending selection state', () => {
+  const project = {
+    id: 'ai-practical-project', title: '人工智慧實務專題', available: true,
+    variants: [{ id: '070395001', advisors: [] }],
+  };
+
+  const [selectedProject] = core.toggleSelectableCourse([], project, profile);
+
+  assert.equal(selectedProject.optionStatus, 'pending');
+  assert.equal(selectedProject.optionMessage, '請選擇正式課號');
+});
+
 test('rejects a manual course whose end is not after its start', () => {
   assert.deepEqual(
     core.validateManualCourse({ title: '測試課', mode: 'physical', start: '12:00', end: '09:00' }),
@@ -244,6 +256,22 @@ test('resolves the AI project advisor to the correct mutually exclusive meeting'
   assert.equal(resolved.teacher, '吳致勳');
   assert.equal(resolved.schedule.label, '週二 D56');
   assert.equal(resolved.optionStatus, 'resolved');
+});
+
+test('keeps the selected section while waiting for an advisor choice', () => {
+  const course = {
+    id: 'ai-practical-project',
+    variants: [{
+      id: '070395001',
+      sectionCode: '070395001',
+      advisors: [{ id: 'advisor', teacher: '老師', schedule: null }],
+    }],
+  };
+
+  const pending = core.resolveCourseOption(course, { variantId: '070395001' });
+
+  assert.equal(pending.selectedVariantId, '070395001');
+  assert.equal(pending.optionStatus, 'pending');
 });
 
 test('applies a course option without changing its credits or attendance', () => {
