@@ -140,6 +140,7 @@ export function resolveCourseOption(course, selection = {}) {
     return {
       ...course,
       ...variant,
+      id: course.id,
       schedule: null,
       selectedVariantId: variant.id,
       selectedAdvisorId: null,
@@ -152,6 +153,7 @@ export function resolveCourseOption(course, selection = {}) {
     ...course,
     ...variant,
     ...source,
+    id: course.id,
     selectedVariantId: variant.id,
     selectedAdvisorId: advisor?.id || null,
     optionStatus: source.schedule ? 'resolved' : 'flexible',
@@ -163,23 +165,6 @@ export function applyCourseOption(selected, courseId, selection) {
   return selected.map((course) => course.id === courseId
     ? { ...resolveCourseOption(course, selection), attendance: course.attendance }
     : course);
-}
-
-export function createCatalogClickGate() {
-  let suppressed = false;
-  return {
-    suppressNext() {
-      suppressed = true;
-    },
-    consumeSuppression() {
-      if (!suppressed) return false;
-      suppressed = false;
-      return true;
-    },
-    clearSuppression() {
-      suppressed = false;
-    },
-  };
 }
 
 function timeToMinutes(value) {
