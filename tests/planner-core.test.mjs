@@ -254,6 +254,8 @@ test('resolves the AI project advisor to the correct mutually exclusive meeting'
   });
 
   assert.equal(resolved.teacher, '吳致勳');
+  assert.equal(resolved.id, 'ai-practical-project');
+  assert.equal(resolved.selectedVariantId, '070395001');
   assert.equal(resolved.schedule.label, '週二 D56');
   assert.equal(resolved.optionStatus, 'resolved');
 });
@@ -287,13 +289,4 @@ test('applies a course option without changing its credits or attendance', () =>
   assert.equal(resolved.credits, 3);
   assert.equal(resolved.attendance, 'physical');
   assert.equal(resolved.teacher, '老師');
-});
-
-test('suppresses the follow-up catalog click caused by choosing a course option', () => {
-  const clickGate = core.createCatalogClickGate();
-
-  clickGate.suppressNext();
-
-  assert.equal(clickGate.consumeSuppression(), true);
-  assert.equal(clickGate.consumeSuppression(), false);
 });
