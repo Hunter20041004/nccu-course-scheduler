@@ -104,3 +104,16 @@ test('renders the rain-after-sunlight dreamcore design accessibly', async () => 
   assert.match(html, /data-testid="schedule-panel"/);
   assert.match(html, /data-testid="course-catalog"/);
 });
+
+test('contains the wide NCCU timetable inside the mobile schedule panel', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.panel\s*\{[^}]*min-width:\s*0/s);
+  assert.match(html, /\.planner-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
+});
+
+test('keeps course section disclosure targets at least 44 pixels tall', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.course-sections summary\s*\{[^}]*min-height:\s*44px/s);
+});
