@@ -2,18 +2,21 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
-const [template, styles, courseData, plannerCore, plannerStorage, app] = await Promise.all([
+const [template, styles, nccuPeriods, courseData, plannerCore, plannerStorage, app] = await Promise.all([
   read('src/index.html'),
   read('src/styles.css'),
+  read('src/nccu-periods.mjs'),
   read('src/course-data.mjs'),
   read('src/planner-core.mjs'),
   read('src/planner-storage.mjs'),
   read('src/app.mjs'),
 ]);
 
-const stripExports = (source) => source.replace(/^export\s+/gm, '');
-const script = [courseData, plannerCore, plannerStorage, app]
-  .map(stripExports)
+const stripModuleSyntax = (source) => source
+  .replace(/^import .*;\n/gm, '')
+  .replace(/^export\s+/gm, '');
+const script = [nccuPeriods, courseData, plannerCore, plannerStorage, app]
+  .map(stripModuleSyntax)
   .join('\n\n');
 
 const html = template

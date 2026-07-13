@@ -175,7 +175,7 @@ test('normalizes a manually entered physical course into a schedulable block', (
       asyncAllowed: false,
       required: false,
       available: true,
-      schedule: { day: 2, start: 550, end: 720, label: '週二 09:10–12:00' },
+      schedule: { day: 2, start: 550, end: 720, label: '週二 234' },
       conditions: ['手動新增，尚未查證官方資料'],
     },
   );

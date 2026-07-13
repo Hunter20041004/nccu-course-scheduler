@@ -1,3 +1,5 @@
+import { formatNccuSchedule } from './nccu-periods.mjs';
+
 export function evaluateEligibility(section, profile) {
   const reasons = [];
   if (section.available === false) {
@@ -132,6 +134,13 @@ export function validateManualCourse(input) {
 export function createManualCourse(input, sequence) {
   const day = Number(input.day);
   const dayLabels = ['', '週一', '週二', '週三', '週四', '週五', '週六'];
+  const manualSchedule = input.mode === 'async' ? null : {
+    day,
+    start: timeToMinutes(input.start),
+    end: timeToMinutes(input.end),
+    label: '',
+  };
+  if (manualSchedule) manualSchedule.label = formatNccuSchedule(manualSchedule, dayLabels);
   return {
     id: `manual-${sequence}`,
     title: input.title.trim(),
@@ -141,12 +150,7 @@ export function createManualCourse(input, sequence) {
     asyncAllowed: input.mode === 'async',
     required: false,
     available: true,
-    schedule: input.mode === 'async' ? null : {
-      day,
-      start: timeToMinutes(input.start),
-      end: timeToMinutes(input.end),
-      label: `${dayLabels[day]} ${input.start}–${input.end}`,
-    },
+    schedule: manualSchedule,
     conditions: ['手動新增，尚未查證官方資料'],
   };
 }
