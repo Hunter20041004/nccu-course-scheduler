@@ -340,6 +340,7 @@ byId('preset-picker').addEventListener('click', (event) => {
   renderAll();
 });
 byId('reset-plan').addEventListener('click', () => {
+  courseStore = restoreOfficialCatalog(courseStore);
   selected = applyPreset(courseStore, 'concentrated');
   profile = { ...defaultProfile };
   courseOptions = {};
