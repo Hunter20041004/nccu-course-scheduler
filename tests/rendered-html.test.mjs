@@ -91,3 +91,16 @@ test('offers automatic and fixed internship controls and paints reservations on 
   assert.match(html, /calculateInternshipPlan\(selected, internshipSettings\)/);
   assert.match(html, /class="internship-reservation/);
 });
+
+test('renders the rain-after-sunlight dreamcore design accessibly', async () => {
+  const html = await (await render()).text();
+  ['#F5F3EF', '#D8D5D2', '#FFAA55', '#6879C9', '#9180B5', '#D94A48', '#454348']
+    .forEach((color) => assert.match(html, new RegExp(color, 'i')));
+  assert.match(html, /class="dream-grain"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="dream-orb dream-orb-sun"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="dream-orb dream-orb-rain"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="dream-orb dream-orb-violet"[^>]*aria-hidden="true"/);
+  assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(html, /data-testid="schedule-panel"/);
+  assert.match(html, /data-testid="course-catalog"/);
+});
