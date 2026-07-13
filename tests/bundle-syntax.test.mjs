@@ -6,6 +6,7 @@ test('the browser bundle parses after source modules are combined', async () => 
   const root = new URL('../', import.meta.url);
   const sources = await Promise.all([
     'src/nccu-periods.mjs',
+    'src/internship-planner.mjs',
     'src/course-data.mjs',
     'src/planner-core.mjs',
     'src/planner-storage.mjs',
