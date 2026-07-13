@@ -195,3 +195,49 @@ test('rejects a manual course whose end is not after its start', () => {
     { field: 'end', message: '結束時間必須晚於開始時間。' },
   );
 });
+
+test('resolves the AI project advisor to the correct mutually exclusive meeting', () => {
+  const course = {
+    id: 'ai-practical-project',
+    title: '人工智慧實務專題',
+    variants: [{
+      id: '070395001',
+      sectionCode: '070395001',
+      advisors: [
+        {
+          id: 'wu-chih-hsun',
+          teacher: '吳致勳',
+          schedule: { day: 2, start: 790, end: 960, label: '週二 D56' },
+        },
+        {
+          id: 'wu-yi-chieh',
+          teacher: '吳怡潔',
+          schedule: { day: 3, start: 790, end: 960, label: '週三 D56' },
+        },
+      ],
+    }],
+  };
+
+  const resolved = core.resolveCourseOption(course, {
+    variantId: '070395001', advisorId: 'wu-chih-hsun',
+  });
+
+  assert.equal(resolved.teacher, '吳致勳');
+  assert.equal(resolved.schedule.label, '週二 D56');
+  assert.equal(resolved.optionStatus, 'resolved');
+});
+
+test('applies a course option without changing its credits or attendance', () => {
+  const course = {
+    id: 'ai-practical-project', credits: 3, attendance: 'physical',
+    variants: [{ id: 'section', advisors: [{
+      id: 'advisor', teacher: '老師', schedule: { day: 2, start: 790, end: 960 },
+    }] }],
+  };
+  const [resolved] = core.applyCourseOption([course], course.id, {
+    variantId: 'section', advisorId: 'advisor',
+  });
+  assert.equal(resolved.credits, 3);
+  assert.equal(resolved.attendance, 'physical');
+  assert.equal(resolved.teacher, '老師');
+});

@@ -118,6 +118,45 @@ export function applyPreset(courses, presetId) {
     }));
 }
 
+export function resolveCourseOption(course, selection = {}) {
+  if (!course.variants?.length) return course;
+  const variant = course.variants.find(({ id }) => id === selection.variantId);
+  if (!variant) {
+    return {
+      ...course,
+      schedule: null,
+      optionStatus: 'pending',
+      optionMessage: '請選擇正式課號',
+    };
+  }
+  const advisor = variant.advisors?.find(({ id }) => id === selection.advisorId);
+  if (variant.advisors?.length && !advisor) {
+    return {
+      ...course,
+      ...variant,
+      schedule: null,
+      optionStatus: 'pending',
+      optionMessage: '請選擇指導老師',
+    };
+  }
+  const source = advisor || variant;
+  return {
+    ...course,
+    ...variant,
+    ...source,
+    selectedVariantId: variant.id,
+    selectedAdvisorId: advisor?.id || null,
+    optionStatus: source.schedule ? 'resolved' : 'flexible',
+    optionMessage: source.schedule ? null : (source.optionMessage || '時間尚未確認'),
+  };
+}
+
+export function applyCourseOption(selected, courseId, selection) {
+  return selected.map((course) => course.id === courseId
+    ? { ...resolveCourseOption(course, selection), attendance: course.attendance }
+    : course);
+}
+
 function timeToMinutes(value) {
   const [hours, minutes] = value.split(':').map(Number);
   return (hours * 60) + minutes;

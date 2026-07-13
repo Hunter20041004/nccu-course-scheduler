@@ -6,6 +6,30 @@ export const courses = [
     teacher: '魏綾音', available: true, required: false, schedule: null, asyncAllowed: false,
     minYear: 3, conditions: ['時間與地點另依教學大綱公告', '建議具程式設計與機器學習基礎', '大一、大二須經教師同意加簽'],
     sections: ['070395001｜時間未定｜EMI', '070395011｜週六 09:10–12:00', '783006001｜人智學程｜時間未定'],
+    variants: [
+      {
+        id: '783006001', label: '783006001｜AI 學程', sectionCode: '783006001', teacher: '魏綾音',
+        schedule: null, optionMessage: '115-1 上課時間尚未公告',
+      },
+      {
+        id: '070395001', label: '070395001｜AI 中心三位老師合開', sectionCode: '070395001',
+        teacher: '吳怡潔、吳致勳、陳昭伶', schedule: null,
+        advisors: [
+          {
+            id: 'chen-chao-ling', teacher: '陳昭伶', schedule: null,
+            location: '依小組另行約定', optionMessage: '小組彈性約定，實體會議通常安排於中午',
+          },
+          {
+            id: 'wu-chih-hsun', teacher: '吳致勳', location: '行大 8F 160812',
+            schedule: schedule(2, 790, 960, '週二 D56'),
+          },
+          {
+            id: 'wu-yi-chieh', teacher: '吳怡潔', location: '電算中心智慧教室 140011',
+            schedule: schedule(3, 790, 960, '週三 D56'),
+          },
+        ],
+      },
+    ],
   },
   {
     id: 'digital-marketing', title: '數位行銷實作研習', credits: 3, sectionCode: '305677001',
