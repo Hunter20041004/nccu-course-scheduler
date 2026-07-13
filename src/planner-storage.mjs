@@ -1,13 +1,13 @@
-export const STORAGE_KEY = 'nccu-course-planner:v1';
+export const STORAGE_KEY = 'nccu-course-planner:v2';
 
 export function serializePlannerState(state) {
-  return JSON.stringify({ version: 1, state });
+  return JSON.stringify({ version: 2, state });
 }
 
 export function parsePlannerState(raw, fallback) {
   try {
     const parsed = JSON.parse(raw);
-    return parsed?.version === 1 && parsed.state ? parsed.state : fallback;
+    return parsed?.version === 2 && parsed.state ? parsed.state : fallback;
   } catch {
     return fallback;
   }

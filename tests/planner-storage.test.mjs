@@ -12,8 +12,12 @@ test('round-trips versioned planner state', () => {
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
 });
 
+test('uses storage version two for course options and internship settings', () => {
+  assert.equal(JSON.parse(serializePlannerState({ selectedIds: [] })).version, 2);
+});
+
 test('returns the fallback for corrupt or incompatible storage', () => {
   const fallback = { selectedIds: ['creative-intro'] };
   assert.equal(parsePlannerState('{bad json', fallback), fallback);
-  assert.equal(parsePlannerState('{"version":2}', fallback), fallback);
+  assert.equal(parsePlannerState('{"version":1,"state":{}}', fallback), fallback);
 });
