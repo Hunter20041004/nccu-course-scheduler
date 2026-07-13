@@ -167,6 +167,10 @@ export function applyCourseOption(selected, courseId, selection) {
     : course);
 }
 
+export function restoreOfficialCatalog(courseStore) {
+  return courseStore.filter((course) => course.source !== 'manual');
+}
+
 function timeToMinutes(value) {
   const [hours, minutes] = value.split(':').map(Number);
   return (hours * 60) + minutes;

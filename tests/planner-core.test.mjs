@@ -290,3 +290,10 @@ test('applies a course option without changing its credits or attendance', () =>
   assert.equal(resolved.attendance, 'physical');
   assert.equal(resolved.teacher, '老師');
 });
+
+test('restores the official catalog by removing manually added courses', () => {
+  const official = { id: 'official', source: 'nccu' };
+  const manual = { id: 'manual-1', source: 'manual' };
+
+  assert.deepEqual(core.restoreOfficialCatalog([official, manual]), [official]);
+});
