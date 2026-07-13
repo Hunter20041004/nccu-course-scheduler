@@ -29,3 +29,25 @@ export const NCCU_PERIODS = [
   period('G', '20:10', '21:00'),
   period('H', '21:10', '22:00', true),
 ];
+
+export function periodsForRange(start, end) {
+  return NCCU_PERIODS.filter((slot) => start < slot.end && slot.start < end);
+}
+
+export function formatNccuSchedule(schedule, labels) {
+  if (!schedule) return '時間未定';
+  const codes = periodsForRange(schedule.start, schedule.end).map(({ code }) => code).join('');
+  return codes ? `${labels[schedule.day]} ${codes}` : schedule.label;
+}
+
+export function gridPlacement(schedule) {
+  const slots = periodsForRange(schedule.start, schedule.end);
+  if (!slots.length) return null;
+  const first = NCCU_PERIODS.indexOf(slots[0]);
+  const last = NCCU_PERIODS.indexOf(slots.at(-1));
+  return {
+    rowStart: first + 2,
+    rowSpan: last - first + 1,
+    codes: slots.map(({ code }) => code).join(''),
+  };
+}
