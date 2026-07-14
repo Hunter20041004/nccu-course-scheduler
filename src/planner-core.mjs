@@ -119,8 +119,9 @@ export function toggleCourseLock(lockedCourseIds, courseId) {
     : [...lockedCourseIds, courseId];
 }
 
-export function toggleCourse(selected, course) {
+export function toggleCourse(selected, course, lockedCourseIds = []) {
   const isSelected = selected.some((item) => item.id === course.id);
+  if (isSelected && lockedCourseIds.includes(course.id)) return selected;
   if (!isSelected) return [...selected, { ...course, attendance: 'physical' }];
   return selected.filter((item) => item.id !== course.id);
 }
