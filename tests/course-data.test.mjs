@@ -25,6 +25,19 @@ test('models AI practical project as official sections with advisor choices', ()
   assert.equal(advisors.find(({ id }) => id === 'wu-yi-chieh').schedule.label, '週三 D56');
 });
 
+test('models Wei Lingyin project discussions as two mutually exclusive arrangements', () => {
+  const course = courses.find(({ id }) => id === 'ai-practical-project');
+  const variant = course.variants.find(({ id }) => id === '783006001');
+
+  assert.equal(variant.selectionLabel, '討論時間安排');
+  assert.deepEqual(variant.advisors.map(({ id }) => id), ['wei-tuesday-34c', 'wei-flexible']);
+  assert.deepEqual(variant.advisors[0].schedule, {
+    day: 2, start: 610, end: 780, label: '週二 34C',
+  });
+  assert.equal(variant.advisors[1].schedule, null);
+  assert.equal(variant.advisors[1].optionMessage, '另約討論時間（中午時段亦可）');
+});
+
 test('routes FinTech Introduction through undergraduate eligibility review', () => {
   const course = courses.find(({ id }) => id === 'fintech-intro');
 

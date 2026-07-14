@@ -28,13 +28,52 @@ export function normalizeNccuRows(rows, term) {
     .filter((course) => course.courseCode && course.title && Number.isFinite(course.credits));
 }
 
+function isLegacyRenegotiationError(error) {
+  return error?.cause?.code === 'ERR_SSL_UNSAFE_LEGACY_RENEGOTIATION_DISABLED';
+}
+
+async function requestNccuWithNodeHttps(url) {
+  const [{ get }, { constants }] = await Promise.all([
+    import('node:https'),
+    import('node:crypto'),
+  ]);
+  return new Promise((resolve, reject) => {
+    const request = get(url, {
+      headers: { accept: 'application/json' },
+      secureOptions: constants.SSL_OP_LEGACY_SERVER_CONNECT,
+    }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => { body += chunk; });
+      response.on('end', () => {
+        if ((response.statusCode || 500) >= 400) {
+          reject(new Error('NCCU response not ok'));
+          return;
+        }
+        try {
+          resolve(JSON.parse(body));
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+    request.setTimeout(15_000, () => request.destroy(new Error('NCCU request timed out')));
+    request.on('error', reject);
+  });
+}
+
 export async function searchNccuCourses({ term, keyword, fetchImpl = fetch }) {
   try {
-    const response = await fetchImpl(buildNccuCourseUrl({ term, keyword }), {
-      headers: { accept: 'application/json' },
-    });
-    if (!response.ok) throw new Error('NCCU response not ok');
-    const rows = await response.json();
+    const url = buildNccuCourseUrl({ term, keyword });
+    let rows;
+    try {
+      const response = await fetchImpl(url, { headers: { accept: 'application/json' } });
+      if (!response.ok) throw new Error('NCCU response not ok');
+      rows = await response.json();
+    } catch (error) {
+      if (!isLegacyRenegotiationError(error) || typeof process === 'undefined') throw error;
+      rows = await requestNccuWithNodeHttps(url);
+    }
     return normalizeNccuRows(rows, term);
   } catch (error) {
     if (error instanceof NccuLookupError) throw error;

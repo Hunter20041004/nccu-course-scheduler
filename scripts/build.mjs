@@ -72,6 +72,7 @@ const serverScript = [
   stripModuleSyntax(aiContracts),
   stripModuleSyntax(groqClient),
   stripModuleSyntax(nccuCourseAdapter),
+  stripModuleSyntax(plannerCore),
   stripModuleSyntax(aiService),
   stripModuleSyntax(worker),
 ].join('\n\n');

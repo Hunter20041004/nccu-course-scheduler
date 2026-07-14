@@ -33,3 +33,15 @@ test('rejects recommendation plans with hallucinated course ids', () => {
   ] });
   assert.throws(() => parseRecommendedPlans(content, new Set(['known'])), /未知課程/);
 });
+
+test('preserves explicit per-course asynchronous attendance in recommendation plans', () => {
+  const content = JSON.stringify({ summary: '摘要', plans: [
+    { id: 'a', title: 'A', reason: 'A', courseIds: ['physical', 'async'], asyncCourseIds: ['async'], attendance: '混合', tradeoffs: [] },
+    { id: 'b', title: 'B', reason: 'B', courseIds: ['physical'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+    { id: 'c', title: 'C', reason: 'C', courseIds: ['async'], asyncCourseIds: ['async'], attendance: '非同步', tradeoffs: [] },
+  ] });
+
+  const result = parseRecommendedPlans(content, new Set(['physical', 'async']));
+
+  assert.deepEqual(result.plans[0].asyncCourseIds, ['async']);
+});

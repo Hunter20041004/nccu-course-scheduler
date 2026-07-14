@@ -203,11 +203,21 @@ test('presents AI recommendations as previewable strategy routes', async () => {
   assert.match(html, /收起預覽' : '預覽'/);
   assert.match(html, /class="route-week-preview"/);
   assert.match(html, /lockedCourseIds\.includes\(course\.id\)[\s\S]*鎖定保留/);
+  assert.match(html, /plan\.asyncCourseIds\?\.includes\(course\.id\)[\s\S]*非同步/);
   assert.match(html, /let previewedPlanId = null/);
   assert.match(html, /function toggleRecommendedPlanPreview\(planId\)/);
   assert.match(html, /previewedPlanId = previewedPlanId === planId \? null : planId/);
   assert.match(html, /const previewButton = event\.target\.closest\('\[data-preview-ai-plan\]'\)/);
   assert.match(html, /toggleRecommendedPlanPreview\(previewButton\.dataset\.previewAiPlan\)/);
+});
+
+test('never allows a locally conflicting AI route to be applied', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /conflicts,/);
+  assert.match(html, /const blockedByConflict = preview\.conflicts\.length > 0/);
+  assert.match(html, /blockedByConflict \? 'disabled' : ''/);
+  assert.match(html, /此方案有 \$\{preview\.conflicts\.length\} 組衝堂/);
 });
 
 test('clears the current timetable while preserving the candidate catalog', async () => {
@@ -289,6 +299,14 @@ test('lets a selected multi-option course choose its official section and adviso
   assert.match(html, /data-course-advisor/);
   assert.match(html, /applyCourseOption\(selected, courseId, selection\)/);
   assert.match(html, /courseOptions/);
+});
+
+test('labels syllabus-defined project arrangements instead of treating every option as an advisor', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /selectedVariant\.selectionLabel \|\| '指導老師與時段'/);
+  assert.match(html, /advisor\.optionLabel \|\|/);
+  assert.match(html, /variant\.selectionLabel \|\| '指導老師'/);
 });
 
 test('offers automatic and fixed internship controls and paints reservations on the grid', async () => {
