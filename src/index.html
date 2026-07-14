@@ -4,36 +4,33 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <meta name="theme-color" content="#F5F3EF">
+  <meta name="theme-color" content="#F7F6FA">
   <meta name="description" content="整理候選課程、檢查衝堂與資格，保留至少兩天半實習時間。">
   <title>政大排課｜實習友善課表規劃</title>
   <style>/*__STYLES__*/</style>
 </head>
 <body>
-  <div class="dream-grain" aria-hidden="true"></div>
-  <div class="dream-orb dream-orb-sun" aria-hidden="true"></div>
-  <div class="dream-orb dream-orb-rain" aria-hidden="true"></div>
-  <div class="dream-orb dream-orb-violet" aria-hidden="true"></div>
   <header class="site-header">
-    <div class="hero-copy">
-      <p class="eyebrow">NCCU · 115-1 · 雨後日光</p>
-      <h1>把課集中，替實習留下完整時間。</h1>
-      <p>三門核心課可自由加入與鎖定；右側點選候選項目，左側課表會立即更新。</p>
+    <div class="brand-lockup">
+      <span class="brand-sigil" aria-hidden="true"><i></i></span>
+      <div>
+        <strong>Sunbreak</strong>
+        <span>政大排課 · 115-1</span>
+      </div>
     </div>
-    <div class="weather-window" aria-hidden="true"><span class="weather-sun"></span><span class="weather-cloud weather-cloud-back"></span><span class="weather-cloud weather-cloud-front"></span></div>
+    <section class="header-metrics" aria-label="排課摘要">
+      <div><small>已選學分</small><strong id="credit-value">17</strong></div>
+      <div><small>可實習</small><strong id="internship-value">3 天</strong></div>
+      <div><small>待處理</small><strong id="warning-value">0</strong></div>
+    </section>
     <div class="header-actions">
       <button id="clear-schedule" class="button button-quiet" type="button">清空目前課表</button>
       <button id="reset-plan" class="button button-secondary" type="button">恢復建議方案</button>
     </div>
+    <div id="internship-progress" class="sunline" role="progressbar" aria-label="實習時間達成率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
   </header>
 
   <main>
-    <section class="stats" aria-label="排課摘要">
-      <article><span>已選學分</span><strong id="credit-value">17</strong><small>核心課可自行鎖定</small></article>
-      <article><span>可實習時間</span><strong id="internship-value">3 天</strong><small>目標至少 2.5 天</small></article>
-      <article><span>待處理提醒</span><strong id="warning-value">0</strong><small>衝堂、資格與重要日期</small></article>
-    </section>
-
     <p id="planner-status" class="form-status planner-status" aria-live="polite"></p>
 
     <div id="compact-view-switch" class="compact-view-switch" aria-label="切換課表或工具">

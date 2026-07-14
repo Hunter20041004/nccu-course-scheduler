@@ -259,17 +259,42 @@ test('offers automatic and fixed internship controls and paints reservations on 
   assert.match(html, /class="internship-reservation/);
 });
 
-test('renders the rain-after-sunlight dreamcore design accessibly', async () => {
+test('renders the Sunbreak workbench without decorative dreamcore effects', async () => {
   const html = await (await render()).text();
-  ['#F5F3EF', '#D8D5D2', '#FFAA55', '#6879C9', '#9180B5', '#D94A48', '#454348']
+  ['#F7F6FA', '#FFFFFF', '#211F26', '#5E5B68', '#DAD7E2', '#2446D8', '#6E46B8', '#E7A43A', '#B43830']
     .forEach((color) => assert.match(html, new RegExp(color, 'i')));
-  assert.match(html, /class="dream-grain"[^>]*aria-hidden="true"/);
-  assert.match(html, /class="dream-orb dream-orb-sun"[^>]*aria-hidden="true"/);
-  assert.match(html, /class="dream-orb dream-orb-rain"[^>]*aria-hidden="true"/);
-  assert.match(html, /class="dream-orb dream-orb-violet"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="brand-lockup"/);
+  assert.match(html, /class="header-metrics"/);
+  assert.match(html, /id="internship-progress"/);
+  assert.match(html, /--radius-panel:\s*12px/);
   assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(html, /data-testid="schedule-panel"/);
   assert.match(html, /data-testid="course-catalog"/);
+  assert.doesNotMatch(html, /dream-orb|dream-grain|weather-window|hero-copy/);
+  assert.doesNotMatch(html, /backdrop-filter/);
+});
+
+test('updates the Sunbreak internship progress line from the current target', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /const internshipProgress = byId\('internship-progress'\)/);
+  assert.match(html, /internshipProgress\.style\.setProperty\('--internship-progress', `\$\{progressPercent\}%`\)/);
+  assert.match(html, /internshipProgress\.setAttribute\('aria-valuenow', String\(progressPercent\)\)/);
+});
+
+test('reveals a newly added course in the official timetable', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /data-grid-course="\$\{escapeHtml\(course\.id\)\}"/);
+  assert.match(html, /function revealPlacedCourse\(courseId\)/);
+  assert.match(html, /block\.scrollIntoView\(\{ block: 'nearest', inline: 'nearest' \}\)/);
+  assert.match(html, /if \(!wasSelected\) revealPlacedCourse\(course\.id\)/);
+  assert.match(html, /\.grid-course\.is-newly-placed\s*\{[^}]*200ms/s);
+});
+
+test('uses plain-language eligibility labels in compact course rows', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /blocked: '條件不符合'/);
+  assert.match(html, /unavailable: '本學期未開課'/);
+  assert.doesNotMatch(html, /blocked: '目前不符'/);
 });
 
 test('contains the wide NCCU timetable inside the mobile schedule panel', async () => {
