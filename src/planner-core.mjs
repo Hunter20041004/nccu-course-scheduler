@@ -113,6 +113,12 @@ export function clearPlannerSelection() {
   return { selected: [], lockedCourseIds: [], courseOptions: {} };
 }
 
+export function toggleCourseLock(lockedCourseIds, courseId) {
+  return lockedCourseIds.includes(courseId)
+    ? lockedCourseIds.filter((id) => id !== courseId)
+    : [...lockedCourseIds, courseId];
+}
+
 export function toggleCourse(selected, course) {
   const isSelected = selected.some((item) => item.id === course.id);
   if (!isSelected) return [...selected, { ...course, attendance: 'physical' }];

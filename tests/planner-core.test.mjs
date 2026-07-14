@@ -147,6 +147,11 @@ test('removes an unlocked required course from the selection', () => {
   assert.deepEqual(core.toggleCourse([required], required, []), []);
 });
 
+test('toggles a selected course lock on and off', () => {
+  assert.deepEqual(core.toggleCourseLock([], 'agentic'), ['agentic']);
+  assert.deepEqual(core.toggleCourseLock(['agentic'], 'agentic'), []);
+});
+
 test('adds an available optional course to the selection', () => {
   const optional = { id: 'hci', title: '人機互動', asyncAllowed: false };
   assert.deepEqual(core.toggleCourse([], optional), [{ ...optional, attendance: 'physical' }]);
