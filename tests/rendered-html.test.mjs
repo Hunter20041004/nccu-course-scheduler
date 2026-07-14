@@ -54,6 +54,24 @@ test('shows at least ten candidates through compact rows with progressive detail
   assert.match(html, /class="course-details-card"[\s\S]*class="course-conditions"/);
 });
 
+test('lets an expanded attendance control increase its candidate row height', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.catalog-list\s*\{[^}]*display:\s*block/s);
+  assert.match(html, /\.catalog-list\s*\{[^}]*flex:\s*1 1 auto/s);
+});
+
+test('reveals physical synchronous and asynchronous choices after selecting a remote-capable course', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /selectedNow && course\.asyncAllowed/);
+  assert.match(html, /<span>實體／同步／非同步<\/span>/);
+  assert.match(html, /<option value="physical"[^>]*>實體<\/option>/);
+  assert.match(html, /<option value="sync"[^>]*>同步<\/option>/);
+  assert.match(html, /<option value="async"[^>]*>非同步<\/option>/);
+  assert.doesNotMatch(html, /selectedNow && course\.asyncAllowed[\s\S]{0,800}實體／固定同步/);
+});
+
 test('renders detail lock and delete controls for every candidate type', async () => {
   const html = await (await render()).text();
   assert.match(html, /class="course-actions"/);
@@ -75,6 +93,13 @@ test('fits the full official NCCU period grid into a compact at-a-glance schedul
   assert.match(html, /grid-template-rows:\s*40px repeat\(16,\s*36px\)/);
   assert.match(html, /min-width:\s*840px/);
   assert.match(html, /\.period-label strong\s*\{[^}]*font-size:\s*\.88rem/s);
+});
+
+test('uses the same timetable palette for core and optional courses', async () => {
+  const html = await (await render()).text();
+
+  assert.doesNotMatch(html, /\.grid-course\.is-required\s*\{/);
+  assert.doesNotMatch(html, /\.grid-course\.is-required\.has-conflict\s*\{/);
 });
 
 test('renders Monday through Sunday in the timetable and manual form', async () => {
@@ -311,9 +336,9 @@ test('reveals a newly added course in the official timetable', async () => {
 
 test('uses plain-language eligibility labels in compact course rows', async () => {
   const html = await (await render()).text();
-  assert.match(html, /blocked: '條件不符合'/);
+  assert.match(html, /blocked: '條件不符合，請看詳細。'/);
   assert.match(html, /unavailable: '本學期未開課'/);
-  assert.doesNotMatch(html, /blocked: '目前不符'/);
+  assert.doesNotMatch(html, /blocked: '條件不符合'/);
 });
 
 test('exposes the actual eligibility reasons in every non-eligible course detail', async () => {
