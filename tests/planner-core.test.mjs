@@ -31,6 +31,22 @@ test('marks a graduate course requiring undergraduate review as conditional', ()
   );
 });
 
+test('marks a missing review condition conditional with its rationale', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({
+      eligibilityRules: [{
+        conditionId: 'competency:python',
+        enforcement: 'review',
+        rationale: '建議具備 Python 基礎，未具備者須先與教師確認。',
+      }],
+    }, { ...profile, conditionIds: [] }),
+    {
+      status: 'conditional',
+      reasons: ['建議具備 Python 基礎，未具備者須先與教師確認。'],
+    },
+  );
+});
+
 test('marks a course with no current section unavailable', () => {
   assert.deepEqual(
     core.evaluateEligibility({ available: false }, profile),

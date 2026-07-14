@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildConditionDefinitions,
+  buildConditionImpacts,
   profileConditionIds,
   rulesForCourse,
 } from '../src/eligibility-conditions.mjs';
@@ -14,6 +15,32 @@ test('normalizes legacy program and prerequisite facts into condition ids', () =
     'program:innovation',
     'prerequisite:statistics',
   ]);
+});
+
+test('explains the course impact of an unchecked required condition', () => {
+  const courses = [{
+    id: 'analytics',
+    title: '商業分析',
+    prerequisites: ['statistics'],
+  }];
+  const definitions = buildConditionDefinitions(courses);
+
+  assert.deepEqual(buildConditionImpacts(courses, definitions, { conditionIds: [] }), [{
+    id: 'prerequisite:statistics',
+    label: '修過統計學 3 學分',
+    category: 'prerequisite',
+    description: '部分量化課程將統計學 3 學分列為先修門檻。',
+    source: 'course',
+    selected: false,
+    summary: '影響 1 門候選課',
+    affectedCourses: [{
+      courseId: 'analytics',
+      title: '商業分析',
+      enforcement: 'required',
+      rationale: '須先具備 statistics。',
+      consequence: '沒有時無法直接加入',
+    }],
+  }]);
 });
 
 test('normalizes legacy course programs and prerequisites into required rules', () => {
