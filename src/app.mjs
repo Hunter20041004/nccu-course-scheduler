@@ -16,6 +16,7 @@ let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
 let pendingCourses = [];
 let lastImportedCourses = [];
 let recommendedPlans = [];
+let previewedPlanId = null;
 let customConditions = [];
 
 function escapeHtml(value) {
@@ -617,22 +618,56 @@ function previewRecommendedPlan(plan) {
   };
 }
 
+function renderRouteWeekPreview(planCourses) {
+  const loads = [1, 2, 3, 4, 5, 6, 7].map((day) => planCourses.reduce((total, course) => (
+    total + meetingsForCourse(course).filter((meeting) => meeting.day === day).length
+  ), 0));
+  const peak = Math.max(1, ...loads);
+  return `<div class="route-week-preview" role="img" aria-label="週一至週日課程密度">
+    ${loads.map((load, index) => `<span aria-label="${escapeHtml(dayLabels[index + 1])} ${load} 個時段"><b>${escapeHtml(dayLabels[index + 1].replace('週', ''))}</b><i style="--route-load:${Math.round((load / peak) * 100)}%"></i></span>`).join('')}
+  </div>`;
+}
+
+function renderRouteComparison(planCourses) {
+  const currentIds = new Set(selected.map((course) => course.id));
+  const routeIds = new Set(planCourses.map((course) => course.id));
+  const kept = planCourses.filter((course) => currentIds.has(course.id)).length;
+  const added = planCourses.filter((course) => !currentIds.has(course.id)).length;
+  const removed = selected.filter((course) => !routeIds.has(course.id) && !lockedCourseIds.includes(course.id)).length;
+  return `<section class="route-comparison" aria-label="與目前課表比較">
+    <strong>與目前課表比較</strong>
+    <dl><div><dt>保留</dt><dd>${kept}</dd></div><div><dt>新增</dt><dd>${added}</dd></div><div><dt>移除</dt><dd>${removed}</dd></div></dl>
+    <p>這只是預覽，尚未變更目前課表。</p>
+  </section>`;
+}
+
+function toggleRecommendedPlanPreview(planId) {
+  previewedPlanId = previewedPlanId === planId ? null : planId;
+  renderRecommendedPlans();
+}
+
 function renderRecommendedPlans() {
   const results = byId('ai-plan-results');
   if (!recommendedPlans.length) {
     results.innerHTML = '';
     return;
   }
-  results.innerHTML = recommendedPlans.map((plan) => {
+  results.innerHTML = recommendedPlans.map((plan, index) => {
     const preview = previewRecommendedPlan(plan);
-    return `<article class="ai-plan-card">
-      <p class="eyebrow">${escapeHtml(plan.attendance || 'AI PLAN')}</p>
+    const expanded = previewedPlanId === plan.id;
+    return `<article class="ai-route-board" data-route-id="${escapeHtml(plan.id)}">
+      <div class="route-index"><span>路線 ${String(index + 1).padStart(2, '0')}</span><b>${escapeHtml(plan.attendance || '彈性安排')}</b></div>
       <h3>${escapeHtml(plan.title)}</h3>
-      <p>${escapeHtml(plan.reason)}</p>
-      <dl><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.availableDays} 天</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
-      <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li>${escapeHtml(course.title)}</li>`).join('')}</ul>
+      <p class="route-strategy">${escapeHtml(plan.reason)}</p>
+      <dl class="route-metrics"><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.availableDays} 天</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
+      ${renderRouteWeekPreview(preview.planCourses)}
+      <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li><span>${escapeHtml(course.title)}</span>${lockedCourseIds.includes(course.id) ? '<b>鎖定保留</b>' : ''}</li>`).join('')}</ul>
       ${plan.tradeoffs?.length ? `<p class="ai-plan-tradeoffs">取捨：${escapeHtml(plan.tradeoffs.join('、'))}</p>` : ''}
-      <button class="button button-primary" type="button" data-apply-ai-plan="${escapeHtml(plan.id)}">套用此方案</button>
+      ${expanded ? renderRouteComparison(preview.planCourses) : ''}
+      <div class="route-actions">
+        <button class="button button-quiet" type="button" data-preview-ai-plan="${escapeHtml(plan.id)}" aria-expanded="${expanded}">${expanded ? '收起預覽' : '預覽'}</button>
+        <button class="button button-primary" type="button" data-apply-ai-plan="${escapeHtml(plan.id)}">套用此方案</button>
+      </div>
     </article>`;
   }).join('');
 }
@@ -685,6 +720,11 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
 });
 
 byId('ai-plan-results').addEventListener('click', (event) => {
+  const previewButton = event.target.closest('[data-preview-ai-plan]');
+  if (previewButton) {
+    toggleRecommendedPlanPreview(previewButton.dataset.previewAiPlan);
+    return;
+  }
   const button = event.target.closest('[data-apply-ai-plan]');
   if (!button) return;
   const plan = recommendedPlans.find((item) => item.id === button.dataset.applyAiPlan);
