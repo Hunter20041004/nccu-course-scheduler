@@ -224,24 +224,30 @@ export function validateManualCourse(input) {
 
 export function createManualCourse(input, sequence) {
   const day = Number(input.day);
-  const dayLabels = ['', '週一', '週二', '週三', '週四', '週五', '週六'];
+  const itemType = input.itemType || 'course';
+  const dayLabels = ['', '週一', '週二', '週三', '週四', '週五', '週六', '週日'];
   const manualSchedule = input.mode === 'async' ? null : {
     day,
     start: timeToMinutes(input.start),
     end: timeToMinutes(input.end),
     label: '',
   };
-  if (manualSchedule) manualSchedule.label = formatNccuSchedule(manualSchedule, dayLabels);
+  if (manualSchedule) {
+    manualSchedule.label = itemType === 'course'
+      ? formatNccuSchedule(manualSchedule, dayLabels)
+      : `${dayLabels[day]} ${input.start}–${input.end}`;
+  }
   return {
     id: `manual-${sequence}`,
     title: input.title.trim(),
-    credits: Number(input.credits),
+    itemType,
+    credits: itemType === 'course' ? Number(input.credits) : 0,
     source: 'manual',
     attendance: input.mode,
     asyncAllowed: input.mode === 'async',
     required: false,
     available: true,
     schedule: manualSchedule,
-    conditions: ['手動新增，尚未查證官方資料'],
+    conditions: [itemType === 'course' ? '手動新增，尚未查證官方資料' : '自訂每週行程'],
   };
 }
