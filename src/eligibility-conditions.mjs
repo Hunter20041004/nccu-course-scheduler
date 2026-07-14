@@ -94,3 +94,17 @@ export function buildConditionImpacts(courses = [], definitions = [], profile = 
     };
   });
 }
+
+export function validateCustomCondition(input = {}, existingDefinitions = []) {
+  if (!input.label?.trim()) {
+    return { field: 'label', message: '請輸入條件名稱。' };
+  }
+  const normalizedLabel = input.label.trim().replace(/\s+/g, ' ').toLocaleLowerCase('zh-Hant');
+  const duplicate = existingDefinitions.some((definition) => (
+    definition.label?.trim().replace(/\s+/g, ' ').toLocaleLowerCase('zh-Hant') === normalizedLabel
+  ));
+  if (duplicate) {
+    return { field: 'label', message: '這項條件已經存在。' };
+  }
+  return null;
+}

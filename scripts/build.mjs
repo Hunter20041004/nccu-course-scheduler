@@ -41,6 +41,7 @@ const script = [
   wrapModule(courseData, '__courseData', ['courses', 'dayLabels']),
   wrapModule(eligibilityConditions, '__eligibilityConditions', [
     'profileConditionIds', 'rulesForCourse', 'buildConditionDefinitions', 'buildConditionImpacts',
+    'validateCustomCondition',
   ]),
   wrapModule(plannerCore, '__plannerCore', [
     'evaluateEligibility', 'findConflicts', 'calculateInternshipAvailability', 'toggleCourse',

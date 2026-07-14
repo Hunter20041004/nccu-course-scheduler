@@ -168,13 +168,38 @@ test('does not silently restore removed core courses after reload', async () => 
   assert.doesNotMatch(html, /courseStore\.filter\(\(course\) => course\.required\)\.forEach/);
 });
 
-test('lets the student change eligibility conditions used by the catalog', async () => {
+test('renders course-driven eligibility conditions with reasons and affected courses', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="profile-form"/);
   assert.match(html, /id="profile-year"/);
-  assert.match(html, /id="profile-innovation"/);
-  assert.match(html, /id="profile-statistics"/);
-  assert.match(html, /profile\.prerequisites = byId\('profile-statistics'\)\.checked/);
+  assert.match(html, /id="condition-list"/);
+  assert.match(html, /buildConditionDefinitions\(courseStore, customConditions\)/);
+  assert.match(html, /buildConditionImpacts\(courseStore, definitions, profile\)/);
+  assert.match(html, /impact\.summary/);
+  assert.match(html, /impact\.affectedCourses/);
+  assert.doesNotMatch(html, /id="profile-innovation"/);
+  assert.doesNotMatch(html, /id="profile-statistics"/);
+});
+
+test('adds a validated custom condition to the profile and persists it', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="custom-condition-form"/);
+  assert.match(html, /id="custom-condition-label"/);
+  assert.match(html, /id="custom-condition-category"/);
+  assert.match(html, /id="custom-condition-description"/);
+  assert.match(html, /validateCustomCondition\(input, definitions\)/);
+  assert.match(html, /customConditions\.push\(condition\)/);
+  assert.match(html, /profile\.conditionIds = \[\.\.\.selectedIds, condition\.id\]/);
+  assert.match(html, /id="custom-condition-status"[^>]*aria-live="polite"/);
+});
+
+test('deletes only custom conditions and removes them from the profile', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /impact\.source === 'custom'/);
+  assert.match(html, /data-delete-condition/);
+  assert.match(html, /customConditions = customConditions\.filter/);
+  assert.match(html, /profile\.conditionIds = profileConditionIds\(profile\)\.filter/);
+  assert.match(html, /確定刪除自訂條件/);
 });
 
 test('requires a screenshot before starting the private import', async () => {

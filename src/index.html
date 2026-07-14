@@ -62,8 +62,16 @@
       <form id="profile-form" class="profile-form">
         <label>學制<select id="profile-level"><option value="undergrad">學士班</option><option value="graduate">碩博士班</option></select></label>
         <label>年級<select id="profile-year"><option value="1">大一</option><option value="2">大二</option><option value="3">大三</option><option value="4">大四以上</option></select></label>
-        <label class="check-label"><input id="profile-innovation" type="checkbox">我具創新創業學程資格</label>
-        <label class="check-label"><input id="profile-statistics" type="checkbox">我已修過統計學 3 學分</label>
+        <p class="profile-helper">以下條件由目前候選課程產生；每一項都會說明為什麼需要，以及沒有時會影響哪些課。</p>
+      </form>
+      <div id="condition-list" class="condition-list" aria-live="polite"></div>
+      <form id="custom-condition-form" class="custom-condition-form" novalidate>
+        <h3>新增我的條件</h3>
+        <label>條件名稱<input id="custom-condition-label" autocomplete="off" placeholder="例如：人工智慧跨域微學程"></label>
+        <label>類型<select id="custom-condition-category"><option value="program">學程／微學程</option><option value="department">系所／班級</option><option value="prerequisite">先修課程</option><option value="competency">能力條件</option><option value="identity">其他學生身分</option><option value="other">其他</option></select></label>
+        <label>為什麼記錄這項條件<textarea id="custom-condition-description" rows="2" placeholder="例如：部分候選課第一階段只開放本學程"></textarea></label>
+        <button class="button button-primary" type="submit">新增並標記為符合</button>
+        <p id="custom-condition-status" class="form-status" aria-live="polite"></p>
       </form>
     </details>
 
