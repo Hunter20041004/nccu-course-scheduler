@@ -49,6 +49,21 @@ test('shows at least ten candidates through compact rows with progressive detail
   assert.match(html, /class="course-details-card"[\s\S]*class="course-conditions"/);
 });
 
+test('renders detail lock and delete controls for every candidate type', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /class="course-actions"/);
+  assert.match(html, /data-lock-course=/);
+  assert.match(html, /data-delete-course=/);
+  assert.doesNotMatch(html, /course\.required\s*\?\s*`<button class="catalog-lock/);
+});
+
+test('locks unselected courses and confirms deletion of core candidates', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /lockCandidateCourse\(selected, lockedCourseIds, course, profile\)/);
+  assert.match(html, /這是你標記為一定要修的課程/);
+  assert.match(html, /deleteCandidateCourse\(courseStore, selected, lockedCourseIds, course\.id\)/);
+});
+
 test('fits the full official NCCU period grid into a compact at-a-glance schedule', async () => {
   const html = await (await render()).text();
 
