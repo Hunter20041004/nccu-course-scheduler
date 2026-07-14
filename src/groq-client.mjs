@@ -23,7 +23,12 @@ export async function requestGroqJson({ apiKey, messages, fetchImpl = fetch, tim
     response = await fetchImpl(GROQ_ENDPOINT, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: GROQ_MODEL, messages, response_format: { type: 'json_object' } }),
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages,
+        response_format: { type: 'json_object' },
+        reasoning_effort: 'none',
+      }),
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (error) {

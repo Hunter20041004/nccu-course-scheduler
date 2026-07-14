@@ -15,6 +15,7 @@ test('posts a structured request to the fixed Groq model', async () => {
   assert.equal(captured.url, 'https://api.groq.com/openai/v1/chat/completions');
   assert.equal(captured.body.model, 'qwen/qwen3.6-27b');
   assert.deepEqual(captured.body.response_format, { type: 'json_object' });
+  assert.equal(captured.body.reasoning_effort, 'none');
   assert.equal(captured.init.headers.authorization, 'Bearer test-only');
   assert.equal(content, '{"recognizedCourses":[]}');
 });
