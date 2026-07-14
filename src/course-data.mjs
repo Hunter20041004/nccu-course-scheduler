@@ -158,10 +158,6 @@ export const courses = [
     teacher: '莊豐源', available: true, required: false, schedule: schedule(4, 790, 960, '週四 13:10–16:00'),
     asyncAllowed: false, minYear: 3, conditions: ['資管三、四', '英文授課', '學碩合開，30 人'], sections: ['306719011｜學士班', '356344011｜碩士班'],
   },
-  {
-    id: 'applied-ml', title: '應用機器學習', credits: 0, sectionCode: '—', teacher: '—',
-    available: false, required: false, schedule: null, asyncAllowed: false, conditions: ['115-1 查無開課資料'], sections: [],
-  },
 ];
 
 export const dayLabels = ['', '週一', '週二', '週三', '週四', '週五', '週六'];
