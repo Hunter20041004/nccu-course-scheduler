@@ -16,28 +16,42 @@ function mapGroqStatus(status) {
   return new GroqError('AI 服務暫時無法使用。', 502, 'AI_UPSTREAM_ERROR');
 }
 
-export async function requestGroqJson({ apiKey, messages, fetchImpl = fetch, timeoutMs = 45_000 }) {
+export async function requestGroqJson({
+  apiKey,
+  messages,
+  reasoningEffort,
+  fetchImpl = fetch,
+  timeoutMs = 45_000,
+}) {
   if (!apiKey) throw new GroqError('AI 服務尚未設定。', 503, 'AI_NOT_CONFIGURED');
+  const requestBody = JSON.stringify({
+    model: GROQ_MODEL,
+    messages,
+    response_format: { type: 'json_object' },
+    ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+  });
   let response;
-  try {
-    response = await fetchImpl(GROQ_ENDPOINT, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: GROQ_MODEL,
-        messages,
-        response_format: { type: 'json_object' },
-        reasoning_effort: 'none',
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-    });
-  } catch (error) {
-    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
-      throw new GroqError('AI 回應逾時，請重試。', 504, 'AI_TIMEOUT');
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await fetchImpl(GROQ_ENDPOINT, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
+        body: requestBody,
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (error) {
+      if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+        throw new GroqError('AI 回應逾時，請重試。', 504, 'AI_TIMEOUT');
+      }
+      throw new GroqError('AI 服務暫時無法使用。', 502, 'AI_UPSTREAM_ERROR');
     }
-    throw new GroqError('AI 服務暫時無法使用。', 502, 'AI_UPSTREAM_ERROR');
+    if (response.ok) break;
+    const errorPayload = await response.json().catch(() => null);
+    if (attempt === 0 && response.status === 400 && errorPayload?.error?.code === 'json_validate_failed') {
+      continue;
+    }
+    throw mapGroqStatus(response.status);
   }
-  if (!response.ok) throw mapGroqStatus(response.status);
   const payload = await response.json();
   const content = payload?.choices?.[0]?.message?.content;
   if (typeof content !== 'string') {
