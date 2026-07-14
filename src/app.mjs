@@ -10,6 +10,7 @@ let profile = { ...defaultProfile };
 let courseStore = [...courses];
 let selected = applyPreset(courseStore, 'concentrated');
 let courseOptions = {};
+let lockedCourseIds = [];
 let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
 
 function escapeHtml(value) {
@@ -29,6 +30,7 @@ function restoreState() {
     courseStore = buildCandidateCatalog(courses, saved.manualCourses, saved.deletedCourseIds);
     const attendance = saved.attendance || {};
     courseOptions = saved.courseOptions || {};
+    lockedCourseIds = saved.lockedCourseIds || [];
     const savedInternship = saved.internshipSettings;
     if (savedInternship && !validateInternshipSettings(savedInternship)) {
       internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, ...savedInternship, fixedDays: savedInternship.fixedDays || {} };
@@ -40,9 +42,7 @@ function restoreState() {
         ...resolveCourseOption(course, courseOptions[course.id]),
         attendance: attendance[course.id] || 'physical',
       }));
-    courseStore.filter((course) => course.required).forEach((required) => {
-      if (!selected.some((course) => course.id === required.id)) selected.push({ ...required, attendance: 'physical' });
-    });
+    lockedCourseIds = lockedCourseIds.filter((id) => selected.some((course) => course.id === id));
   } catch {
     selected = applyPreset(courseStore, 'concentrated');
   }
@@ -59,6 +59,7 @@ function persistState() {
       selectedIds: selected.map((course) => course.id),
       attendance: Object.fromEntries(selected.map((course) => [course.id, course.attendance])),
       courseOptions,
+      lockedCourseIds,
       internshipSettings,
       profile,
       manualCourses,
@@ -103,15 +104,18 @@ function gridCourseBlock(course, meeting, conflictingIds) {
   const placement = gridPlacement(meeting);
   if (!placement) return '';
   const required = course.required;
+  const locked = lockedCourseIds.includes(course.id);
   const stateClasses = [
     required ? 'is-required' : '',
+    locked ? 'is-locked' : '',
+    course.itemType ? `is-${course.itemType}` : '',
     conflictingIds.has(course.id) ? 'has-conflict' : '',
   ].filter(Boolean).join(' ');
   return `<article class="grid-course ${stateClasses}" role="cell" style="--grid-column:${meeting.day + 1};--grid-row:${placement.rowStart};--row-span:${placement.rowSpan}">
-    <button type="button" data-remove-course="${escapeHtml(course.id)}" ${required ? 'disabled' : ''} aria-label="${required ? '必修固定' : '移除'} ${escapeHtml(course.title)}">
+    <button type="button" data-remove-course="${escapeHtml(course.id)}" ${locked ? 'disabled' : ''} aria-label="${locked ? '已鎖定' : '移除'} ${escapeHtml(course.title)}">
       <strong>${escapeHtml(course.title)}</strong>
       <span>${escapeHtml(formatNccuSchedule(meeting, dayLabels))}</span>
-      <small>${escapeHtml(course.sectionCode || '')}${required ? ' · 必修固定' : ' · 點擊移除'}</small>
+      <small>${escapeHtml(course.sectionCode || '')}${locked ? ' · 已鎖定' : ' · 點擊移除'}</small>
     </button>
   </article>`;
 }
@@ -132,12 +136,12 @@ function internshipBlock(window, conflicted) {
 function renderSchedule() {
   const conflicts = findConflicts(selected);
   const conflictingIds = new Set(conflicts.flatMap(({ courseIds }) => courseIds));
-  const headers = ['節次', ...dayLabels.slice(1, 7)].map((label, index) => (
+  const headers = ['節次', ...dayLabels.slice(1, 8)].map((label, index) => (
     `<div class="weekday-header" role="columnheader" style="--grid-column:${index + 1}">${escapeHtml(label)}</div>`
   )).join('');
   const periodRows = NCCU_PERIODS.map((period, index) => `<div class="period-label ${period.special ? 'is-special' : ''}" data-period-code="${period.code}" role="rowheader" style="--grid-row:${index + 2}">
       <strong>${period.code}</strong><small>${period.time}</small>
-    </div>${[1, 2, 3, 4, 5, 6].map((day) => `<div class="grid-cell" role="cell" style="--grid-column:${day + 1};--grid-row:${index + 2}"></div>`).join('')}`
+    </div>${[1, 2, 3, 4, 5, 6, 7].map((day) => `<div class="grid-cell" role="cell" style="--grid-column:${day + 1};--grid-row:${index + 2}"></div>`).join('')}`
   ).join('');
   const courseBlocks = selected.flatMap((course) => meetingsForCourse(course)
     .map((meeting) => gridCourseBlock(course, meeting, conflictingIds))).join('');
@@ -192,6 +196,7 @@ function renderCatalog() {
     const eligibility = evaluateEligibility(course, profile);
     const selectedNow = selected.some((item) => item.id === course.id);
     const selectedCourse = selected.find((item) => item.id === course.id);
+    const locked = lockedCourseIds.includes(course.id);
     const blocked = eligibility.status === 'blocked' || eligibility.status === 'unavailable';
     const attendance = selectedNow && course.asyncAllowed
       ? `<label class="attendance-control">出席方式<select data-attendance-course="${escapeHtml(course.id)}"><option value="physical" ${selectedCourse.attendance !== 'async' ? 'selected' : ''}>實體／固定同步</option><option value="async" ${selectedCourse.attendance === 'async' ? 'selected' : ''}>非同步</option></select></label>`
@@ -222,12 +227,14 @@ function renderCatalog() {
         </div>`
       : '';
     return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
-      <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked || course.required ? 'disabled' : ''}>
+      <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
       </button>
       ${details}
-      <button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" ${course.required ? 'disabled' : ''} aria-label="${course.required ? '固定必修不可刪除' : '刪除候選課程'} ${escapeHtml(course.title)}">${course.required ? '固定' : '刪除'}</button>
+      ${course.required
+        ? `<button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" data-lock-course="${escapeHtml(course.id)}" ${selectedNow ? '' : 'disabled'} aria-pressed="${locked}" aria-label="${locked ? '解鎖' : '鎖定'} ${escapeHtml(course.title)}">${locked ? '解鎖' : '鎖定'}</button>`
+        : `<button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" aria-label="刪除候選課程 ${escapeHtml(course.title)}">刪除</button>`}
       ${optionControls}
       ${attendance}
     </article>`;
@@ -301,6 +308,13 @@ byId('internship-form').addEventListener('change', () => {
 
 const catalogList = byId('catalog-list');
 catalogList.addEventListener('click', (event) => {
+  const lockButton = event.target.closest('[data-lock-course]');
+  if (lockButton) {
+    lockedCourseIds = toggleCourseLock(lockedCourseIds, lockButton.dataset.lockCourse);
+    persistState();
+    renderAll();
+    return;
+  }
   const deleteButton = event.target.closest('[data-delete-course]');
   if (deleteButton) {
     const course = courseStore.find((item) => item.id === deleteButton.dataset.deleteCourse);
@@ -318,7 +332,9 @@ catalogList.addEventListener('click', (event) => {
   const button = event.target.closest('[data-course-id]');
   if (!button) return;
   const course = courseStore.find((item) => item.id === button.dataset.courseId);
-  selected = toggleSelectableCourse(selected, course, profile);
+  selected = selected.some((item) => item.id === course.id)
+    ? toggleCourse(selected, course, lockedCourseIds)
+    : toggleSelectableCourse(selected, course, profile);
   persistState();
   renderAll();
 });
@@ -352,7 +368,7 @@ function removeFromSchedule(event) {
   const button = event.target.closest('[data-remove-course]');
   if (!button) return;
   const course = courseStore.find((item) => item.id === button.dataset.removeCourse);
-  selected = toggleCourse(selected, course);
+  selected = toggleCourse(selected, course, lockedCourseIds);
   persistState();
   renderAll();
 }
@@ -363,6 +379,7 @@ byId('preset-picker').addEventListener('click', (event) => {
   const button = event.target.closest('[data-preset]');
   if (!button) return;
   selected = applyPreset(courseStore, button.dataset.preset);
+  lockedCourseIds = [];
   persistState();
   renderAll();
 });
@@ -371,6 +388,7 @@ byId('reset-plan').addEventListener('click', () => {
   selected = applyPreset(courseStore, 'concentrated');
   profile = { ...defaultProfile };
   courseOptions = {};
+  lockedCourseIds = [];
   internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
   byId('catalog-status').textContent = '已恢復全部官方候選課程與建議方案。';
   syncProfileForm();
@@ -378,13 +396,23 @@ byId('reset-plan').addEventListener('click', () => {
   persistState();
   renderAll();
 });
+byId('clear-schedule').addEventListener('click', () => {
+  const cleared = clearPlannerSelection();
+  selected = cleared.selected;
+  lockedCourseIds = cleared.lockedCourseIds;
+  courseOptions = cleared.courseOptions;
+  byId('planner-status').textContent = '已清空目前課表。';
+  persistState();
+  renderAll();
+});
 
 let manualSequence = 1 + courseStore.filter((course) => course.source === 'manual').length;
 byId('manual-form').innerHTML = `<form id="manual-course-form" class="manual-course-form" novalidate>
-  <label class="form-wide">課程名稱<input id="manual-title" name="title" autocomplete="off" required placeholder="例如：服務設計"></label>
+  <label>類型<select id="manual-item-type" name="itemType"><option value="course">課程</option><option value="club">社團</option><option value="organization">課外組織</option><option value="personal">個人行程</option></select></label>
+  <label>名稱<input id="manual-title" name="title" autocomplete="off" required placeholder="例如：攝影社例會"></label>
   <label>學分<input id="manual-credits" name="credits" type="number" min="0" max="12" step="0.5" value="3" required></label>
   <label>上課方式<select id="manual-mode" name="mode"><option value="physical">實體／固定同步</option><option value="async">非同步</option></select></label>
-  <label>星期<select id="manual-day" name="day">${[1, 2, 3, 4, 5, 6].map((day) => `<option value="${day}">${dayLabels[day]}</option>`).join('')}</select></label>
+  <label>星期<select id="manual-day" name="day">${[1, 2, 3, 4, 5, 6, 7].map((day) => `<option value="${day}">${dayLabels[day]}</option>`).join('')}</select></label>
   <label>開始<input id="manual-start" name="start" type="time" value="09:10"></label>
   <label>結束<input id="manual-end" name="end" type="time" value="12:00"></label>
   <button class="button button-primary form-wide" type="submit">建立並加入課表</button>
@@ -393,15 +421,21 @@ byId('manual-form').innerHTML = `<form id="manual-course-form" class="manual-cou
 
 const manualForm = byId('manual-course-form');
 const manualMode = byId('manual-mode');
+const manualItemType = byId('manual-item-type');
 function syncManualTimeFields() {
   const asynchronous = manualMode.value === 'async';
+  const itemType = manualItemType.value;
+  const creditInput = byId('manual-credits');
+  creditInput.disabled = itemType !== 'course';
   ['manual-day', 'manual-start', 'manual-end'].forEach((id) => { byId(id).disabled = asynchronous; });
 }
 manualMode.addEventListener('change', syncManualTimeFields);
+manualItemType.addEventListener('change', syncManualTimeFields);
 manualForm.addEventListener('submit', (event) => {
   event.preventDefault();
   const input = {
     title: byId('manual-title').value,
+    itemType: byId('manual-item-type').value,
     credits: byId('manual-credits').value,
     mode: manualMode.value,
     day: byId('manual-day').value,
