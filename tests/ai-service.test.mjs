@@ -37,6 +37,20 @@ test('returns ambiguous official matches as pending instead of importing them', 
   assert.equal(result.pendingCourses[0].reason, '找到多筆官方課程，請確認班別。');
 });
 
+test('retries screenshot recognition once when the JSON shape is invalid', async () => {
+  let calls = 0;
+  const result = await importCoursesFromScreenshot(validImport, {
+    apiKey: 'test-only', catalog: [],
+    groqRequest: async () => {
+      calls += 1;
+      return calls === 1 ? '{"courses":[]}' : '{"recognizedCourses":[]}';
+    },
+    nccuSearch: async () => [],
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(result.importedCourses, []);
+});
+
 test('excludes blocked and unavailable courses from recommendation prompts', async () => {
   let promptedCourseIds;
   let recommendationReasoningEffort;
@@ -58,4 +72,28 @@ test('excludes blocked and unavailable courses from recommendation prompts', asy
   } });
   assert.deepEqual(promptedCourseIds, ['eligible', 'locked']);
   assert.equal(recommendationReasoningEffort, 'none');
+});
+
+test('retries recommendations once when the JSON shape is invalid', async () => {
+  let calls = 0;
+  const validPlans = JSON.stringify({ summary: '摘要', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], attendance: '實體', tradeoffs: [] },
+    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['a', 'b'], attendance: '混合', tradeoffs: [] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['b'], attendance: '彈性', tradeoffs: [] },
+  ] });
+  const result = await recommendCoursePlans({
+    courses: [
+      { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible' },
+      { id: 'b', title: '課程 B', credits: 3, eligibility: 'eligible' },
+    ],
+    lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+  }, {
+    apiKey: 'test-only',
+    groqRequest: async () => {
+      calls += 1;
+      return calls === 1 ? '{"plans":[]}' : validPlans;
+    },
+  });
+  assert.equal(calls, 2);
+  assert.equal(result.plans.length, 3);
 });
