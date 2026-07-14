@@ -1,7 +1,10 @@
 import { formatNccuSchedule } from './nccu-periods.mjs';
+import { profileConditionIds } from './eligibility-conditions.mjs';
 
 export function evaluateEligibility(section, profile) {
   const reasons = [];
+  const reviewReasons = [];
+  const selectedConditionIds = new Set(profileConditionIds(profile));
   if (section.available === false) {
     return { status: 'unavailable', reasons: ['115-1 查無開課資料'] };
   }
@@ -32,13 +35,26 @@ export function evaluateEligibility(section, profile) {
   if (section.minYear && profile.year < section.minYear) reasons.push(`限大${section.minYear}以上`);
   if (
     section.programs?.length
-    && !section.programs.some((program) => profile.programs.includes(program))
+    && !section.programs.some((program) => (
+      profile.programs?.includes(program) || selectedConditionIds.has(`program:${program}`)
+    ))
   ) {
     reasons.push('學程限制');
   }
   (section.prerequisites || []).forEach((prerequisite) => {
-    if (!profile.prerequisites.includes(prerequisite)) reasons.push(`缺少先修：${prerequisite}`);
+    if (
+      !profile.prerequisites?.includes(prerequisite)
+      && !selectedConditionIds.has(`prerequisite:${prerequisite}`)
+    ) reasons.push(`缺少先修：${prerequisite}`);
   });
+  (section.eligibilityRules || []).forEach((rule) => {
+    if (selectedConditionIds.has(rule.conditionId)) return;
+    if (rule.enforcement === 'review') reviewReasons.push(rule.rationale);
+    else reasons.push(rule.rationale);
+  });
+  if (!reasons.length && reviewReasons.length) {
+    return { status: 'conditional', reasons: reviewReasons };
+  }
   return { status: reasons.length ? 'blocked' : 'eligible', reasons };
 }
 

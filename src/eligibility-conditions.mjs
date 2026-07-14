@@ -61,3 +61,36 @@ export function buildConditionDefinitions(courses = [], customConditions = []) {
     ...customConditions.filter((condition) => !knownIds.has(condition.id)),
   ];
 }
+
+function impactConsequence(rule, selected) {
+  if (selected) return '符合後可直接選';
+  return rule.enforcement === 'review'
+    ? '沒有也能選，但需教師／系所確認'
+    : '沒有時無法直接加入';
+}
+
+export function buildConditionImpacts(courses = [], definitions = [], profile = {}) {
+  const selectedIds = new Set(profileConditionIds(profile));
+  return definitions.map((definition) => {
+    const selected = selectedIds.has(definition.id);
+    const affectedCourses = courses.flatMap((course) => (
+      rulesForCourse(course)
+        .filter((rule) => rule.conditionId === definition.id)
+        .map((rule) => ({
+          courseId: course.id,
+          title: course.title,
+          enforcement: rule.enforcement,
+          rationale: rule.rationale,
+          consequence: impactConsequence(rule, selected),
+        }))
+    ));
+    return {
+      ...definition,
+      selected,
+      summary: affectedCourses.length
+        ? `影響 ${affectedCourses.length} 門候選課`
+        : '目前不影響候選課，可安全移除',
+      affectedCourses,
+    };
+  });
+}
