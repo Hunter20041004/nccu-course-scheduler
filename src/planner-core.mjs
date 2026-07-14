@@ -119,6 +119,22 @@ export function toggleCourseLock(lockedCourseIds, courseId) {
     : [...lockedCourseIds, courseId];
 }
 
+export function lockCandidateCourse(selected, lockedCourseIds, course, profile) {
+  if (lockedCourseIds.includes(course.id)) {
+    return {
+      selected,
+      lockedCourseIds: lockedCourseIds.filter((id) => id !== course.id),
+    };
+  }
+  const nextSelected = selected.some((item) => item.id === course.id)
+    ? selected
+    : toggleSelectableCourse(selected, course, profile);
+  if (!nextSelected.some((item) => item.id === course.id)) {
+    return { selected, lockedCourseIds };
+  }
+  return { selected: nextSelected, lockedCourseIds: [...lockedCourseIds, course.id] };
+}
+
 export function toggleCourse(selected, course, lockedCourseIds = []) {
   const isSelected = selected.some((item) => item.id === course.id);
   if (isSelected && lockedCourseIds.includes(course.id)) return selected;
@@ -191,12 +207,13 @@ export function restoreOfficialCatalog(courseStore) {
   return courseStore.filter((course) => course.source !== 'manual');
 }
 
-export function deleteCandidateCourse(courseStore, selected, courseId) {
+export function deleteCandidateCourse(courseStore, selected, lockedCourseIds, courseId) {
   const deleted = courseStore.find((course) => course.id === courseId);
-  if (!deleted || deleted.required) return { courseStore, selected, deleted: null };
+  if (!deleted) return { courseStore, selected, lockedCourseIds, deleted: null };
   return {
     courseStore: courseStore.filter((course) => course.id !== courseId),
     selected: selected.filter((course) => course.id !== courseId),
+    lockedCourseIds: lockedCourseIds.filter((id) => id !== courseId),
     deleted,
   };
 }

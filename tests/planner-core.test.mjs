@@ -152,6 +152,14 @@ test('toggles a selected course lock on and off', () => {
   assert.deepEqual(core.toggleCourseLock(['agentic'], 'agentic'), []);
 });
 
+test('adds and locks an unselected eligible candidate in one action', () => {
+  const hci = { id: 'hci', title: '人機互動', available: true };
+  assert.deepEqual(core.lockCandidateCourse([], [], hci, profile), {
+    selected: [{ ...hci, attendance: 'physical' }],
+    lockedCourseIds: ['hci'],
+  });
+});
+
 test('keeps a locked required course in the selection', () => {
   const required = { id: 'agentic', title: 'Agentic AI', required: true };
   assert.deepEqual(core.toggleCourse([required], required, ['agentic']), [required]);
@@ -340,17 +348,17 @@ test('deletes an optional candidate from both the catalog and selected schedule'
   const optional = { id: 'optional', required: false };
 
   assert.deepEqual(
-    core.deleteCandidateCourse([required, optional], [required, optional], optional.id),
-    { courseStore: [required], selected: [required], deleted: optional },
+    core.deleteCandidateCourse([required, optional], [required, optional], [], optional.id),
+    { courseStore: [required], selected: [required], lockedCourseIds: [], deleted: optional },
   );
 });
 
-test('refuses to delete one of the three fixed required courses', () => {
+test('deletes any candidate and removes its selection and lock', () => {
   const required = { id: 'required', required: true };
 
   assert.deepEqual(
-    core.deleteCandidateCourse([required], [required], required.id),
-    { courseStore: [required], selected: [required], deleted: null },
+    core.deleteCandidateCourse([required], [required], ['required'], required.id),
+    { courseStore: [], selected: [], lockedCourseIds: [], deleted: required },
   );
 });
 
