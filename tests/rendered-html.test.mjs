@@ -166,6 +166,20 @@ test('renders exactly three actionable recommendation cards', async () => {
   assert.match(html, /applyRecommendedPlan\(/);
 });
 
+test('presents AI recommendations as previewable strategy routes', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /class="ai-route-board"/);
+  assert.match(html, /data-preview-ai-plan/);
+  assert.match(html, /收起預覽' : '預覽'/);
+  assert.match(html, /class="route-week-preview"/);
+  assert.match(html, /lockedCourseIds\.includes\(course\.id\)[\s\S]*鎖定保留/);
+  assert.match(html, /let previewedPlanId = null/);
+  assert.match(html, /function toggleRecommendedPlanPreview\(planId\)/);
+  assert.match(html, /previewedPlanId = previewedPlanId === planId \? null : planId/);
+  assert.match(html, /const previewButton = event\.target\.closest\('\[data-preview-ai-plan\]'\)/);
+  assert.match(html, /toggleRecommendedPlanPreview\(previewButton\.dataset\.previewAiPlan\)/);
+});
+
 test('clears the current timetable while preserving the candidate catalog', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="clear-schedule"/);
