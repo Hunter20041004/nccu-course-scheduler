@@ -2,7 +2,10 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
-const [template, styles, nccuPeriods, internshipPlanner, courseData, plannerCore, plannerStorage, app] = await Promise.all([
+const [
+  template, styles, nccuPeriods, internshipPlanner, courseData, plannerCore, plannerStorage, app,
+  aiContracts, groqClient, nccuCourseAdapter, aiService, worker, aiPlanner,
+] = await Promise.all([
   read('src/index.html'),
   read('src/styles.css'),
   read('src/nccu-periods.mjs'),
@@ -11,10 +14,16 @@ const [template, styles, nccuPeriods, internshipPlanner, courseData, plannerCore
   read('src/planner-core.mjs'),
   read('src/planner-storage.mjs'),
   read('src/app.mjs'),
+  read('src/ai-contracts.mjs'),
+  read('src/groq-client.mjs'),
+  read('src/nccu-course-adapter.mjs'),
+  read('src/ai-service.mjs'),
+  read('src/worker.mjs'),
+  read('src/ai-planner.mjs'),
 ]);
 
 const stripModuleSyntax = (source) => source
-  .replace(/^import .*;\n/gm, '')
+  .replace(/^import[\s\S]*?from\s+['"][^'"]+['"];\n/gm, '')
   .replace(/^export\s+/gm, '');
 const wrapModule = (source, namespace, exportNames) => {
   const exports = exportNames.join(', ');
@@ -38,6 +47,9 @@ const script = [
   wrapModule(plannerStorage, '__plannerStorage', [
     'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState',
   ]),
+  wrapModule(aiPlanner, '__aiPlanner', [
+    'validateScreenshotFile', 'mergeImportedCourses', 'applyRecommendedPlan',
+  ]),
   `(() => {\n${stripModuleSyntax(app)}\n})();`,
 ].join('\n\n');
 
@@ -48,6 +60,15 @@ const html = template
 const outputDir = new URL('dist/server/', root);
 await rm(new URL('dist/', root), { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
-await writeFile(new URL('index.js', outputDir), `const html = ${JSON.stringify(html)};\nexport default {\n  async fetch() {\n    return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'private, no-store' } });\n  },\n};\n`);
+const serverScript = [
+  stripModuleSyntax(nccuPeriods),
+  stripModuleSyntax(courseData),
+  stripModuleSyntax(aiContracts),
+  stripModuleSyntax(groqClient),
+  stripModuleSyntax(nccuCourseAdapter),
+  stripModuleSyntax(aiService),
+  stripModuleSyntax(worker),
+].join('\n\n');
+await writeFile(new URL('index.js', outputDir), `const html = ${JSON.stringify(html)};\n${serverScript}\nexport default createWorker({ html, catalog: courses });\n`);
 await mkdir(new URL('dist/.openai/', root), { recursive: true });
 await writeFile(new URL('dist/.openai/hosting.json', root), await read('.openai/hosting.json'));

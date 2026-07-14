@@ -12,6 +12,8 @@ let selected = applyPreset(courseStore, 'concentrated');
 let courseOptions = {};
 let lockedCourseIds = [];
 let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
+let pendingCourses = [];
+let lastImportedCourses = [];
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -27,7 +29,12 @@ function restoreState() {
     const saved = parsePlannerState(localStorage.getItem(STORAGE_KEY), null);
     if (!saved) return;
     profile = { ...defaultProfile, ...saved.profile };
-    courseStore = buildCandidateCatalog(courses, saved.manualCourses, saved.deletedCourseIds);
+    courseStore = buildCandidateCatalog(
+      courses,
+      saved.addedCourses || saved.manualCourses,
+      saved.deletedCourseIds,
+    );
+    pendingCourses = Array.isArray(saved.pendingCourses) ? saved.pendingCourses : [];
     const attendance = saved.attendance || {};
     courseOptions = saved.courseOptions || {};
     lockedCourseIds = saved.lockedCourseIds || [];
@@ -50,7 +57,8 @@ function restoreState() {
 
 function persistState() {
   try {
-    const manualCourses = courseStore.filter((course) => course.source === 'manual');
+    const officialIds = new Set(courses.map((course) => course.id));
+    const addedCourses = courseStore.filter((course) => !officialIds.has(course.id));
     const retainedIds = new Set(courseStore.map((course) => course.id));
     const deletedCourseIds = courses
       .filter((course) => !retainedIds.has(course.id))
@@ -62,7 +70,8 @@ function persistState() {
       lockedCourseIds,
       internshipSettings,
       profile,
-      manualCourses,
+      addedCourses,
+      pendingCourses,
       deletedCourseIds,
     }));
   } catch {
@@ -470,14 +479,16 @@ manualForm.addEventListener('submit', (event) => {
   byId('manual-status').textContent = `已加入「${manualCourse.title}」。`;
 });
 
-const CODEX_HANDOFF_PROMPT = '請辨識我附上的政大課程備選清單截圖，逐門查詢 115-1 官方課程資料、選課條件、時間、學分與遠距方式，再整理成可以加入排課網站的課程塊。';
 byId('screenshot-handoff').innerHTML = `<div class="screenshot-handoff">
   <label>選擇備選清單截圖<input id="screenshot-input" type="file" accept="image/png,image/jpeg,image/webp"></label>
   <img id="screenshot-preview" class="screenshot-preview" alt="備選課程截圖預覽" hidden>
-  <p>這個私人版本不會把截圖傳到伺服器。請把同一張圖附回目前的 Codex 任務，再貼上下方指令，我就能查官方資料並整理成課程塊。</p>
-  <textarea id="handoff-prompt" rows="5" readonly>${CODEX_HANDOFF_PROMPT}</textarea>
-  <button id="copy-codex-prompt" class="button button-primary" type="button">複製給 Codex 的指令</button>
+  <p class="privacy-note">截圖會傳送給 Groq 進行辨識，網站不會長期保存原始圖片。辨識後仍會核對政大 115-1 公開課程資料。</p>
+  <button id="import-screenshot" class="button button-primary" type="button">開始辨識並匯入</button>
   <p id="screenshot-status" class="form-status" aria-live="polite"></p>
+  <div class="ai-import-layout">
+    <section><h3>已匯入</h3><div id="imported-courses" class="import-result-list"></div></section>
+    <section><h3>待確認</h3><div id="pending-courses" class="import-result-list"></div></section>
+  </div>
 </div>`;
 
 let screenshotUrl;
@@ -492,21 +503,85 @@ byId('screenshot-input').addEventListener('change', (event) => {
   screenshotUrl = URL.createObjectURL(file);
   preview.src = screenshotUrl;
   preview.hidden = false;
-  byId('screenshot-status').textContent = '截圖只在這台裝置預覽，尚未傳送。';
+  byId('screenshot-status').textContent = '截圖已就緒，尚未傳送。';
 });
 
-byId('copy-codex-prompt').addEventListener('click', async () => {
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener('load', () => resolve(reader.result), { once: true });
+    reader.addEventListener('error', () => reject(new Error('無法讀取截圖。')), { once: true });
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderImportResults() {
+  const imported = byId('imported-courses');
+  const pending = byId('pending-courses');
+  if (!imported || !pending) return;
+  imported.innerHTML = lastImportedCourses.length
+    ? lastImportedCourses.map((course) => `<article class="import-result"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '')} · ${escapeHtml(course.teacher || '教師未辨識')}</small></article>`).join('')
+    : '<p class="empty">這次尚未匯入新課程。</p>';
+  pending.innerHTML = pendingCourses.length
+    ? pendingCourses.map((course, index) => `<article class="import-result">
+        <strong>${escapeHtml(course.title || course.courseCode || '未辨識課程')}</strong>
+        <small>${escapeHtml(course.courseCode || '無課號')} · ${escapeHtml(course.teacher || '教師未辨識')}</small>
+        <p>${escapeHtml(course.reason)}</p>
+        <button type="button" data-delete-pending="${index}">刪除</button>
+      </article>`).join('')
+    : '<p class="empty">沒有待確認項目。</p>';
+}
+
+byId('pending-courses').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-delete-pending]');
+  if (!button) return;
+  pendingCourses.splice(Number(button.dataset.deletePending), 1);
+  persistState();
+  renderImportResults();
+});
+
+byId('import-screenshot').addEventListener('click', async () => {
   const status = byId('screenshot-status');
-  if (!byId('screenshot-input').files.length) {
+  const [file] = byId('screenshot-input').files;
+  if (!file) {
     status.textContent = '請先選擇一張課程備選清單截圖。';
     byId('screenshot-input').focus();
     return;
   }
+  const validation = validateScreenshotFile(file);
+  if (validation) {
+    status.textContent = validation.message;
+    byId('screenshot-input').focus();
+    return;
+  }
+  const button = byId('import-screenshot');
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  status.textContent = '正在辨識並核對課程…';
   try {
-    await navigator.clipboard.writeText(CODEX_HANDOFF_PROMPT);
-    status.textContent = '指令已複製；請把截圖附回目前的 Codex 任務。';
-  } catch {
-    byId('handoff-prompt').select();
-    status.textContent = '瀏覽器未開放剪貼簿，請手動複製上方文字。';
+    const imageDataUrl = await readFileAsDataUrl(file);
+    const response = await fetch('/api/ai/import-courses', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ imageDataUrl, term: '115-1' }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload?.error?.message || '辨識失敗，請稍後重試。');
+    const merged = mergeImportedCourses(courseStore, payload.importedCourses || []);
+    courseStore = merged.courseStore;
+    lastImportedCourses = (payload.importedCourses || []).filter((course) => !merged.duplicateIds.includes(course.id));
+    pendingCourses = [...pendingCourses, ...(payload.pendingCourses || [])];
+    const duplicateCount = merged.duplicateIds.length + (payload.duplicates?.length || 0);
+    status.textContent = `新增 ${lastImportedCourses.length} 門；${duplicateCount} 門已存在；${payload.pendingCourses?.length || 0} 門待確認。`;
+    persistState();
+    renderAll();
+    renderImportResults();
+  } catch (error) {
+    status.textContent = error.message || '辨識失敗，請稍後重試。';
+  } finally {
+    button.disabled = false;
+    button.removeAttribute('aria-busy');
   }
 });
+
+renderImportResults();

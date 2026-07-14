@@ -12,8 +12,14 @@ test('round-trips versioned planner state', () => {
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
 });
 
-test('uses storage version two for course options and internship settings', () => {
-  assert.equal(JSON.parse(serializePlannerState({ selectedIds: [] })).version, 2);
+test('uses storage version three for imported and pending courses', () => {
+  const state = {
+    selectedIds: [],
+    addedCourses: [{ id: 'ai-123' }],
+    pendingCourses: [{ title: '待確認課' }],
+  };
+  assert.equal(JSON.parse(serializePlannerState(state)).version, 3);
+  assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
 });
 
 test('returns the fallback for corrupt or incompatible storage', () => {

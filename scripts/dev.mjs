@@ -7,7 +7,13 @@ const workerUrl = pathToFileURL(new URL('../dist/server/index.js', import.meta.u
 const { default: worker } = await import(workerUrl.href);
 
 const server = http.createServer(async (request, response) => {
-  const result = await worker.fetch(new Request(`http://localhost:${port}${request.url || '/'}`));
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  const result = await worker.fetch(new Request(`http://localhost:${port}${request.url || '/'}`, {
+    method: request.method,
+    headers: request.headers,
+    body: ['GET', 'HEAD'].includes(request.method || 'GET') ? undefined : Buffer.concat(chunks),
+  }), process.env);
   response.writeHead(result.status, Object.fromEntries(result.headers));
   response.end(Buffer.from(await result.arrayBuffer()));
 });
