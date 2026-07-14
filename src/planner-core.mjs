@@ -181,6 +181,24 @@ export function restoreOfficialCatalog(courseStore) {
   return courseStore.filter((course) => course.source !== 'manual');
 }
 
+export function deleteCandidateCourse(courseStore, selected, courseId) {
+  const deleted = courseStore.find((course) => course.id === courseId);
+  if (!deleted || deleted.required) return { courseStore, selected, deleted: null };
+  return {
+    courseStore: courseStore.filter((course) => course.id !== courseId),
+    selected: selected.filter((course) => course.id !== courseId),
+    deleted,
+  };
+}
+
+export function buildCandidateCatalog(officialCourses, manualCourses = [], deletedCourseIds = []) {
+  const deleted = new Set(deletedCourseIds);
+  return [
+    ...officialCourses.filter((course) => !deleted.has(course.id)),
+    ...manualCourses,
+  ];
+}
+
 function timeToMinutes(value) {
   const [hours, minutes] = value.split(':').map(Number);
   return (hours * 60) + minutes;

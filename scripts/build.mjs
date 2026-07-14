@@ -31,7 +31,8 @@ const script = [
   wrapModule(plannerCore, '__plannerCore', [
     'evaluateEligibility', 'findConflicts', 'calculateInternshipAvailability', 'toggleCourse',
     'toggleSelectableCourse', 'applyPreset', 'resolveCourseOption', 'applyCourseOption',
-    'restoreOfficialCatalog', 'validateManualCourse', 'createManualCourse',
+    'restoreOfficialCatalog', 'deleteCandidateCourse', 'buildCandidateCatalog',
+    'validateManualCourse', 'createManualCourse',
   ]),
   wrapModule(plannerStorage, '__plannerStorage', [
     'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState',
