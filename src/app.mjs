@@ -203,15 +203,14 @@ function renderCatalog() {
       : '';
     const conditions = course.conditions || [];
     const sections = course.sections || [];
-    const details = conditions.length || sections.length
-      ? `<details class="course-details">
+    const details = `<details class="course-details">
           <summary aria-label="查看 ${escapeHtml(course.title)} 的限制與班別">詳細</summary>
           <div class="course-details-card">
             ${conditions.length ? `<strong>選課條件</strong><ul class="course-conditions">${conditions.map((condition) => `<li>${escapeHtml(condition)}</li>`).join('')}</ul>` : ''}
             ${sections.length ? `<strong>官方班別</strong><ul class="course-sections">${sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : ''}
+            ${!conditions.length && !sections.length ? '<p>目前沒有額外限制。</p>' : ''}
           </div>
-        </details>`
-      : '';
+        </details>`;
     const selectedVariant = selectedCourse?.variants?.find(({ id }) => id === selectedCourse.selectedVariantId);
     const optionControls = selectedNow && course.variants?.length
       ? `<div class="course-option-controls">
@@ -231,10 +230,11 @@ function renderCatalog() {
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
       </button>
-      ${details}
-      ${course.required
-        ? `<button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" data-lock-course="${escapeHtml(course.id)}" ${selectedNow ? '' : 'disabled'} aria-pressed="${locked}" aria-label="${locked ? '解鎖' : '鎖定'} ${escapeHtml(course.title)}">${locked ? '解鎖' : '鎖定'}</button>`
-        : `<button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" aria-label="刪除候選課程 ${escapeHtml(course.title)}">刪除</button>`}
+      <div class="course-actions">
+        ${details}
+        <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}" aria-label="${locked ? '解鎖' : '鎖定'} ${escapeHtml(course.title)}">${locked ? '解鎖' : '鎖定'}</button>
+        <button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" aria-label="刪除候選課程 ${escapeHtml(course.title)}">刪除</button>
+      </div>
       ${optionControls}
       ${attendance}
     </article>`;
@@ -310,7 +310,11 @@ const catalogList = byId('catalog-list');
 catalogList.addEventListener('click', (event) => {
   const lockButton = event.target.closest('[data-lock-course]');
   if (lockButton) {
-    lockedCourseIds = toggleCourseLock(lockedCourseIds, lockButton.dataset.lockCourse);
+    const course = courseStore.find((item) => item.id === lockButton.dataset.lockCourse);
+    if (!course) return;
+    const result = lockCandidateCourse(selected, lockedCourseIds, course, profile);
+    selected = result.selected;
+    lockedCourseIds = result.lockedCourseIds;
     persistState();
     renderAll();
     return;
@@ -318,11 +322,15 @@ catalogList.addEventListener('click', (event) => {
   const deleteButton = event.target.closest('[data-delete-course]');
   if (deleteButton) {
     const course = courseStore.find((item) => item.id === deleteButton.dataset.deleteCourse);
-    if (!course || course.required) return;
-    if (!window.confirm(`要從候選課程刪除「${course.title}」嗎？`)) return;
-    const result = deleteCandidateCourse(courseStore, selected, course.id);
+    if (!course) return;
+    const warning = course.required
+      ? `這是你標記為一定要修的課程。仍要刪除「${course.title}」嗎？`
+      : `要從候選課程刪除「${course.title}」嗎？`;
+    if (!window.confirm(warning)) return;
+    const result = deleteCandidateCourse(courseStore, selected, lockedCourseIds, course.id);
     courseStore = result.courseStore;
     selected = result.selected;
+    lockedCourseIds = result.lockedCourseIds;
     delete courseOptions[course.id];
     byId('catalog-status').textContent = `已刪除「${course.title}」；按「恢復建議方案」可找回官方課程。`;
     persistState();

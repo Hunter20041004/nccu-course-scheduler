@@ -30,7 +30,7 @@ const script = [
   wrapModule(courseData, '__courseData', ['courses', 'dayLabels']),
   wrapModule(plannerCore, '__plannerCore', [
     'evaluateEligibility', 'findConflicts', 'calculateInternshipAvailability', 'toggleCourse',
-    'clearPlannerSelection', 'toggleCourseLock',
+    'clearPlannerSelection', 'toggleCourseLock', 'lockCandidateCourse',
     'toggleSelectableCourse', 'applyPreset', 'resolveCourseOption', 'applyCourseOption',
     'restoreOfficialCatalog', 'deleteCandidateCourse', 'buildCandidateCatalog',
     'validateManualCourse', 'createManualCourse',

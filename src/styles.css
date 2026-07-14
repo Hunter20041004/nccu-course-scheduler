@@ -118,7 +118,7 @@ label { display: grid; gap: 6px; color: var(--muted); font-size: .82rem; font-we
 input, select, textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; background: rgb(255 255 255 / 84%); color: var(--ink); padding: 0 12px; box-shadow: inset 0 1px 2px rgb(69 67 72 / 4%); }
 textarea { min-height: 112px; padding-block: 10px; resize: vertical; line-height: 1.5; }
 .catalog-list { --catalog-row-height: 48px; display: grid; }
-.catalog-course { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: start; min-height: var(--catalog-row-height); padding: 1px 0; border-bottom: 1px solid var(--line); }
+.catalog-course { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; min-height: var(--catalog-row-height); padding: 1px 0; border-bottom: 1px solid var(--line); }
 .catalog-select { width: 100%; min-width: 0; min-height: 44px; display: flex; justify-content: space-between; gap: 8px; align-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--ink); text-align: left; padding: 3px 8px; cursor: pointer; transition: transform 140ms var(--ease-out), background-color 180ms ease, box-shadow 180ms ease; }
 .catalog-select:hover:not(:disabled) { background: var(--sun-soft); box-shadow: inset 3px 0 0 var(--sun); }
 .catalog-course.is-selected .catalog-select { background: var(--ink); color: var(--surface-solid); box-shadow: 0 4px 12px rgb(69 67 72 / 14%); }
@@ -131,6 +131,7 @@ textarea { min-height: 112px; padding-block: 10px; resize: vertical; line-height
 .catalog-meta { flex: 0 0 auto; text-align: right; }
 .catalog-meta b { font-size: .72rem; }
 .course-details { position: relative; z-index: 4; }
+.course-actions { display: grid; grid-template-columns: repeat(3, 44px); gap: 2px; align-items: start; }
 .course-details[open] { z-index: 12; }
 .course-details summary, .catalog-delete, .catalog-lock { display: grid; width: 44px; min-height: 44px; place-items: center; border: 0; border-radius: 10px; background: transparent; color: var(--muted); font-size: .7rem; font-weight: 800; cursor: pointer; list-style: none; transition: background-color 180ms ease, color 180ms ease; }
 .course-details summary::-webkit-details-marker { display: none; }
