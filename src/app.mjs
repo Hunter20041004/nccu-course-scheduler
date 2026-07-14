@@ -88,14 +88,18 @@ function eligibilityLabel(status) {
   return {
     eligible: '條件符合',
     conditional: '資格需確認',
-    blocked: '目前不符',
-    unavailable: '115-1 未開',
+    blocked: '條件不符合',
+    unavailable: '本學期未開課',
   }[status];
 }
 
 function renderStats() {
   const credits = selected.reduce((total, course) => total + Number(course.credits || 0), 0);
   const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
+  const progressPercent = internshipSettings.targetDays === 0
+    ? 100
+    : Math.min(100, Math.round((internshipPlan.availableDays / internshipSettings.targetDays) * 100));
+  const internshipProgress = byId('internship-progress');
   const conflicts = findConflicts(selected);
   const eligibilityWarnings = selected.filter((course) => evaluateEligibility(course, profile).status !== 'eligible');
   const specialEvents = selected.reduce((total, course) => total + (course.events || []).length, 0);
@@ -103,6 +107,8 @@ function renderStats() {
   byId('credit-value').textContent = `${credits} 學分`;
   byId('internship-value').textContent = `${internshipPlan.tentative ? '暫估 ' : ''}${internshipPlan.availableDays} / ${internshipSettings.targetDays} 天`;
   byId('warning-value').textContent = String(conflicts.length + eligibilityWarnings.length + specialEvents + optionWarnings + internshipPlan.conflicts.length);
+  internshipProgress.style.setProperty('--internship-progress', `${progressPercent}%`);
+  internshipProgress.setAttribute('aria-valuenow', String(progressPercent));
   document.querySelector('.status-pill').textContent = internshipPlan.tentative
     ? '實習時間待確認'
     : (internshipPlan.meetsTarget ? '實習時間達標' : '實習時間不足');
@@ -125,7 +131,7 @@ function gridCourseBlock(course, meeting, conflictingIds) {
     course.itemType ? `is-${course.itemType}` : '',
     conflictingIds.has(course.id) ? 'has-conflict' : '',
   ].filter(Boolean).join(' ');
-  return `<article class="grid-course ${stateClasses}" role="cell" style="--grid-column:${meeting.day + 1};--grid-row:${placement.rowStart};--row-span:${placement.rowSpan}">
+  return `<article class="grid-course ${stateClasses}" data-grid-course="${escapeHtml(course.id)}" role="cell" style="--grid-column:${meeting.day + 1};--grid-row:${placement.rowStart};--row-span:${placement.rowSpan}">
     <button type="button" data-remove-course="${escapeHtml(course.id)}" ${locked ? 'disabled' : ''} aria-label="${locked ? '已鎖定' : '移除'} ${escapeHtml(course.title)}">
       <strong>${escapeHtml(course.title)}</strong>
       <span>${escapeHtml(formatNccuSchedule(meeting, dayLabels))}</span>
@@ -261,6 +267,17 @@ function renderAll() {
   renderWarnings();
   renderCatalog();
   renderConditions();
+}
+
+function revealPlacedCourse(courseId) {
+  requestAnimationFrame(() => {
+    const block = [...document.querySelectorAll('[data-grid-course]')]
+      .find((item) => item.dataset.gridCourse === courseId);
+    if (!block) return;
+    block.classList.add('is-newly-placed');
+    block.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    block.addEventListener('animationend', () => block.classList.remove('is-newly-placed'), { once: true });
+  });
 }
 
 function setWorkspaceTab(name) {
@@ -457,11 +474,13 @@ catalogList.addEventListener('click', (event) => {
   const button = event.target.closest('[data-course-id]');
   if (!button) return;
   const course = courseStore.find((item) => item.id === button.dataset.courseId);
-  selected = selected.some((item) => item.id === course.id)
+  const wasSelected = selected.some((item) => item.id === course.id);
+  selected = wasSelected
     ? toggleCourse(selected, course, lockedCourseIds)
     : toggleSelectableCourse(selected, course, profile);
   persistState();
   renderAll();
+  if (!wasSelected) revealPlacedCourse(course.id);
 });
 
 catalogList.addEventListener('change', (event) => {
