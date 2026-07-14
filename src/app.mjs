@@ -227,6 +227,7 @@ function renderCatalog() {
     const details = `<details class="course-details">
           <summary aria-label="查看 ${escapeHtml(course.title)} 的限制與班別">詳細</summary>
           <div class="course-details-card">
+            ${eligibility.status !== 'eligible' ? `<strong>資格說明</strong><ul class="course-conditions">${eligibility.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>` : ''}
             ${conditions.length ? `<strong>選課條件</strong><ul class="course-conditions">${conditions.map((condition) => `<li>${escapeHtml(condition)}</li>`).join('')}</ul>` : ''}
             ${sections.length ? `<strong>官方班別</strong><ul class="course-sections">${sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : ''}
             ${!conditions.length && !sections.length ? '<p>目前沒有額外限制。</p>' : ''}

@@ -22,6 +22,11 @@ test('serves the private NCCU course scheduler with schedule before catalog', as
   assert.match(html, /23 門候選課程/);
 });
 
+test('uses an inline favicon so the private app makes no missing icon request', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
+});
+
 test('wires catalog course buttons to the schedule selection handler', async () => {
   const html = await (await render()).text();
   assert.match(html, /data-course-id/);
@@ -309,6 +314,13 @@ test('uses plain-language eligibility labels in compact course rows', async () =
   assert.match(html, /blocked: '條件不符合'/);
   assert.match(html, /unavailable: '本學期未開課'/);
   assert.doesNotMatch(html, /blocked: '目前不符'/);
+});
+
+test('exposes the actual eligibility reasons in every non-eligible course detail', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /eligibility\.status !== 'eligible'/);
+  assert.match(html, /<strong>資格說明<\/strong>/);
+  assert.match(html, /eligibility\.reasons\.map\(\(reason\)/);
 });
 
 test('contains the wide NCCU timetable inside the mobile schedule panel', async () => {
