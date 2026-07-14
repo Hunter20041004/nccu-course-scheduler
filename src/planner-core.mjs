@@ -115,7 +115,6 @@ export function clearPlannerSelection() {
 
 export function toggleCourse(selected, course) {
   const isSelected = selected.some((item) => item.id === course.id);
-  if (isSelected && course.required) return selected;
   if (!isSelected) return [...selected, { ...course, attendance: 'physical' }];
   return selected.filter((item) => item.id !== course.id);
 }

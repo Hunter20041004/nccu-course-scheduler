@@ -142,9 +142,9 @@ test('clears selected items, locks, and course options in one action', () => {
   });
 });
 
-test('does not remove a required course from the selection', () => {
+test('removes an unlocked required course from the selection', () => {
   const required = { id: 'agentic', title: 'Agentic AI', required: true };
-  assert.deepEqual(core.toggleCourse([required], required), [required]);
+  assert.deepEqual(core.toggleCourse([required], required, []), []);
 });
 
 test('adds an available optional course to the selection', () => {
