@@ -26,7 +26,7 @@ function restoreState() {
     const saved = parsePlannerState(localStorage.getItem(STORAGE_KEY), null);
     if (!saved) return;
     profile = { ...defaultProfile, ...saved.profile };
-    courseStore = [...courses, ...(saved.manualCourses || [])];
+    courseStore = buildCandidateCatalog(courses, saved.manualCourses, saved.deletedCourseIds);
     const attendance = saved.attendance || {};
     courseOptions = saved.courseOptions || {};
     const savedInternship = saved.internshipSettings;
@@ -51,6 +51,10 @@ function restoreState() {
 function persistState() {
   try {
     const manualCourses = courseStore.filter((course) => course.source === 'manual');
+    const retainedIds = new Set(courseStore.map((course) => course.id));
+    const deletedCourseIds = courses
+      .filter((course) => !retainedIds.has(course.id))
+      .map((course) => course.id);
     localStorage.setItem(STORAGE_KEY, serializePlannerState({
       selectedIds: selected.map((course) => course.id),
       attendance: Object.fromEntries(selected.map((course) => [course.id, course.attendance])),
@@ -58,6 +62,7 @@ function persistState() {
       internshipSettings,
       profile,
       manualCourses,
+      deletedCourseIds,
     }));
   } catch {
     // The planner still works when browser storage is unavailable.
@@ -191,8 +196,16 @@ function renderCatalog() {
     const attendance = selectedNow && course.asyncAllowed
       ? `<label class="attendance-control">出席方式<select data-attendance-course="${escapeHtml(course.id)}"><option value="physical" ${selectedCourse.attendance !== 'async' ? 'selected' : ''}>實體／固定同步</option><option value="async" ${selectedCourse.attendance === 'async' ? 'selected' : ''}>非同步</option></select></label>`
       : '';
-    const sections = course.sections?.length
-      ? `<details class="course-sections"><summary>查看 ${course.sections.length} 個班別</summary><ul>${course.sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul></details>`
+    const conditions = course.conditions || [];
+    const sections = course.sections || [];
+    const details = conditions.length || sections.length
+      ? `<details class="course-details">
+          <summary aria-label="查看 ${escapeHtml(course.title)} 的限制與班別">詳細</summary>
+          <div class="course-details-card">
+            ${conditions.length ? `<strong>選課條件</strong><ul class="course-conditions">${conditions.map((condition) => `<li>${escapeHtml(condition)}</li>`).join('')}</ul>` : ''}
+            ${sections.length ? `<strong>官方班別</strong><ul class="course-sections">${sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : ''}
+          </div>
+        </details>`
       : '';
     const selectedVariant = selectedCourse?.variants?.find(({ id }) => id === selectedCourse.selectedVariantId);
     const optionControls = selectedNow && course.variants?.length
@@ -209,12 +222,12 @@ function renderCatalog() {
         </div>`
       : '';
     return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
-      <button type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked || course.required ? 'disabled' : ''}>
+      <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked || course.required ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
       </button>
-      <ul class="course-conditions">${(course.conditions || []).slice(0, 3).map((condition) => `<li>${escapeHtml(condition)}</li>`).join('')}</ul>
-      ${sections}
+      ${details}
+      <button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" ${course.required ? 'disabled' : ''} aria-label="${course.required ? '固定必修不可刪除' : '刪除候選課程'} ${escapeHtml(course.title)}">${course.required ? '固定' : '刪除'}</button>
       ${optionControls}
       ${attendance}
     </article>`;
@@ -288,6 +301,20 @@ byId('internship-form').addEventListener('change', () => {
 
 const catalogList = byId('catalog-list');
 catalogList.addEventListener('click', (event) => {
+  const deleteButton = event.target.closest('[data-delete-course]');
+  if (deleteButton) {
+    const course = courseStore.find((item) => item.id === deleteButton.dataset.deleteCourse);
+    if (!course || course.required) return;
+    if (!window.confirm(`要從候選課程刪除「${course.title}」嗎？`)) return;
+    const result = deleteCandidateCourse(courseStore, selected, course.id);
+    courseStore = result.courseStore;
+    selected = result.selected;
+    delete courseOptions[course.id];
+    byId('catalog-status').textContent = `已刪除「${course.title}」；按「恢復建議方案」可找回官方課程。`;
+    persistState();
+    renderAll();
+    return;
+  }
   const button = event.target.closest('[data-course-id]');
   if (!button) return;
   const course = courseStore.find((item) => item.id === button.dataset.courseId);
@@ -340,11 +367,12 @@ byId('preset-picker').addEventListener('click', (event) => {
   renderAll();
 });
 byId('reset-plan').addEventListener('click', () => {
-  courseStore = restoreOfficialCatalog(courseStore);
+  courseStore = restoreOfficialCatalog(courses);
   selected = applyPreset(courseStore, 'concentrated');
   profile = { ...defaultProfile };
   courseOptions = {};
   internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
+  byId('catalog-status').textContent = '已恢復全部官方候選課程與建議方案。';
   syncProfileForm();
   syncInternshipForm();
   persistState();

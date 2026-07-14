@@ -304,3 +304,32 @@ test('restores the official catalog by removing manually added courses', () => {
 
   assert.deepEqual(core.restoreOfficialCatalog([official, manual]), [official]);
 });
+
+test('deletes an optional candidate from both the catalog and selected schedule', () => {
+  const required = { id: 'required', required: true };
+  const optional = { id: 'optional', required: false };
+
+  assert.deepEqual(
+    core.deleteCandidateCourse([required, optional], [required, optional], optional.id),
+    { courseStore: [required], selected: [required], deleted: optional },
+  );
+});
+
+test('refuses to delete one of the three fixed required courses', () => {
+  const required = { id: 'required', required: true };
+
+  assert.deepEqual(
+    core.deleteCandidateCourse([required], [required], required.id),
+    { courseStore: [required], selected: [required], deleted: null },
+  );
+});
+
+test('rebuilds a saved catalog without deleted official candidates', () => {
+  const official = [{ id: 'keep' }, { id: 'deleted' }];
+  const manual = [{ id: 'manual-1', source: 'manual' }];
+
+  assert.deepEqual(
+    core.buildCandidateCatalog(official, manual, ['deleted']),
+    [official[0], manual[0]],
+  );
+});

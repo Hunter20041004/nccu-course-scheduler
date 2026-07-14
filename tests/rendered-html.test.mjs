@@ -29,6 +29,34 @@ test('wires catalog course buttons to the schedule selection handler', async () 
   assert.match(html, /toggleSelectableCourse\(selected, course, profile\)/);
 });
 
+test('deletes an optional candidate after confirmation and announces the result', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-delete-course/);
+  assert.match(html, /window\.confirm/);
+  assert.match(html, /deleteCandidateCourse\(courseStore, selected, course\.id\)/);
+  assert.match(html, /deletedCourseIds/);
+  assert.match(html, /id="catalog-status"[^>]*aria-live="polite"/);
+});
+
+test('shows at least ten candidates through compact rows with progressive details', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /--catalog-row-height:\s*48px/);
+  assert.match(html, /\.catalog-course\s*\{[^}]*min-height:\s*var\(--catalog-row-height\)/s);
+  assert.match(html, /class="course-details"/);
+  assert.match(html, /<summary[^>]*>詳細<\/summary>/);
+  assert.match(html, /class="course-details-card"[\s\S]*class="course-conditions"/);
+});
+
+test('fits the full official NCCU period grid into a compact at-a-glance schedule', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /grid-template-rows:\s*40px repeat\(16,\s*36px\)/);
+  assert.match(html, /min-width:\s*760px/);
+  assert.match(html, /\.period-label strong\s*\{[^}]*font-size:\s*\.88rem/s);
+});
+
 test('includes manual course creation and local screenshot handoff', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="manual-course-form"/);
@@ -112,8 +140,8 @@ test('contains the wide NCCU timetable inside the mobile schedule panel', async 
   assert.match(html, /\.planner-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
 });
 
-test('keeps course section disclosure targets at least 44 pixels tall', async () => {
+test('keeps compact course detail disclosure targets at least 44 pixels tall', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /\.course-sections summary\s*\{[^}]*min-height:\s*44px/s);
+  assert.match(html, /\.course-details summary[^}]*\{[^}]*min-height:\s*44px/s);
 });
