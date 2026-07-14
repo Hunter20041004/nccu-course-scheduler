@@ -24,6 +24,13 @@ test('marks a graduate course that opens to juniors as conditional for an underg
   );
 });
 
+test('marks a graduate course requiring undergraduate review as conditional', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({ level: 'graduate', undergradReview: true }, profile),
+    { status: 'conditional', reasons: ['碩士班課程，學士生須確認選課資格與學分認列'] },
+  );
+});
+
 test('marks a course with no current section unavailable', () => {
   assert.deepEqual(
     core.evaluateEligibility({ available: false }, profile),

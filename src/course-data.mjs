@@ -85,7 +85,8 @@ export const courses = [
   {
     id: 'fintech-intro', title: '金融科技導論', credits: 3, sectionCode: '070424001',
     teacher: '張智星', available: true, required: false, schedule: schedule(3, 550, 730, '週三 09:10–12:10'),
-    asyncAllowed: true, level: 'graduate', conditions: ['課綱允許非同步觀看', '不開放加簽', '碩士班性質，學士生須確認資格與學分認列', '難度 6／10'],
+    asyncAllowed: true, level: 'graduate', undergradReview: true,
+    conditions: ['課綱允許非同步觀看', '不開放加簽', '碩士班性質，學士生須確認資格與學分認列', '難度 6／10'],
     events: [{ label: '實體期末考', date: '2026-12-23', day: 3, start: 550, end: 730 }], sections: ['070424001｜TAICA 主導課程'],
   },
   {

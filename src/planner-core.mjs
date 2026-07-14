@@ -8,6 +8,16 @@ export function evaluateEligibility(section, profile) {
   if (
     section.level === 'graduate'
     && profile.level === 'undergrad'
+    && section.undergradReview
+  ) {
+    return {
+      status: 'conditional',
+      reasons: ['碩士班課程，學士生須確認選課資格與學分認列'],
+    };
+  }
+  if (
+    section.level === 'graduate'
+    && profile.level === 'undergrad'
     && section.openToUndergradYear
     && profile.year >= section.openToUndergradYear
   ) {

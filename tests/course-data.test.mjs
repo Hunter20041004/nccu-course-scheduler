@@ -18,3 +18,10 @@ test('models AI practical project as official sections with advisor choices', ()
   assert.equal(advisors.find(({ id }) => id === 'wu-chih-hsun').schedule.label, '週二 D56');
   assert.equal(advisors.find(({ id }) => id === 'wu-yi-chieh').schedule.label, '週三 D56');
 });
+
+test('routes FinTech Introduction through undergraduate eligibility review', () => {
+  const course = courses.find(({ id }) => id === 'fintech-intro');
+
+  assert.equal(course.level, 'graduate');
+  assert.equal(course.undergradReview, true);
+});
