@@ -213,6 +213,7 @@ test('normalizes a manually entered physical course into a schedulable block', (
     {
       id: 'manual-7',
       title: '使用者新增課程',
+      itemType: 'course',
       credits: 2,
       source: 'manual',
       attendance: 'physical',
@@ -223,6 +224,17 @@ test('normalizes a manually entered physical course into a schedulable block', (
       conditions: ['手動新增，尚未查證官方資料'],
     },
   );
+});
+
+test('creates a weekly club activity that participates in scheduling', () => {
+  const activity = core.createManualCourse({
+    title: '攝影社', itemType: 'club', credits: '3', mode: 'physical',
+    day: '7', start: '14:00', end: '16:00',
+  }, 8);
+  assert.equal(activity.itemType, 'club');
+  assert.equal(activity.credits, 0);
+  assert.equal(activity.schedule.day, 7);
+  assert.equal(activity.schedule.label, '週日 14:00–16:00');
 });
 
 test('adds an eligible catalog course to the schedule', () => {
