@@ -13,10 +13,11 @@ test('the browser bundle parses after source modules are combined', async () => 
     'src/course-data.mjs',
     'src/planner-core.mjs',
     'src/planner-storage.mjs',
+    'src/ai-planner.mjs',
     'src/app.mjs',
   ].map((path) => readFile(new URL(path, root), 'utf8')));
   const script = sources.map((source) => source
-    .replace(/^import .*;\n/gm, '')
+    .replace(/^import[\s\S]*?from\s+['"][^'"]+['"];\n/gm, '')
     .replace(/^export\s+/gm, '')).join('\n\n');
 
   assert.doesNotThrow(() => new Function(script));
@@ -33,7 +34,7 @@ test('the finished browser bundle has valid ES module syntax', async () => {
   const workerUrl = new URL('../dist/server/index.js', import.meta.url);
   workerUrl.searchParams.set('syntax-test', String(Date.now()));
   const { default: worker } = await import(workerUrl.href);
-  const html = await (await worker.fetch()).text();
+  const html = await (await worker.fetch(new Request('http://localhost/'))).text();
   const script = html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, 'expected an inline module script');
 

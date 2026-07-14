@@ -80,14 +80,24 @@ test('renders Monday through Sunday in the timetable and manual form', async () 
   assert.match(html, /週日/);
 });
 
-test('includes manual course creation and local screenshot handoff', async () => {
+test('includes manual course creation and private screenshot import', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="manual-course-form"/);
   assert.match(html, /validateManualCourse/);
   assert.match(html, /id="screenshot-input"/);
   assert.match(html, /URL\.createObjectURL/);
-  assert.match(html, /navigator\.clipboard\.writeText/);
-  assert.match(html, /請辨識我附上的政大課程備選清單截圖/);
+  assert.match(html, /FileReader/);
+  assert.match(html, /mergeImportedCourses/);
+});
+
+test('uploads a screenshot to the private import API and renders review groups', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="import-screenshot"/);
+  assert.match(html, /fetch\('\/api\/ai\/import-courses'/);
+  assert.match(html, /截圖會傳送給 Groq/);
+  assert.match(html, /id="imported-courses"/);
+  assert.match(html, /id="pending-courses"/);
+  assert.doesNotMatch(html, /copy-codex-prompt/);
 });
 
 test('creates courses, clubs, organizations, and personal schedule items', async () => {
@@ -140,9 +150,9 @@ test('lets the student change eligibility conditions used by the catalog', async
   assert.match(html, /profile\.prerequisites = byId\('profile-statistics'\)\.checked/);
 });
 
-test('requires a screenshot before starting the Codex handoff', async () => {
+test('requires a screenshot before starting the private import', async () => {
   const html = await (await render()).text();
-  assert.match(html, /if \(!byId\('screenshot-input'\)\.files\.length\)/);
+  assert.match(html, /if \(!file\)/);
   assert.match(html, /請先選擇一張課程備選清單截圖/);
 });
 
