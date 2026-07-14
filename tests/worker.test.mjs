@@ -19,3 +19,17 @@ test('routes screenshot imports through the server-side Groq secret', async () =
     importedCourses: [], duplicates: [], pendingCourses: [], warnings: ['ok'],
   });
 });
+
+test('routes recommendation requests without exposing the server secret', async () => {
+  const worker = createWorker({
+    html: '<h1>ok</h1>', catalog: [],
+    recommendationService: async (_input, deps) => ({
+      summary: deps.apiKey === 'server-secret' ? 'ok' : 'bad', plans: [],
+    }),
+  });
+  const response = await worker.fetch(new Request('http://local/api/ai/recommend-plans', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
+  }), { GROQ_API_KEY: 'server-secret' });
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { summary: 'ok', plans: [] });
+});
