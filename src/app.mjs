@@ -2,8 +2,9 @@ const byId = (id) => document.getElementById(id);
 const defaultProfile = {
   level: 'undergrad',
   year: 3,
-  programs: ['innovation'],
+  programs: [],
   prerequisites: [],
+  conditionIds: ['program:innovation'],
 };
 
 let profile = { ...defaultProfile };
@@ -15,6 +16,7 @@ let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
 let pendingCourses = [];
 let lastImportedCourses = [];
 let recommendedPlans = [];
+let customConditions = [];
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -36,6 +38,7 @@ function restoreState() {
       saved.deletedCourseIds,
     );
     pendingCourses = Array.isArray(saved.pendingCourses) ? saved.pendingCourses : [];
+    customConditions = Array.isArray(saved.customConditions) ? saved.customConditions : [];
     const attendance = saved.attendance || {};
     courseOptions = saved.courseOptions || {};
     lockedCourseIds = saved.lockedCourseIds || [];
@@ -73,6 +76,7 @@ function persistState() {
       profile,
       addedCourses,
       pendingCourses,
+      customConditions,
       deletedCourseIds,
     }));
   } catch {
@@ -256,6 +260,7 @@ function renderAll() {
   renderSchedule();
   renderWarnings();
   renderCatalog();
+  renderConditions();
 }
 
 restoreState();
@@ -266,15 +271,87 @@ renderAll();
 function syncProfileForm() {
   byId('profile-level').value = profile.level;
   byId('profile-year').value = String(profile.year);
-  byId('profile-innovation').checked = profile.programs.includes('innovation');
-  byId('profile-statistics').checked = profile.prerequisites.includes('statistics');
 }
 
 byId('profile-form').addEventListener('change', () => {
   profile.level = byId('profile-level').value;
   profile.year = Number(byId('profile-year').value);
-  profile.programs = byId('profile-innovation').checked ? ['innovation'] : [];
-  profile.prerequisites = byId('profile-statistics').checked ? ['statistics'] : [];
+  persistState();
+  renderAll();
+});
+
+function renderConditions() {
+  const definitions = buildConditionDefinitions(courseStore, customConditions);
+  const impacts = buildConditionImpacts(courseStore, definitions, profile);
+  byId('condition-list').innerHTML = impacts.map((impact) => `
+    <article class="condition-item ${impact.selected ? 'is-selected' : ''}">
+      <label class="condition-toggle">
+        <input type="checkbox" data-profile-condition="${escapeHtml(impact.id)}" ${impact.selected ? 'checked' : ''}>
+        <span><strong>${escapeHtml(impact.label)}</strong><small>${escapeHtml(impact.summary)}</small></span>
+      </label>
+      <details class="condition-impact">
+        <summary>為什麼需要這個條件？</summary>
+        <p>${escapeHtml(impact.description)}</p>
+        ${impact.affectedCourses.length ? `<ul>${impact.affectedCourses.map((course) => `
+          <li><strong>${escapeHtml(course.title)}</strong><span>${escapeHtml(course.rationale)}</span><em>${escapeHtml(course.consequence)}</em></li>
+        `).join('')}</ul>` : '<p>目前沒有候選課程使用這項條件。</p>'}
+      </details>
+      ${impact.source === 'custom' ? `<button class="condition-delete" type="button" data-delete-condition="${escapeHtml(impact.id)}">刪除自訂條件</button>` : ''}
+    </article>
+  `).join('');
+}
+
+byId('condition-list').addEventListener('change', (event) => {
+  const input = event.target.closest('[data-profile-condition]');
+  if (!input) return;
+  const selectedIds = new Set(profileConditionIds(profile));
+  if (input.checked) selectedIds.add(input.dataset.profileCondition);
+  else selectedIds.delete(input.dataset.profileCondition);
+  profile.conditionIds = [...selectedIds];
+  profile.programs = [];
+  profile.prerequisites = [];
+  persistState();
+  renderAll();
+});
+
+byId('condition-list').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-delete-condition]');
+  if (!button) return;
+  const condition = customConditions.find((item) => item.id === button.dataset.deleteCondition);
+  if (!condition || !window.confirm(`確定刪除自訂條件「${condition.label}」嗎？`)) return;
+  customConditions = customConditions.filter((item) => item.id !== condition.id);
+  profile.conditionIds = profileConditionIds(profile).filter((id) => id !== condition.id);
+  persistState();
+  renderAll();
+});
+
+byId('custom-condition-form').addEventListener('submit', (event) => {
+  event.preventDefault();
+  const definitions = buildConditionDefinitions(courseStore, customConditions);
+  const input = {
+    label: byId('custom-condition-label').value,
+    category: byId('custom-condition-category').value,
+    description: byId('custom-condition-description').value,
+  };
+  const validation = validateCustomCondition(input, definitions);
+  const status = byId('custom-condition-status');
+  if (validation) {
+    status.textContent = validation.message;
+    byId(`custom-condition-${validation.field}`).focus();
+    return;
+  }
+  const condition = {
+    id: `custom:${Date.now().toString(36)}`,
+    label: input.label.trim(),
+    category: input.category,
+    description: input.description.trim() || '這是你自行加入的選課條件。',
+    source: 'custom',
+  };
+  customConditions.push(condition);
+  const selectedIds = profileConditionIds(profile).filter((id) => id !== condition.id);
+  profile.conditionIds = [...selectedIds, condition.id];
+  event.currentTarget.reset();
+  status.textContent = `已新增「${condition.label}」並標記為符合。`;
   persistState();
   renderAll();
 });

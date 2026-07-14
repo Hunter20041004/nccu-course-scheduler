@@ -5,6 +5,7 @@ import {
   buildConditionImpacts,
   profileConditionIds,
   rulesForCourse,
+  validateCustomCondition,
 } from '../src/eligibility-conditions.mjs';
 
 test('normalizes legacy program and prerequisite facts into condition ids', () => {
@@ -87,4 +88,26 @@ test('discovers course conditions before unique custom conditions with human lab
     { id: 'prerequisite:statistics', label: '修過統計學 3 學分', source: 'course' },
     { id: 'competency:python', label: 'Python 基礎', source: 'custom' },
   ]);
+});
+
+test('rejects a custom condition without a name', () => {
+  assert.deepEqual(validateCustomCondition({
+    label: '   ',
+    category: 'other',
+    description: '',
+  }, []), {
+    field: 'label',
+    message: '請輸入條件名稱。',
+  });
+});
+
+test('rejects a custom condition whose normalized name already exists', () => {
+  assert.deepEqual(validateCustomCondition({
+    label: 'python 基礎',
+    category: 'competency',
+    description: '',
+  }, [{ id: 'competency:python', label: ' Python   基礎 ' }]), {
+    field: 'label',
+    message: '這項條件已經存在。',
+  });
 });
