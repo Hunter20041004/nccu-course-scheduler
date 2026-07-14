@@ -89,7 +89,7 @@ function eligibilityLabel(status) {
   return {
     eligible: '條件符合',
     conditional: '資格需確認',
-    blocked: '條件不符合',
+    blocked: '條件不符合，請看詳細。',
     unavailable: '本學期未開課',
   }[status];
 }
@@ -220,7 +220,7 @@ function renderCatalog() {
     const locked = lockedCourseIds.includes(course.id);
     const blocked = eligibility.status === 'blocked' || eligibility.status === 'unavailable';
     const attendance = selectedNow && course.asyncAllowed
-      ? `<label class="attendance-control">出席方式<select data-attendance-course="${escapeHtml(course.id)}"><option value="physical" ${selectedCourse.attendance !== 'async' ? 'selected' : ''}>實體／固定同步</option><option value="async" ${selectedCourse.attendance === 'async' ? 'selected' : ''}>非同步</option></select></label>`
+      ? `<label class="attendance-control"><span>實體／同步／非同步</span><select data-attendance-course="${escapeHtml(course.id)}" aria-label="${escapeHtml(course.title)} 出席方式"><option value="physical" ${selectedCourse.attendance === 'physical' ? 'selected' : ''}>實體</option><option value="sync" ${selectedCourse.attendance === 'sync' ? 'selected' : ''}>同步</option><option value="async" ${selectedCourse.attendance === 'async' ? 'selected' : ''}>非同步</option></select></label>`
       : '';
     const conditions = course.conditions || [];
     const sections = course.sections || [];
