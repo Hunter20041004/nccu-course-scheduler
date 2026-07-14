@@ -116,6 +116,33 @@ test('offers the three planning presets and applies the selected preset', async 
   assert.match(html, /data-preset="async-first"/);
   assert.match(html, /data-preset="lighter"/);
   assert.match(html, /applyPreset\(courseStore, button\.dataset\.preset\)/);
+  assert.match(html, /applyRecommendedPlan\([^;]+lockedCourseIds/s);
+  assert.doesNotMatch(html, /applyPreset\(courseStore, button\.dataset\.preset\);\s*lockedCourseIds = \[\]/);
+});
+
+test('collects the student profile and goals for AI planning', async () => {
+  const html = await (await render()).text();
+  for (const id of ['ai-profile', 'ai-activities', 'ai-future', 'ai-goals', 'ai-preferences']) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  assert.match(html, /個人敘述會傳送給 Groq/);
+  assert.match(html, /id="ai-advisor-status"[^>]*aria-live="polite"/);
+});
+
+test('sends current courses locks and internship settings to the advisor API', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /fetch\('\/api\/ai\/recommend-plans'/);
+  assert.match(html, /internshipSettings,/);
+  assert.match(html, /lockedCourseIds,/);
+  assert.match(html, /eligibility:\s*evaluateEligibility\(course, profile\)\.status/);
+});
+
+test('renders exactly three actionable recommendation cards', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /class="ai-plan-grid"/);
+  assert.match(html, /data-apply-ai-plan/);
+  assert.match(html, /套用此方案/);
+  assert.match(html, /applyRecommendedPlan\(/);
 });
 
 test('clears the current timetable while preserving the candidate catalog', async () => {
