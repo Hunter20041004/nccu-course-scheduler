@@ -19,7 +19,7 @@ test('serves the private NCCU course scheduler with schedule before catalog', as
   assert.match(html, /data-testid="schedule-panel"/);
   assert.match(html, /data-testid="course-catalog"/);
   assert.ok(html.indexOf('data-testid="schedule-panel"') < html.indexOf('data-testid="course-catalog"'));
-  assert.match(html, /24 門候選課程/);
+  assert.match(html, /23 門候選課程/);
 });
 
 test('wires catalog course buttons to the schedule selection handler', async () => {
@@ -53,8 +53,16 @@ test('fits the full official NCCU period grid into a compact at-a-glance schedul
   const html = await (await render()).text();
 
   assert.match(html, /grid-template-rows:\s*40px repeat\(16,\s*36px\)/);
-  assert.match(html, /min-width:\s*760px/);
+  assert.match(html, /min-width:\s*840px/);
   assert.match(html, /\.period-label strong\s*\{[^}]*font-size:\s*\.88rem/s);
+});
+
+test('renders Monday through Sunday in the timetable and manual form', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /dayLabels\.slice\(1, 8\)/);
+  assert.match(html, /\[1, 2, 3, 4, 5, 6, 7\]\.map/);
+  assert.match(html, /grid-template-columns:\s*60px repeat\(7,\s*minmax\(96px,\s*1fr\)\)/);
+  assert.match(html, /週日/);
 });
 
 test('includes manual course creation and local screenshot handoff', async () => {
@@ -67,12 +75,45 @@ test('includes manual course creation and local screenshot handoff', async () =>
   assert.match(html, /請辨識我附上的政大課程備選清單截圖/);
 });
 
+test('creates courses, clubs, organizations, and personal schedule items', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="manual-item-type"/);
+  assert.match(html, /value="club"/);
+  assert.match(html, /value="organization"/);
+  assert.match(html, /value="personal"/);
+  assert.match(html, /itemType: byId\('manual-item-type'\)\.value/);
+  assert.match(html, /creditInput\.disabled = itemType !== 'course'/);
+});
+
 test('offers the three planning presets and applies the selected preset', async () => {
   const html = await (await render()).text();
   assert.match(html, /data-preset="concentrated"/);
   assert.match(html, /data-preset="async-first"/);
   assert.match(html, /data-preset="lighter"/);
   assert.match(html, /applyPreset\(courseStore, button\.dataset\.preset\)/);
+});
+
+test('clears the current timetable while preserving the candidate catalog', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="clear-schedule"/);
+  assert.match(html, /clearPlannerSelection\(\)/);
+  assert.match(html, /id="planner-status"[^>]*aria-live="polite"/);
+  assert.match(html, /已清空目前課表/);
+  assert.match(html, /persistState\(\);\s*renderAll\(\)/);
+});
+
+test('lets the student lock and unlock selected core courses', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /data-lock-course/);
+  assert.match(html, /saved\.lockedCourseIds \|\| \[\]/);
+  assert.match(html, /lockedCourseIds,/);
+  assert.match(html, /toggleCourseLock\(lockedCourseIds, lockButton\.dataset\.lockCourse\)/);
+  assert.match(html, /toggleCourse\(selected, course, lockedCourseIds\)/);
+});
+
+test('does not silently restore removed core courses after reload', async () => {
+  const html = await (await render()).text();
+  assert.doesNotMatch(html, /courseStore\.filter\(\(course\) => course\.required\)\.forEach/);
 });
 
 test('lets the student change eligibility conditions used by the catalog', async () => {

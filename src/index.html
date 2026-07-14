@@ -18,15 +18,18 @@
     <div class="hero-copy">
       <p class="eyebrow">NCCU · 115-1 · 雨後日光</p>
       <h1>把課集中，替實習留下完整時間。</h1>
-      <p>三門必修已固定，右側點選候選課程，左側課表會立即更新。</p>
+      <p>三門核心課可自由加入與鎖定；右側點選候選項目，左側課表會立即更新。</p>
     </div>
     <div class="weather-window" aria-hidden="true"><span class="weather-sun"></span><span class="weather-cloud weather-cloud-back"></span><span class="weather-cloud weather-cloud-front"></span></div>
-    <button id="reset-plan" class="button button-secondary" type="button">恢復建議方案</button>
+    <div class="header-actions">
+      <button id="clear-schedule" class="button button-quiet" type="button">清空目前課表</button>
+      <button id="reset-plan" class="button button-secondary" type="button">恢復建議方案</button>
+    </div>
   </header>
 
   <main>
     <section class="stats" aria-label="排課摘要">
-      <article><span>已選學分</span><strong id="credit-value">17</strong><small>固定必修 8 學分</small></article>
+      <article><span>已選學分</span><strong id="credit-value">17</strong><small>核心課可自行鎖定</small></article>
       <article><span>可實習時間</span><strong id="internship-value">3 天</strong><small>目標至少 2.5 天</small></article>
       <article><span>待處理提醒</span><strong id="warning-value">0</strong><small>衝堂、資格與重要日期</small></article>
     </section>
@@ -37,6 +40,7 @@
       <button type="button" data-preset="async-first">17 學分非同步優先</button>
       <button type="button" data-preset="lighter">14 學分較輕</button>
     </nav>
+    <p id="planner-status" class="form-status planner-status" aria-live="polite"></p>
 
     <details class="profile-settings">
       <summary>我的選課條件（用來判斷資格）</summary>
@@ -78,7 +82,7 @@
       </section>
 
       <aside class="panel catalog-panel" data-testid="course-catalog" aria-labelledby="catalog-title">
-        <div class="section-heading"><div><p class="eyebrow">RIGHT · COURSE BANK</p><h2 id="catalog-title">24 門候選課程</h2></div><span id="catalog-count">24 / 24</span></div>
+        <div class="section-heading"><div><p class="eyebrow">RIGHT · COURSE BANK</p><h2 id="catalog-title">23 門候選課程</h2></div><span id="catalog-count">23 / 23</span></div>
         <div class="catalog-tools">
           <label>搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
           <label>篩選<select id="catalog-filter"><option value="all">全部</option><option value="selected">已加入</option><option value="remote">可非同步</option><option value="conditional">資格需確認</option></select></label>
@@ -91,7 +95,7 @@
     <details class="add-more">
       <summary>加入更多課程或匯入截圖</summary>
       <div class="add-grid">
-        <section><h2>手動新增</h2><div id="manual-form"></div></section>
+        <section><h2>新增課程或行程</h2><div id="manual-form"></div></section>
         <section><h2>備選清單截圖</h2><div id="screenshot-handoff"></div></section>
       </div>
     </details>

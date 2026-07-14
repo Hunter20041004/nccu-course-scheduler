@@ -215,7 +215,7 @@ function timeToMinutes(value) {
 }
 
 export function validateManualCourse(input) {
-  if (!input.title?.trim()) return { field: 'title', message: '請輸入課程名稱。' };
+  if (!input.title?.trim()) return { field: 'title', message: '請輸入名稱。' };
   if (input.mode !== 'async' && timeToMinutes(input.end) <= timeToMinutes(input.start)) {
     return { field: 'end', message: '結束時間必須晚於開始時間。' };
   }
