@@ -36,3 +36,23 @@ test('returns ambiguous official matches as pending instead of importing them', 
   assert.equal(result.importedCourses.length, 0);
   assert.equal(result.pendingCourses[0].reason, '找到多筆官方課程，請確認班別。');
 });
+
+test('excludes blocked and unavailable courses from recommendation prompts', async () => {
+  let promptedCourseIds;
+  const eligibleCourse = { id: 'eligible', title: '合格課', credits: 3, eligibility: 'eligible' };
+  const blockedCourse = { id: 'blocked', title: '不合格課', credits: 3, eligibility: 'blocked' };
+  const validThreePlans = JSON.stringify({ summary: '摘要', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['eligible'], attendance: '實體', tradeoffs: ['密集'] },
+    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['eligible', 'locked'], attendance: '混合', tradeoffs: ['較多課'] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['locked'], attendance: '彈性', tradeoffs: ['學分少'] },
+  ] });
+  await recommendCoursePlans({
+    profileText: '大三', desiredActivities: '實習', futureDirection: 'AI', semesterGoals: '作品', preferences: '集中',
+    internshipSettings: {}, selectedCourseIds: [], lockedCourseIds: ['locked'],
+    courses: [eligibleCourse, blockedCourse, { id: 'locked', title: '鎖定課', credits: 2, eligibility: 'eligible' }],
+  }, { apiKey: 'test-only', groqRequest: async ({ messages }) => {
+    promptedCourseIds = JSON.parse(messages[1].content).courses.map(({ id }) => id);
+    return validThreePlans;
+  } });
+  assert.deepEqual(promptedCourseIds, ['eligible', 'locked']);
+});

@@ -9,3 +9,16 @@ test('merges verified imports without duplicating existing course ids', () => {
     courseStore: [hci, ai], duplicateIds: ['hci'],
   });
 });
+
+test('applies a recommendation while preserving every locked selected course', () => {
+  const profile = { level: 'undergrad', year: 3, programs: [], prerequisites: [] };
+  const catalog = [
+    { id: 'locked', title: '鎖定課', available: true },
+    { id: 'recommended', title: '推薦課', available: true },
+  ];
+  const result = applyRecommendedPlan(
+    { courseIds: ['recommended'] }, catalog,
+    [{ ...catalog[0], attendance: 'physical' }], ['locked'], profile,
+  );
+  assert.deepEqual(result.map(({ id }) => id), ['recommended', 'locked']);
+});
