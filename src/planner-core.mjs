@@ -109,6 +109,10 @@ export function calculateInternshipAvailability(selected) {
   return { fullDays, halfDays, equivalentDays, meetsTarget: equivalentDays >= 2.5 };
 }
 
+export function clearPlannerSelection() {
+  return { selected: [], lockedCourseIds: [], courseOptions: {} };
+}
+
 export function toggleCourse(selected, course) {
   const isSelected = selected.some((item) => item.id === course.id);
   if (isSelected && course.required) return selected;
