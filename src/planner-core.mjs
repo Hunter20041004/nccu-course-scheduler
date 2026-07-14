@@ -197,7 +197,7 @@ export function resolveCourseOption(course, selection = {}) {
       selectedVariantId: variant.id,
       selectedAdvisorId: null,
       optionStatus: 'pending',
-      optionMessage: '請選擇指導老師',
+      optionMessage: `請選擇${variant.selectionLabel || '指導老師'}`,
     };
   }
   const source = advisor || variant;

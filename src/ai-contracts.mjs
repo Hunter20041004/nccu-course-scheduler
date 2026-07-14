@@ -113,12 +113,19 @@ export function parseRecommendedPlans(content, allowedCourseIds) {
     const title = text(plan?.title);
     const reason = text(plan?.reason);
     const courseIds = Array.isArray(plan?.courseIds) ? plan.courseIds.map(text).filter(Boolean) : [];
+    const asyncCourseIds = Array.isArray(plan?.asyncCourseIds)
+      ? [...new Set(plan.asyncCourseIds.map(text).filter(Boolean))]
+      : [];
     if (!id || !title || !reason || !courseIds.length || planIds.has(id)) {
       throw new ContractError('AI 回覆格式不正確。', 502, 'INVALID_AI_RESPONSE');
     }
     const unknown = courseIds.find((courseId) => !allowedCourseIds.has(courseId));
     if (unknown) {
       throw new ContractError(`AI 回覆包含未知課程：${unknown}`, 502, 'INVALID_AI_RESPONSE');
+    }
+    const unknownAsync = asyncCourseIds.find((courseId) => !allowedCourseIds.has(courseId));
+    if (unknownAsync) {
+      throw new ContractError(`AI 回覆包含未知非同步課程：${unknownAsync}`, 502, 'INVALID_AI_RESPONSE');
     }
     planIds.add(id);
     const signature = [...new Set(courseIds)].sort().join('|');
@@ -131,6 +138,7 @@ export function parseRecommendedPlans(content, allowedCourseIds) {
       title,
       reason,
       courseIds: [...new Set(courseIds)],
+      asyncCourseIds,
       attendance: text(plan.attendance),
       tradeoffs: Array.isArray(plan.tradeoffs) ? plan.tradeoffs.map(text).filter(Boolean) : [],
     };

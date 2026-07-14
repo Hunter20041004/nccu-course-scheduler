@@ -4,12 +4,23 @@ export const courses = [
   {
     id: 'ai-practical-project', title: '人工智慧實務專題', credits: 3, sectionCode: '783006001',
     teacher: '魏綾音', available: true, required: false, schedule: null, asyncAllowed: false,
-    minYear: 3, conditions: ['時間與地點另依教學大綱公告', '建議具程式設計與機器學習基礎', '大一、大二須經教師同意加簽'],
-    sections: ['070395001｜時間未定｜EMI', '070395011｜週六 09:10–12:00', '783006001｜人智學程｜時間未定'],
+    minYear: 3, conditions: ['魏綾音班：每週二 34C 或另約討論時間（中午時段亦可）', '建議具程式設計與機器學習基礎', '大一、大二須經教師同意加簽'],
+    sections: ['070395001｜時間未定｜EMI', '070395011｜週六 09:10–12:00', '783006001｜人智學程｜週二 34C 或另約'],
     variants: [
       {
         id: '783006001', label: '783006001｜AI 學程', sectionCode: '783006001', teacher: '魏綾音',
-        schedule: null, optionMessage: '115-1 上課時間尚未公告',
+        schedule: null, selectionLabel: '討論時間安排',
+        advisors: [
+          {
+            id: 'wei-tuesday-34c', teacher: '魏綾音',
+            optionLabel: '每週二 34C（10:10–13:00）',
+            schedule: schedule(2, 610, 780, '週二 34C'),
+          },
+          {
+            id: 'wei-flexible', teacher: '魏綾音', optionLabel: '另約討論時間（中午時段亦可）',
+            schedule: null, optionMessage: '另約討論時間（中午時段亦可）',
+          },
+        ],
       },
       {
         id: '070395001', label: '070395001｜AI 中心三位老師合開', sectionCode: '070395001',

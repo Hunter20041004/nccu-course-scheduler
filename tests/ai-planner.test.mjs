@@ -22,3 +22,21 @@ test('applies a recommendation while preserving every locked selected course', (
   );
   assert.deepEqual(result.map(({ id }) => id), ['recommended', 'locked']);
 });
+
+test('applies the recommendation asynchronous choice to each named course', () => {
+  const profile = { level: 'undergrad', year: 3, programs: [], prerequisites: [] };
+  const catalog = [
+    { id: 'physical', title: '實體課', available: true },
+    { id: 'async', title: '非同步課', available: true, asyncAllowed: true },
+  ];
+
+  const result = applyRecommendedPlan(
+    { courseIds: ['physical', 'async'], asyncCourseIds: ['async'] },
+    catalog, [], [], profile,
+  );
+
+  assert.deepEqual(result.map(({ id, attendance }) => ({ id, attendance })), [
+    { id: 'physical', attendance: 'physical' },
+    { id: 'async', attendance: 'async' },
+  ]);
+});

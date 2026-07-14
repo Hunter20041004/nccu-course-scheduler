@@ -240,9 +240,9 @@ function renderCatalog() {
             <option value="">請選擇</option>
             ${course.variants.map((variant) => `<option value="${escapeHtml(variant.id)}" ${selectedCourse?.selectedVariantId === variant.id ? 'selected' : ''}>${escapeHtml(variant.sectionCode || variant.id)} · ${escapeHtml(variant.teacher || '依指導老師')}</option>`).join('')}
           </select></label>
-          ${selectedVariant?.advisors?.length ? `<label>指導老師與時段<select data-course-advisor="${escapeHtml(course.id)}">
+          ${selectedVariant?.advisors?.length ? `<label>${escapeHtml(selectedVariant.selectionLabel || '指導老師與時段')}<select data-course-advisor="${escapeHtml(course.id)}">
             <option value="">請選擇</option>
-            ${selectedVariant.advisors.map((advisor) => `<option value="${escapeHtml(advisor.id)}" ${selectedCourse.selectedAdvisorId === advisor.id ? 'selected' : ''}>${escapeHtml(advisor.teacher)} · ${escapeHtml(advisor.schedule?.label || '彈性時間')}</option>`).join('')}
+            ${selectedVariant.advisors.map((advisor) => `<option value="${escapeHtml(advisor.id)}" ${selectedCourse.selectedAdvisorId === advisor.id ? 'selected' : ''}>${escapeHtml(advisor.optionLabel || `${advisor.teacher} · ${advisor.schedule?.label || '彈性時間'}`)}</option>`).join('')}
           </select></label>` : ''}
           <p>${escapeHtml(selectedCourse?.optionMessage || '選定後會把對應時段放進左側課表。')}</p>
         </div>`
@@ -612,6 +612,7 @@ function previewRecommendedPlan(plan) {
   ));
   return {
     planCourses,
+    conflicts,
     credits: planCourses.reduce((total, course) => total + Number(course.credits || 0), 0),
     internshipPlan,
     warningCount: conflicts.length + internshipPlan.conflicts.length
@@ -655,19 +656,21 @@ function renderRecommendedPlans() {
   }
   results.innerHTML = recommendedPlans.map((plan, index) => {
     const preview = previewRecommendedPlan(plan);
+    const blockedByConflict = preview.conflicts.length > 0;
     const expanded = previewedPlanId === plan.id;
-    return `<article class="ai-route-board" data-route-id="${escapeHtml(plan.id)}">
+    return `<article class="ai-route-board" data-route-id="${escapeHtml(plan.id)}" data-conflict="${blockedByConflict}">
       <div class="route-index"><span>路線 ${String(index + 1).padStart(2, '0')}</span><b>${escapeHtml(plan.attendance || '彈性安排')}</b></div>
       <h3>${escapeHtml(plan.title)}</h3>
       <p class="route-strategy">${escapeHtml(plan.reason)}</p>
+      ${blockedByConflict ? `<p class="route-conflict" role="alert">此方案有 ${preview.conflicts.length} 組衝堂，請重新產生方案。</p>` : ''}
       <dl class="route-metrics"><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.availableDays} 天</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
       ${renderRouteWeekPreview(preview.planCourses)}
-      <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li><span>${escapeHtml(course.title)}</span>${lockedCourseIds.includes(course.id) ? '<b>鎖定保留</b>' : ''}</li>`).join('')}</ul>
+      <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li><span>${escapeHtml(course.title)}</span><span class="route-course-flags">${plan.asyncCourseIds?.includes(course.id) ? '<b>非同步</b>' : ''}${lockedCourseIds.includes(course.id) ? '<b>鎖定保留</b>' : ''}</span></li>`).join('')}</ul>
       ${plan.tradeoffs?.length ? `<p class="ai-plan-tradeoffs">取捨：${escapeHtml(plan.tradeoffs.join('、'))}</p>` : ''}
       ${expanded ? renderRouteComparison(preview.planCourses) : ''}
       <div class="route-actions">
         <button class="button button-quiet" type="button" data-preview-ai-plan="${escapeHtml(plan.id)}" aria-expanded="${expanded}">${expanded ? '收起預覽' : '預覽'}</button>
-        <button class="button button-primary" type="button" data-apply-ai-plan="${escapeHtml(plan.id)}">套用此方案</button>
+        <button class="button button-primary" type="button" data-apply-ai-plan="${escapeHtml(plan.id)}" ${blockedByConflict ? 'disabled' : ''}>${blockedByConflict ? '方案有衝堂' : '套用此方案'}</button>
       </div>
     </article>`;
   }).join('');
@@ -731,6 +734,10 @@ byId('ai-plan-results').addEventListener('click', (event) => {
   const plan = recommendedPlans.find((item) => item.id === button.dataset.applyAiPlan);
   if (!plan) return;
   const preview = previewRecommendedPlan(plan);
+  if (preview.conflicts.length) {
+    byId('ai-advisor-status').textContent = `「${plan.title}」有 ${preview.conflicts.length} 組衝堂，無法套用，請重新產生方案。`;
+    return;
+  }
   if (preview.warningCount && !window.confirm(`此方案有 ${preview.warningCount} 個待處理提醒，仍要套用嗎？`)) return;
   selected = preview.planCourses;
   persistState();

@@ -38,6 +38,9 @@ export function applyRecommendedPlan(plan, courseStore, selected, lockedCourseId
       variantId: prior.selectedVariantId,
       advisorId: prior.selectedAdvisorId,
     } : {});
-    return [{ ...resolved, attendance: prior?.attendance || 'physical' }];
+    const attendance = Array.isArray(plan?.asyncCourseIds)
+      ? (plan.asyncCourseIds.includes(id) ? 'async' : 'physical')
+      : (prior?.attendance || 'physical');
+    return [{ ...resolved, attendance }];
   });
 }
