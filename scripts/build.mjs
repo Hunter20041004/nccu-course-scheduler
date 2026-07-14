@@ -3,7 +3,8 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const [
-  template, styles, nccuPeriods, internshipPlanner, courseData, plannerCore, plannerStorage, app,
+  template, styles, nccuPeriods, internshipPlanner, courseData, eligibilityConditions,
+  plannerCore, plannerStorage, app,
   aiContracts, groqClient, nccuCourseAdapter, aiService, worker, aiPlanner,
 ] = await Promise.all([
   read('src/index.html'),
@@ -11,6 +12,7 @@ const [
   read('src/nccu-periods.mjs'),
   read('src/internship-planner.mjs'),
   read('src/course-data.mjs'),
+  read('src/eligibility-conditions.mjs'),
   read('src/planner-core.mjs'),
   read('src/planner-storage.mjs'),
   read('src/app.mjs'),
@@ -37,6 +39,9 @@ const script = [
     'DEFAULT_INTERNSHIP_SETTINGS', 'validateInternshipSettings', 'calculateInternshipPlan',
   ]),
   wrapModule(courseData, '__courseData', ['courses', 'dayLabels']),
+  wrapModule(eligibilityConditions, '__eligibilityConditions', [
+    'profileConditionIds', 'rulesForCourse', 'buildConditionDefinitions',
+  ]),
   wrapModule(plannerCore, '__plannerCore', [
     'evaluateEligibility', 'findConflicts', 'calculateInternshipAvailability', 'toggleCourse',
     'clearPlannerSelection', 'toggleCourseLock', 'lockCandidateCourse',
