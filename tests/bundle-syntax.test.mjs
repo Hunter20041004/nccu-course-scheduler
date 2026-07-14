@@ -46,3 +46,13 @@ test('the finished browser bundle has valid ES module syntax', async () => {
 
   assert.equal(syntaxCheck.status, 0, syntaxCheck.stderr);
 });
+
+test('keeps server secrets and authorization headers out of browser HTML', async () => {
+  const workerUrl = new URL('../dist/server/index.js', import.meta.url);
+  workerUrl.searchParams.set('secret-test', String(Date.now()));
+  const { default: worker } = await import(workerUrl.href);
+  const response = await worker.fetch(new Request('http://localhost/'));
+  const browserHtml = await response.text();
+  assert.doesNotMatch(browserHtml, /gsk_[A-Za-z0-9]+/);
+  assert.doesNotMatch(browserHtml, /GROQ_API_KEY|Authorization:\s*Bearer/);
+});
