@@ -134,6 +134,14 @@ test('counts two full internship days and two free half-days for the concentrate
   });
 });
 
+test('clears selected items, locks, and course options in one action', () => {
+  assert.deepEqual(core.clearPlannerSelection(), {
+    selected: [],
+    lockedCourseIds: [],
+    courseOptions: {},
+  });
+});
+
 test('does not remove a required course from the selection', () => {
   const required = { id: 'agentic', title: 'Agentic AI', required: true };
   assert.deepEqual(core.toggleCourse([required], required), [required]);
