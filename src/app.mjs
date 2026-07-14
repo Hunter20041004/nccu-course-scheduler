@@ -14,6 +14,7 @@ let lockedCourseIds = [];
 let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
 let pendingCourses = [];
 let lastImportedCourses = [];
+let recommendedPlans = [];
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -395,8 +396,15 @@ byId('catalog-filter').addEventListener('change', renderCatalog);
 byId('preset-picker').addEventListener('click', (event) => {
   const button = event.target.closest('[data-preset]');
   if (!button) return;
-  selected = applyPreset(courseStore, button.dataset.preset);
-  lockedCourseIds = [];
+  const presetCourses = applyPreset(courseStore, button.dataset.preset);
+  const priorSelections = [...selected, ...presetCourses];
+  selected = applyRecommendedPlan(
+    { courseIds: presetCourses.map((course) => course.id) },
+    courseStore,
+    priorSelections,
+    lockedCourseIds,
+    profile,
+  );
   persistState();
   renderAll();
 });
@@ -477,6 +485,105 @@ manualForm.addEventListener('submit', (event) => {
   byId('manual-end').value = '12:00';
   syncManualTimeFields();
   byId('manual-status').textContent = `已加入「${manualCourse.title}」。`;
+});
+
+function previewRecommendedPlan(plan) {
+  const planCourses = applyRecommendedPlan(plan, courseStore, selected, lockedCourseIds, profile);
+  const conflicts = findConflicts(planCourses);
+  const internshipPlan = calculateInternshipPlan(planCourses, internshipSettings);
+  const eligibilityWarnings = planCourses.filter((course) => (
+    evaluateEligibility(course, profile).status !== 'eligible'
+  ));
+  const optionWarnings = planCourses.filter((course) => (
+    course.optionStatus === 'pending' || course.optionStatus === 'flexible'
+  ));
+  return {
+    planCourses,
+    credits: planCourses.reduce((total, course) => total + Number(course.credits || 0), 0),
+    internshipPlan,
+    warningCount: conflicts.length + internshipPlan.conflicts.length
+      + eligibilityWarnings.length + optionWarnings.length,
+  };
+}
+
+function renderRecommendedPlans() {
+  const results = byId('ai-plan-results');
+  if (!recommendedPlans.length) {
+    results.innerHTML = '';
+    return;
+  }
+  results.innerHTML = recommendedPlans.map((plan) => {
+    const preview = previewRecommendedPlan(plan);
+    return `<article class="ai-plan-card">
+      <p class="eyebrow">${escapeHtml(plan.attendance || 'AI PLAN')}</p>
+      <h3>${escapeHtml(plan.title)}</h3>
+      <p>${escapeHtml(plan.reason)}</p>
+      <dl><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.availableDays} 天</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
+      <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li>${escapeHtml(course.title)}</li>`).join('')}</ul>
+      ${plan.tradeoffs?.length ? `<p class="ai-plan-tradeoffs">取捨：${escapeHtml(plan.tradeoffs.join('、'))}</p>` : ''}
+      <button class="button button-primary" type="button" data-apply-ai-plan="${escapeHtml(plan.id)}">套用此方案</button>
+    </article>`;
+  }).join('');
+}
+
+byId('ai-advisor-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submit = form.querySelector('button[type="submit"]');
+  const status = byId('ai-advisor-status');
+  submit.disabled = true;
+  form.setAttribute('aria-busy', 'true');
+  status.textContent = '正在分析你的目標與候選課程…';
+  try {
+    const response = await fetch('/api/ai/recommend-plans', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        profileText: byId('ai-profile').value,
+        desiredActivities: byId('ai-activities').value,
+        futureDirection: byId('ai-future').value,
+        semesterGoals: byId('ai-goals').value,
+        preferences: byId('ai-preferences').value,
+        internshipSettings,
+        courses: courseStore.map((course) => ({
+          id: course.id,
+          title: course.title,
+          credits: course.credits,
+          teacher: course.teacher,
+          schedule: course.schedule,
+          meetings: course.meetings,
+          asyncAllowed: course.asyncAllowed,
+          conditions: course.conditions,
+          eligibility: evaluateEligibility(course, profile).status,
+        })),
+        selectedCourseIds: selected.map((course) => course.id),
+        lockedCourseIds,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload?.error?.message || '無法產生推薦，請稍後重試。');
+    recommendedPlans = payload.plans || [];
+    status.textContent = payload.summary || '已產生三個推薦方案。';
+    renderRecommendedPlans();
+  } catch (error) {
+    status.textContent = error.message || '無法產生推薦，請稍後重試。';
+  } finally {
+    submit.disabled = false;
+    form.removeAttribute('aria-busy');
+  }
+});
+
+byId('ai-plan-results').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-apply-ai-plan]');
+  if (!button) return;
+  const plan = recommendedPlans.find((item) => item.id === button.dataset.applyAiPlan);
+  if (!plan) return;
+  const preview = previewRecommendedPlan(plan);
+  if (preview.warningCount && !window.confirm(`此方案有 ${preview.warningCount} 個待處理提醒，仍要套用嗎？`)) return;
+  selected = preview.planCourses;
+  persistState();
+  renderAll();
+  byId('ai-advisor-status').textContent = `已套用「${plan.title}」，所有鎖定課程均已保留。`;
 });
 
 byId('screenshot-handoff').innerHTML = `<div class="screenshot-handoff">
