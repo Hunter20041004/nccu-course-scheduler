@@ -34,7 +34,7 @@ test('deletes an optional candidate after confirmation and announces the result'
 
   assert.match(html, /data-delete-course/);
   assert.match(html, /window\.confirm/);
-  assert.match(html, /deleteCandidateCourse\(courseStore, selected, course\.id\)/);
+  assert.match(html, /deleteCandidateCourse\(courseStore, selected, lockedCourseIds, course\.id\)/);
   assert.match(html, /deletedCourseIds/);
   assert.match(html, /id="catalog-status"[^>]*aria-live="polite"/);
 });
@@ -122,7 +122,7 @@ test('lets the student lock and unlock selected core courses', async () => {
   assert.match(html, /data-lock-course/);
   assert.match(html, /saved\.lockedCourseIds \|\| \[\]/);
   assert.match(html, /lockedCourseIds,/);
-  assert.match(html, /toggleCourseLock\(lockedCourseIds, lockButton\.dataset\.lockCourse\)/);
+  assert.match(html, /lockCandidateCourse\(selected, lockedCourseIds, course, profile\)/);
   assert.match(html, /toggleCourse\(selected, course, lockedCourseIds\)/);
 });
 
