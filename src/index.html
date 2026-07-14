@@ -34,67 +34,14 @@
       <article><span>待處理提醒</span><strong id="warning-value">0</strong><small>衝堂、資格與重要日期</small></article>
     </section>
 
-    <nav id="preset-picker" class="preset-picker" aria-label="建議排課方案">
-      <span>快速方案</span>
-      <button type="button" data-preset="concentrated">17 學分集中實體</button>
-      <button type="button" data-preset="async-first">17 學分非同步優先</button>
-      <button type="button" data-preset="lighter">14 學分較輕</button>
-    </nav>
     <p id="planner-status" class="form-status planner-status" aria-live="polite"></p>
 
-    <details class="ai-advisor">
-      <summary>AI 排課顧問｜依你的目標產生三個方案</summary>
-      <form id="ai-advisor-form" class="ai-advisor-form">
-        <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
-        <label>這學期想做什麼<textarea id="ai-activities" maxlength="2000" rows="3" placeholder="例如：每週實習三天並完成一個 AI 作品"></textarea></label>
-        <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
-        <label>本學期目標<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：建立作品集、補足研究方法"></textarea></label>
-        <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
-        <p class="privacy-note">個人敘述會傳送給 Groq 產生建議，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
-        <button class="button button-primary" type="submit">產生三個推薦方案</button>
-        <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
-      </form>
-      <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
-    </details>
+    <div id="compact-view-switch" class="compact-view-switch" aria-label="切換課表或工具">
+      <button type="button" aria-pressed="true" data-compact-view="schedule">課表</button>
+      <button type="button" aria-pressed="false" data-compact-view="tools">工具</button>
+    </div>
 
-    <details class="profile-settings">
-      <summary>我的選課條件（用來判斷資格）</summary>
-      <form id="profile-form" class="profile-form">
-        <label>學制<select id="profile-level"><option value="undergrad">學士班</option><option value="graduate">碩博士班</option></select></label>
-        <label>年級<select id="profile-year"><option value="1">大一</option><option value="2">大二</option><option value="3">大三</option><option value="4">大四以上</option></select></label>
-        <p class="profile-helper">以下條件由目前候選課程產生；每一項都會說明為什麼需要，以及沒有時會影響哪些課。</p>
-      </form>
-      <div id="condition-list" class="condition-list" aria-live="polite"></div>
-      <form id="custom-condition-form" class="custom-condition-form" novalidate>
-        <h3>新增我的條件</h3>
-        <label>條件名稱<input id="custom-condition-label" autocomplete="off" placeholder="例如：人工智慧跨域微學程"></label>
-        <label>類型<select id="custom-condition-category"><option value="program">學程／微學程</option><option value="department">系所／班級</option><option value="prerequisite">先修課程</option><option value="competency">能力條件</option><option value="identity">其他學生身分</option><option value="other">其他</option></select></label>
-        <label>為什麼記錄這項條件<textarea id="custom-condition-description" rows="2" placeholder="例如：部分候選課第一階段只開放本學程"></textarea></label>
-        <button class="button button-primary" type="submit">新增並標記為符合</button>
-        <p id="custom-condition-status" class="form-status" aria-live="polite"></p>
-      </form>
-    </details>
-
-    <details class="internship-settings" open>
-      <summary>實習設定</summary>
-      <form id="internship-form" class="internship-form" novalidate>
-        <label>每週目標天數<input id="internship-target" type="number" min="0" max="5" step="0.5" value="2.5"></label>
-        <label>每日開始時間<input id="internship-start" type="time" value="09:00"></label>
-        <label>每日結束時間<input id="internship-end" type="time" value="18:00"></label>
-        <label>安排方式<select id="internship-mode"><option value="auto">自動找完整時段</option><option value="fixed">固定指定星期</option></select></label>
-        <fieldset id="internship-fixed-days" class="internship-fixed-days" hidden>
-          <legend>每個工作日要保留的時段</legend>
-          <label>週一<select data-internship-day="1"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
-          <label>週二<select data-internship-day="2"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
-          <label>週三<select data-internship-day="3"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
-          <label>週四<select data-internship-day="4"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
-          <label>週五<select data-internship-day="5"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
-        </fieldset>
-        <p id="internship-status" class="form-status internship-status" aria-live="polite"></p>
-      </form>
-    </details>
-
-    <div class="planner-layout">
+    <div id="planner-workbench" class="planner-layout" data-compact-view="schedule">
       <section class="panel schedule-panel" data-testid="schedule-panel" aria-labelledby="schedule-title">
         <div class="section-heading"><div><p class="eyebrow">LEFT · MY WEEK</p><h2 id="schedule-title">課表</h2></div><span class="status-pill">實習時間達標</span></div>
         <div class="schedule-scroll" aria-label="政大官方節次課表">
@@ -104,24 +51,86 @@
         <section class="warning-section"><h3>排課提醒</h3><div id="warning-list" aria-live="polite"></div></section>
       </section>
 
-      <aside class="panel catalog-panel" data-testid="course-catalog" aria-labelledby="catalog-title">
-        <div class="section-heading"><div><p class="eyebrow">RIGHT · COURSE BANK</p><h2 id="catalog-title">23 門候選課程</h2></div><span id="catalog-count">23 / 23</span></div>
-        <div class="catalog-tools">
-          <label>搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
-          <label>篩選<select id="catalog-filter"><option value="all">全部</option><option value="selected">已加入</option><option value="remote">可非同步</option><option value="conditional">資格需確認</option></select></label>
+      <aside class="panel workspace-panel" aria-label="排課工具">
+        <div id="workspace-tabs" class="workspace-tabs" role="tablist" aria-label="排課工具">
+          <button type="button" role="tab" aria-selected="true" aria-controls="workspace-panel-catalog" data-workspace-tab="catalog">候選課程</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-ai" data-workspace-tab="ai">AI 推薦</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-conditions" data-workspace-tab="conditions">選課條件</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-internship" data-workspace-tab="internship">實習設定</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-add" data-workspace-tab="add">匯入／新增</button>
         </div>
-        <p id="catalog-status" class="form-status catalog-status" aria-live="polite"></p>
-        <div id="catalog-list" class="catalog-list"></div>
+
+        <section id="workspace-panel-catalog" class="workspace-tab-panel catalog-panel" role="tabpanel" data-workspace-panel="catalog" data-testid="course-catalog" aria-labelledby="catalog-title">
+          <div class="section-heading"><div><p class="eyebrow">RIGHT · COURSE BANK</p><h2 id="catalog-title">23 門候選課程</h2></div><span id="catalog-count">23 / 23</span></div>
+          <div class="catalog-tools">
+            <label>搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
+            <label>篩選<select id="catalog-filter"><option value="all">全部</option><option value="selected">已加入</option><option value="remote">可非同步</option><option value="conditional">資格需確認</option></select></label>
+          </div>
+          <p id="catalog-status" class="form-status catalog-status" aria-live="polite"></p>
+          <div id="catalog-list" class="catalog-list"></div>
+        </section>
+
+        <section id="workspace-panel-ai" class="workspace-tab-panel ai-advisor" role="tabpanel" data-workspace-panel="ai" hidden>
+          <h2>AI 排課顧問</h2>
+          <p>依你的經歷、目標與實習安排產生三個推薦方案。</p>
+          <form id="ai-advisor-form" class="ai-advisor-form">
+            <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
+            <label>這學期想做什麼<textarea id="ai-activities" maxlength="2000" rows="3" placeholder="例如：每週實習三天並完成一個 AI 作品"></textarea></label>
+            <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
+            <label>本學期目標<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：建立作品集、補足研究方法"></textarea></label>
+            <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
+            <p class="privacy-note">個人敘述會傳送給 Groq 產生建議，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
+            <button class="button button-primary" type="submit">產生三個推薦方案</button>
+            <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
+          </form>
+          <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
+        </section>
+
+        <section id="workspace-panel-conditions" class="workspace-tab-panel profile-settings" role="tabpanel" data-workspace-panel="conditions" hidden>
+          <h2>我的選課條件</h2>
+          <form id="profile-form" class="profile-form">
+            <label>學制<select id="profile-level"><option value="undergrad">學士班</option><option value="graduate">碩博士班</option></select></label>
+            <label>年級<select id="profile-year"><option value="1">大一</option><option value="2">大二</option><option value="3">大三</option><option value="4">大四以上</option></select></label>
+            <p class="profile-helper">以下條件由目前候選課程產生；每一項都會說明為什麼需要，以及沒有時會影響哪些課。</p>
+          </form>
+          <div id="condition-list" class="condition-list" aria-live="polite"></div>
+          <form id="custom-condition-form" class="custom-condition-form" novalidate>
+            <h3>新增我的條件</h3>
+            <label>條件名稱<input id="custom-condition-label" autocomplete="off" placeholder="例如：人工智慧跨域微學程"></label>
+            <label>類型<select id="custom-condition-category"><option value="program">學程／微學程</option><option value="department">系所／班級</option><option value="prerequisite">先修課程</option><option value="competency">能力條件</option><option value="identity">其他學生身分</option><option value="other">其他</option></select></label>
+            <label>為什麼記錄這項條件<textarea id="custom-condition-description" rows="2" placeholder="例如：部分候選課第一階段只開放本學程"></textarea></label>
+            <button class="button button-primary" type="submit">新增並標記為符合</button>
+            <p id="custom-condition-status" class="form-status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section id="workspace-panel-internship" class="workspace-tab-panel internship-settings" role="tabpanel" data-workspace-panel="internship" hidden>
+          <h2>實習設定</h2>
+          <form id="internship-form" class="internship-form" novalidate>
+            <label>每週目標天數<input id="internship-target" type="number" min="0" max="5" step="0.5" value="2.5"></label>
+            <label>每日開始時間<input id="internship-start" type="time" value="09:00"></label>
+            <label>每日結束時間<input id="internship-end" type="time" value="18:00"></label>
+            <label>安排方式<select id="internship-mode"><option value="auto">自動找完整時段</option><option value="fixed">固定指定星期</option></select></label>
+            <fieldset id="internship-fixed-days" class="internship-fixed-days" hidden>
+              <legend>每個工作日要保留的時段</legend>
+              <label>週一<select data-internship-day="1"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+              <label>週二<select data-internship-day="2"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+              <label>週三<select data-internship-day="3"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+              <label>週四<select data-internship-day="4"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+              <label>週五<select data-internship-day="5"><option value="none">不保留</option><option value="full">全天</option><option value="morning">上午半天</option><option value="afternoon">下午半天</option></select></label>
+            </fieldset>
+            <p id="internship-status" class="form-status internship-status" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section id="workspace-panel-add" class="workspace-tab-panel add-more" role="tabpanel" data-workspace-panel="add" hidden>
+          <div class="add-grid">
+            <section><h2>新增課程或行程</h2><div id="manual-form"></div></section>
+            <section><h2>備選清單截圖</h2><div id="screenshot-handoff"></div></section>
+          </div>
+        </section>
       </aside>
     </div>
-
-    <details class="add-more">
-      <summary>加入更多課程或匯入截圖</summary>
-      <div class="add-grid">
-        <section><h2>新增課程或行程</h2><div id="manual-form"></div></section>
-        <section><h2>備選清單截圖</h2><div id="screenshot-handoff"></div></section>
-      </div>
-    </details>
   </main>
   <script type="module">/*__SCRIPT__*/</script>
 </body>

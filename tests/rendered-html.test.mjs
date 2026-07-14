@@ -110,14 +110,35 @@ test('creates courses, clubs, organizations, and personal schedule items', async
   assert.match(html, /creditInput\.disabled = itemType !== 'course'/);
 });
 
-test('offers the three planning presets and applies the selected preset', async () => {
+test('removes quick presets and groups tools into a labeled right workspace', async () => {
   const html = await (await render()).text();
-  assert.match(html, /data-preset="concentrated"/);
-  assert.match(html, /data-preset="async-first"/);
-  assert.match(html, /data-preset="lighter"/);
-  assert.match(html, /applyPreset\(courseStore, button\.dataset\.preset\)/);
-  assert.match(html, /applyRecommendedPlan\([^;]+lockedCourseIds/s);
-  assert.doesNotMatch(html, /applyPreset\(courseStore, button\.dataset\.preset\);\s*lockedCourseIds = \[\]/);
+  assert.doesNotMatch(html, /id="preset-picker"/);
+  assert.doesNotMatch(html, /button\.dataset\.preset/);
+  assert.match(html, /id="workspace-tabs"[^>]*role="tablist"/);
+  for (const tab of ['catalog', 'ai', 'conditions', 'internship', 'add']) {
+    assert.match(html, new RegExp(`data-workspace-tab="${tab}"`));
+    assert.match(html, new RegExp(`id="workspace-panel-${tab}"`));
+  }
+  assert.ok(html.indexOf('data-testid="schedule-panel"') < html.indexOf('id="workspace-tabs"'));
+});
+
+test('switches workspace tabs with synchronized selected and hidden states', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /function setWorkspaceTab\(name\)/);
+  assert.match(html, /tab\.setAttribute\('aria-selected', String\(selected\)\)/);
+  assert.match(html, /panel\.hidden = panel\.dataset\.workspacePanel !== name/);
+  assert.match(html, /byId\('workspace-tabs'\)\.addEventListener\('click'/);
+  assert.match(html, /setWorkspaceTab\(button\.dataset\.workspaceTab\)/);
+});
+
+test('switches between the schedule and tools on compact screens', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="compact-view-switch"/);
+  assert.match(html, /data-compact-view="schedule"/);
+  assert.match(html, /data-compact-view="tools"/);
+  assert.match(html, /function setCompactView\(name\)/);
+  assert.match(html, /byId\('planner-workbench'\)\.dataset\.compactView = name/);
+  assert.match(html, /setCompactView\(button\.dataset\.compactView\)/);
 });
 
 test('collects the student profile and goals for AI planning', async () => {

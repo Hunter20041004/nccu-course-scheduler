@@ -263,6 +263,36 @@ function renderAll() {
   renderConditions();
 }
 
+function setWorkspaceTab(name) {
+  document.querySelectorAll('[data-workspace-tab]').forEach((tab) => {
+    const selected = tab.dataset.workspaceTab === name;
+    tab.setAttribute('aria-selected', String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+  });
+  document.querySelectorAll('[data-workspace-panel]').forEach((panel) => {
+    panel.hidden = panel.dataset.workspacePanel !== name;
+  });
+}
+
+byId('workspace-tabs').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-workspace-tab]');
+  if (!button) return;
+  setWorkspaceTab(button.dataset.workspaceTab);
+});
+
+function setCompactView(name) {
+  byId('planner-workbench').dataset.compactView = name;
+  document.querySelectorAll('[data-compact-view]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.compactView === name));
+  });
+}
+
+byId('compact-view-switch').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-compact-view]');
+  if (!button) return;
+  setCompactView(button.dataset.compactView);
+});
+
 restoreState();
 syncProfileForm();
 syncInternshipForm();
@@ -470,21 +500,6 @@ function removeFromSchedule(event) {
 
 byId('catalog-search').addEventListener('input', renderCatalog);
 byId('catalog-filter').addEventListener('change', renderCatalog);
-byId('preset-picker').addEventListener('click', (event) => {
-  const button = event.target.closest('[data-preset]');
-  if (!button) return;
-  const presetCourses = applyPreset(courseStore, button.dataset.preset);
-  const priorSelections = [...selected, ...presetCourses];
-  selected = applyRecommendedPlan(
-    { courseIds: presetCourses.map((course) => course.id) },
-    courseStore,
-    priorSelections,
-    lockedCourseIds,
-    profile,
-  );
-  persistState();
-  renderAll();
-});
 byId('reset-plan').addEventListener('click', () => {
   courseStore = restoreOfficialCatalog(courses);
   selected = applyPreset(courseStore, 'concentrated');
