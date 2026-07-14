@@ -132,7 +132,7 @@ export async function recommendCoursePlans(input, dependencies = {}) {
   const eligibleCourses = request.courses.filter((course) => !['blocked', 'unavailable'].includes(course.eligibility));
   const promptRequest = { ...request, courses: eligibleCourses };
   const groqRequest = dependencies.groqRequest || requestGroqJson;
-  const content = await groqRequest({ apiKey: dependencies.apiKey, messages: [
+  const content = await groqRequest({ apiKey: dependencies.apiKey, reasoningEffort: 'none', messages: [
     { role: 'system', content: `你是政大排課顧問。只可引用輸入 courses 內的 id，且每個方案都要保留 lockedCourseIds。產生三個內容不同的方案：集中實習、平衡探索、目標優先。不要宣稱已完成衝堂檢查，因為網站會再用確定性規則驗證。只輸出 JSON object：{"summary":"整體建議","plans":[{"id":"focus","title":"方案名","reason":"理由","courseIds":["course-id"],"attendance":"出席策略","tradeoffs":["取捨"]}]}，plans 必須恰好三筆。` },
     { role: 'user', content: JSON.stringify(promptRequest) },
   ] });

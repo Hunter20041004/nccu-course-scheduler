@@ -15,7 +15,7 @@ test('posts a structured request to the fixed Groq model', async () => {
   assert.equal(captured.url, 'https://api.groq.com/openai/v1/chat/completions');
   assert.equal(captured.body.model, 'qwen/qwen3.6-27b');
   assert.deepEqual(captured.body.response_format, { type: 'json_object' });
-  assert.equal(captured.body.reasoning_effort, 'none');
+  assert.equal('reasoning_effort' in captured.body, false);
   assert.equal(captured.init.headers.authorization, 'Bearer test-only');
   assert.equal(content, '{"recognizedCourses":[]}');
 });
@@ -26,6 +26,20 @@ test('maps Groq rate limits to a safe retryable error', async () => {
     requestGroqJson({ apiKey: 'test-only', fetchImpl, messages: [] }),
     { status: 429, code: 'AI_RATE_LIMITED', message: 'AI 目前請求較多，請稍後再試。' },
   );
+});
+
+test('retries one transient Groq JSON validation failure', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    if (calls === 1) {
+      return Response.json({ error: { code: 'json_validate_failed' } }, { status: 400 });
+    }
+    return Response.json({ choices: [{ message: { content: '{"plans":[]}' } }] });
+  };
+  const content = await requestGroqJson({ apiKey: 'test-only', fetchImpl, messages: [] });
+  assert.equal(calls, 2);
+  assert.equal(content, '{"plans":[]}');
 });
 
 test('maps aborted Groq requests to a timeout', async () => {

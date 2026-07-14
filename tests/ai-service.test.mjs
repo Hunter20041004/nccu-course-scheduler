@@ -39,6 +39,7 @@ test('returns ambiguous official matches as pending instead of importing them', 
 
 test('excludes blocked and unavailable courses from recommendation prompts', async () => {
   let promptedCourseIds;
+  let recommendationReasoningEffort;
   const eligibleCourse = { id: 'eligible', title: '合格課', credits: 3, eligibility: 'eligible' };
   const blockedCourse = { id: 'blocked', title: '不合格課', credits: 3, eligibility: 'blocked' };
   const validThreePlans = JSON.stringify({ summary: '摘要', plans: [
@@ -50,9 +51,11 @@ test('excludes blocked and unavailable courses from recommendation prompts', asy
     profileText: '大三', desiredActivities: '實習', futureDirection: 'AI', semesterGoals: '作品', preferences: '集中',
     internshipSettings: {}, selectedCourseIds: [], lockedCourseIds: ['locked'],
     courses: [eligibleCourse, blockedCourse, { id: 'locked', title: '鎖定課', credits: 2, eligibility: 'eligible' }],
-  }, { apiKey: 'test-only', groqRequest: async ({ messages }) => {
+  }, { apiKey: 'test-only', groqRequest: async ({ messages, reasoningEffort }) => {
     promptedCourseIds = JSON.parse(messages[1].content).courses.map(({ id }) => id);
+    recommendationReasoningEffort = reasoningEffort;
     return validThreePlans;
   } });
   assert.deepEqual(promptedCourseIds, ['eligible', 'locked']);
+  assert.equal(recommendationReasoningEffort, 'none');
 });
