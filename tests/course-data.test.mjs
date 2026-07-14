@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { courses } from '../src/course-data.mjs';
+import { courses, dayLabels } from '../src/course-data.mjs';
 
 test('imports only open course groups and exactly three required courses', () => {
   assert.equal(courses.length, 23);
@@ -10,6 +10,10 @@ test('imports only open course groups and exactly three required courses', () =>
     courses.filter((course) => course.required).map((course) => course.title).sort(),
     ['Agentic AI 在金融領域的應用', '創創入門', '數位創新沙龍'].sort(),
   );
+});
+
+test('exports Sunday as the seventh timetable day', () => {
+  assert.equal(dayLabels[7], '週日');
 });
 
 test('models AI practical project as official sections with advisor choices', () => {

@@ -160,4 +160,4 @@ export const courses = [
   },
 ];
 
-export const dayLabels = ['', '週一', '週二', '週三', '週四', '週五', '週六'];
+export const dayLabels = ['', '週一', '週二', '週三', '週四', '週五', '週六', '週日'];
