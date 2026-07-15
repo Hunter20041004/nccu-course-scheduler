@@ -150,7 +150,9 @@ function parseConflictFreePlans(content, courses, lockedCourseIds) {
     if (removedTitles.length) {
       plan.courseIds = plan.courseIds.filter((id) => retainedIds.has(id));
       plan.asyncCourseIds = plan.asyncCourseIds.filter((id) => retainedIds.has(id));
-      plan.tradeoffs.push(`已移除衝堂課程：${removedTitles.join('、')}`);
+      plan.reason = '系統已依衝堂檢查調整課程清單；請以卡片列出的實際課程為準。';
+      plan.attendance = '依實際課程時段安排';
+      plan.tradeoffs = [`已移除衝堂課程：${removedTitles.join('、')}`];
     }
   }
   return result;
@@ -158,6 +160,96 @@ function parseConflictFreePlans(content, courses, lockedCourseIds) {
 
 function requestsMaximumCredits(preferences) {
   return /學分.{0,8}(越多越好|最多|最大|優先)/.test(String(preferences || ''));
+}
+
+const LANGUAGE_GROUPS = [
+  { label: '日文', patterns: ['日文', '日語', '日本語'] },
+  { label: '法文', patterns: ['法文', '法語'] },
+  { label: '德文', patterns: ['德文', '德語'] },
+  { label: '英文', patterns: ['英文', '英語'] },
+  { label: '韓文', patterns: ['韓文', '韓語'] },
+  { label: '西班牙文', patterns: ['西班牙文', '西語'] },
+  { label: '俄文', patterns: ['俄文', '俄語'] },
+  { label: '阿拉伯文', patterns: ['阿拉伯文', '阿語'] },
+];
+
+function requestedLanguageGroups(request) {
+  const requestText = [request.semesterGoals, request.preferences].filter(Boolean).join('\n');
+  const explicit = LANGUAGE_GROUPS.filter((group) => (
+    group.patterns.some((pattern) => requestText.includes(pattern))
+  ));
+  if (explicit.length) return explicit;
+  return /(語文|語言課)/.test(requestText) ? LANGUAGE_GROUPS : [];
+}
+
+function ensureRequestedLanguageCourses(result, request, courses, lockedCourseIds) {
+  const languageGroups = requestedLanguageGroups(request);
+  if (!languageGroups.length) return result;
+  const languageCandidates = languageGroups.flatMap((group) => courses.filter((course) => (
+    group.patterns.some((pattern) => course.title.includes(pattern))
+  ))).filter((course, index, matches) => matches.findIndex(({ id }) => id === course.id) === index);
+  const languageCandidateIds = new Set(languageCandidates.map(({ id }) => id));
+  const byId = new Map(courses.map((course) => [course.id, course]));
+  const requestedLabel = languageGroups.map(({ label }) => label).join('／');
+
+  const plans = result.plans.map((plan) => {
+    const existingLanguageCourse = languageCandidates.find((course) => plan.courseIds.includes(course.id));
+    if (existingLanguageCourse) return {
+      ...plan,
+      reason: `依你的語文課需求，此方案實際安排的語文課是「${existingLanguageCourse.title}」。`,
+      attendance: '依實際課程時段安排',
+      tradeoffs: [`已安排語文課程：${existingLanguageCourse.title}`],
+    };
+    for (const languageCourse of languageCandidates) {
+      const selectedIds = [...new Set([...lockedCourseIds, ...plan.courseIds])];
+      const selected = selectedIds.map((id) => byId.get(id)).filter(Boolean).map((course) => ({
+        ...course,
+        attendance: plan.asyncCourseIds.includes(course.id) ? 'async' : 'physical',
+      }));
+      const candidate = { ...languageCourse, attendance: 'physical' };
+      const conflicts = findConflicts([...selected, candidate]).filter((conflict) => (
+        conflict.courseIds.includes(languageCourse.id)
+      ));
+      const conflictingIds = new Set(conflicts.flatMap(({ courseIds }) => courseIds)
+        .filter((id) => id !== languageCourse.id));
+      if ([...conflictingIds].some((id) => lockedCourseIds.includes(id))) continue;
+      const removedTitles = plan.courseIds
+        .filter((id) => conflictingIds.has(id))
+        .map((id) => byId.get(id)?.title)
+        .filter(Boolean);
+      const courseIds = [
+        ...plan.courseIds.filter((id) => !conflictingIds.has(id)),
+        languageCourse.id,
+      ];
+      return {
+        ...plan,
+        courseIds: [...new Set(courseIds)],
+        asyncCourseIds: plan.asyncCourseIds.filter((id) => !conflictingIds.has(id)),
+        reason: `依你的語文課需求，已加入「${languageCourse.title}」，並以實際課程清單重新檢查衝堂。`,
+        attendance: '依實際課程時段安排',
+        tradeoffs: [
+          `已加入語文課程：${languageCourse.title}`,
+          ...(removedTitles.length ? [`為避免衝堂已移除：${removedTitles.join('、')}`] : []),
+        ],
+      };
+    }
+    return {
+      ...plan,
+      reason: `此方案依其餘需求排課；目前沒有可在符合資格且不衝堂下加入的${requestedLabel}語文課。`,
+      attendance: '依實際課程時段安排',
+      tradeoffs: [`未能加入${requestedLabel}語文課，請檢查候選課程資格與鎖定時段`],
+    };
+  });
+  const allPlansIncludeLanguage = plans.every((plan) => (
+    plan.courseIds.some((id) => languageCandidateIds.has(id))
+  ));
+  return {
+    ...result,
+    summary: allPlansIncludeLanguage
+      ? `已依你的${requestedLabel}語文課需求調整三個方案；課程與說明均以實際清單為準。`
+      : `已檢查${requestedLabel}語文課需求；無法加入的方案已明確標示資格或衝堂限制。`,
+    plans,
+  };
 }
 
 function orderPlansByCredits(result, courses, lockedCourseIds) {
@@ -279,8 +371,11 @@ function addDeterministicMaximumCreditRoute(result, courses, lockedCourseIds) {
     ...plan,
     courseIds: maximum.courseIds,
     asyncCourseIds: maximum.asyncCourseIds,
-    reason: `${plan.reason}；系統已在不衝堂前提下補齊最高學分組合。`,
-    tradeoffs: [...plan.tradeoffs, '最高學分組合可能壓縮實習或自主安排時間'],
+    reason: '系統已在不衝堂且符合資格的前提下，重建為最高學分組合。',
+    attendance: maximum.asyncCourseIds.length
+      ? '可非同步課採非同步，其餘依課表出席'
+      : '依實際課程時段出席',
+    tradeoffs: ['最高學分組合可能壓縮實習或自主安排時間'],
   } : plan);
   return orderPlansByCredits({ ...result, plans }, courses, lockedCourseIds);
 }
@@ -372,7 +467,8 @@ export async function recommendCoursePlans(input, dependencies = {}) {
     { role: 'system', content: `你是政大排課顧問。只可逐字引用輸入 courses 內的 id，且每個方案都要保留 lockedCourseIds。產生三個內容不同的方案：集中實習、平衡探索、目標優先。所有課程預設以實體方式計算；只有 asyncAllowed=true 的課程可列入 asyncCourseIds，列入後不占每週固定時段。同一方案不得包含其餘 schedule 或 meetings 時段重疊的課程。${maximumCreditsRequested ? '使用者明確要求學分越多越好；在不衝堂且符合資格的前提下，至少一個方案必須追求最高總學分，並在理由說明取捨。' : ''}不要宣稱已完成衝堂檢查，因為網站仍會用確定性規則驗證。文字務必精簡：summary 60 字內；每個 title 20 字內、reason 80 字內、attendance 30 字內；tradeoffs 最多 2 項且每項 40 字內。只輸出 JSON object：{"summary":"整體建議","plans":[{"id":"focus","title":"方案名","reason":"理由","courseIds":["course-id"],"asyncCourseIds":["可非同步的course-id"],"attendance":"出席策略","tradeoffs":["取捨"]}]}，plans 必須恰好三筆。` },
     { role: 'user', content: JSON.stringify(promptRequest) },
   ] }, (content) => parseConflictFreePlans(content, eligibleCourses, request.lockedCourseIds), 1);
-  return maximumCreditsRequested
+  const finalizedResult = maximumCreditsRequested
     ? addDeterministicMaximumCreditRoute(result, eligibleCourses, request.lockedCourseIds)
     : result;
+  return ensureRequestedLanguageCourses(finalizedResult, request, eligibleCourses, request.lockedCourseIds);
 }
