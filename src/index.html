@@ -214,6 +214,19 @@
       <div class="api-key-actions"><button class="button button-primary" type="submit">驗證並開始使用</button><button id="api-key-skip" class="button button-quiet" type="button">先使用一般排課功能</button><button id="api-key-clear" class="button button-quiet" type="button" hidden>立即清除 Key</button></div>
     </form>
   </dialog>
+  <div id="quick-tour-overlay" class="quick-tour-overlay" hidden>
+    <div id="quick-tour-spotlight" class="quick-tour-spotlight" aria-hidden="true"></div>
+    <section id="quick-tour-card" class="quick-tour-card" role="dialog" aria-labelledby="quick-tour-title" aria-modal="false">
+      <p id="quick-tour-count" class="eyebrow"></p>
+      <h2 id="quick-tour-title"></h2>
+      <p id="quick-tour-body"></p>
+      <div class="quick-tour-actions">
+        <button id="quick-tour-prev" class="button button-quiet" type="button">上一步</button>
+        <button id="quick-tour-next" class="button button-primary" type="button">下一步</button>
+        <button id="quick-tour-end" class="button button-quiet" type="button">結束導覽</button>
+      </div>
+    </section>
+  </div>
   <script type="module">/*__SCRIPT__*/</script>
 </body>
 </html>
