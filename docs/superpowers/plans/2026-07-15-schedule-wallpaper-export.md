@@ -4,7 +4,7 @@
 
 **Goal:** Build one-click export of the current schedule as a phone-wallpaper PNG.
 
-**Architecture:** Add a schedule-panel button and a Canvas-based exporter inside the existing browser app. The exporter reads current planner state and renders a 1080×1920 image without mutating planner data.
+**Architecture:** Add a schedule-panel button and a Canvas-based exporter inside the existing browser app. The exporter reads current planner state and renders a 1170×2532 image without mutating planner data.
 
 **Tech Stack:** Plain HTML, CSS, browser Canvas, Node test runner, existing build script.
 
@@ -13,7 +13,8 @@
 - TDD is mandatory: write one failing test first, then implement the minimum code, then verify.
 - No new dependencies.
 - Export must be client-side only.
-- PNG size must be exactly 1080×1920.
+- PNG size must be exactly 1170×2532.
+- Exported wallpaper content should stay inside the safe area and include only the timetable, async/time-undetermined section, and reminders, with a minimal title.
 - Download filename must include `nccu-schedule-wallpaper`.
 
 ---
@@ -31,7 +32,7 @@
 
 - [ ] **Step 1: Write the failing rendered HTML test**
 
-Add assertions that the app renders `id="export-wallpaper"`, wires it to `exportScheduleWallpaper`, creates a `1080×1920` canvas, exports `image/png`, and downloads a filename containing `nccu-schedule-wallpaper`.
+Add assertions that the app renders `id="export-wallpaper"`, wires it to `exportScheduleWallpaper`, creates a `1170×2532` canvas, exports `image/png`, and downloads a filename containing `nccu-schedule-wallpaper`.
 
 - [ ] **Step 2: Run the rendered HTML test and confirm RED**
 
@@ -41,7 +42,7 @@ Expected: FAIL because `export-wallpaper` and exporter functions do not exist ye
 
 - [ ] **Step 3: Implement the button and exporter**
 
-Add the button near the schedule heading. Add Canvas drawing helpers and the click handler. Render a polished wallpaper with title, stats, timetable, selected courses, internship reservations, async items, and reminders.
+Add the button near the schedule heading. Add Canvas drawing helpers and the click handler. Render a polished wallpaper with a minimal title, timetable, selected courses, internship reservations, async items, and reminders. Do not render top metric cards or the export timestamp.
 
 - [ ] **Step 4: Run targeted tests and confirm GREEN**
 
@@ -57,7 +58,7 @@ Expected: all tests pass, lint passes, NCCU contract passes.
 
 - [ ] **Step 6: Browser smoke test**
 
-Run local app, click `匯出手機桌布`, and verify the generated canvas path reaches `toDataURL('image/png')` with `1080×1920` dimensions.
+Run local app, click `匯出手機桌布`, and verify the generated canvas path reaches `toDataURL('image/png')` with `1170×2532` dimensions.
 
 - [ ] **Step 7: Commit and deploy**
 

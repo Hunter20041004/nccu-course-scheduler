@@ -388,11 +388,15 @@ function wallpaperCourseColor(course, conflictingIds) {
 }
 
 function renderScheduleWallpaper(canvas) {
-  canvas.width = 1080;
-  canvas.height = 1920;
+  canvas.width = 1170;
+  canvas.height = 2532;
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
 
+  const safeX = 96;
+  const safeTop = 164;
+  const safeBottom = 176;
+  const contentWidth = canvas.width - (safeX * 2);
   const colors = {
     canvas: '#F7F6FA',
     surface: '#FFFFFF',
@@ -406,52 +410,49 @@ function renderScheduleWallpaper(canvas) {
   };
   ctx.fillStyle = colors.canvas;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.globalAlpha = 0.6;
   ctx.fillStyle = colors.sun;
   ctx.beginPath();
-  ctx.arc(890, 150, 94, 0, Math.PI * 2);
+  ctx.arc(canvas.width - safeX - 96, safeTop - 20, 96, 0, Math.PI * 2);
   ctx.fill();
-  ctx.globalAlpha = 0.55;
+  ctx.globalAlpha = 0.42;
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  ctx.arc(820, 170, 76, 0, Math.PI * 2);
-  ctx.arc(730, 178, 56, 0, Math.PI * 2);
-  ctx.arc(780, 125, 68, 0, Math.PI * 2);
+  ctx.arc(canvas.width - safeX - 170, safeTop + 8, 72, 0, Math.PI * 2);
+  ctx.arc(canvas.width - safeX - 246, safeTop + 18, 48, 0, Math.PI * 2);
+  ctx.arc(canvas.width - safeX - 212, safeTop - 32, 58, 0, Math.PI * 2);
   ctx.fill();
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = colors.violet;
   ctx.font = '800 22px "Noto Sans TC", sans-serif';
   ctx.letterSpacing = '2px';
-  ctx.fillText('NCCU · 115-1 · SUNBREAK', 64, 86);
+  ctx.fillText('NCCU · 115-1 · SUNBREAK', safeX, safeTop);
   ctx.letterSpacing = '0px';
   ctx.fillStyle = colors.ink;
-  ctx.font = '800 66px Georgia, "Noto Serif TC", serif';
-  ctx.fillText('我的課表', 64, 166);
+  ctx.font = '800 58px Georgia, "Noto Serif TC", serif';
+  ctx.fillText('我的課表', safeX, safeTop + 76);
 
-  const credits = selected.reduce((total, course) => total + Number(course.credits || 0), 0);
   const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
   const reminders = collectScheduleReminders();
-  drawWallpaperStat(ctx, '已選學分', `${credits}`, 64, 220, 288);
-  drawWallpaperStat(ctx, '可實習', `${internshipPlan.availableDays} / ${internshipSettings.targetDays} 天`, 376, 220, 336);
-  drawWallpaperStat(ctx, '提醒', `${reminders.length}`, 736, 220, 280);
 
-  const gridX = 64;
-  const gridY = 360;
-  const periodWidth = 76;
-  const dayWidth = 128;
-  const headerHeight = 54;
-  const periodHeight = 54;
+  const gridX = safeX;
+  const gridY = safeTop + 148;
+  const periodWidth = 78;
+  const dayWidth = (contentWidth - periodWidth) / 7;
+  const headerHeight = 62;
+  const periodHeight = 72;
   const gridWidth = periodWidth + (dayWidth * 7);
   const gridHeight = headerHeight + (periodHeight * NCCU_PERIODS.length);
-  fillRoundRect(ctx, gridX, gridY, gridWidth, gridHeight, 24, colors.surface, colors.line);
+  fillRoundRect(ctx, gridX, gridY, gridWidth, gridHeight, 28, colors.surface, colors.line);
 
   ctx.fillStyle = '#FBFAFC';
-  fillRoundRect(ctx, gridX + 8, gridY + 8, gridWidth - 16, headerHeight - 8, 16, '#FBFAFC');
+  fillRoundRect(ctx, gridX + 10, gridY + 10, gridWidth - 20, headerHeight - 10, 18, '#FBFAFC');
   ctx.fillStyle = colors.muted;
-  ctx.font = '800 22px "Noto Sans TC", sans-serif';
+  ctx.font = '800 24px "Noto Sans TC", sans-serif';
   ctx.textAlign = 'center';
   dayLabels.slice(1, 8).forEach((label, index) => {
-    ctx.fillText(label.replace('週', ''), gridX + periodWidth + (index * dayWidth) + (dayWidth / 2), gridY + 42);
+    ctx.fillText(label.replace('週', ''), gridX + periodWidth + (index * dayWidth) + (dayWidth / 2), gridY + 45);
   });
 
   ctx.strokeStyle = colors.line;
@@ -463,11 +464,11 @@ function renderScheduleWallpaper(canvas) {
     ctx.lineTo(gridX + gridWidth - 14, y);
     ctx.stroke();
     ctx.fillStyle = period.special ? colors.violet : colors.ink;
-    ctx.font = '800 24px "Noto Sans TC", sans-serif';
-    ctx.fillText(period.code, gridX + 38, y + 34);
+    ctx.font = '800 26px "Noto Sans TC", sans-serif';
+    ctx.fillText(period.code, gridX + 39, y + 38);
     ctx.fillStyle = colors.muted;
-    ctx.font = '600 12px "Noto Sans TC", sans-serif';
-    ctx.fillText(period.time.replace('–', '-'), gridX + 38, y + 49);
+    ctx.font = '600 13px "Noto Sans TC", sans-serif';
+    ctx.fillText(period.time.replace('–', '-'), gridX + 39, y + 56);
   });
   for (let day = 0; day <= 7; day += 1) {
     const x = gridX + periodWidth + (day * dayWidth);
@@ -489,7 +490,7 @@ function renderScheduleWallpaper(canvas) {
     fillRoundRect(ctx, x, y, dayWidth - 12, height, 14, conflictedWindows.has(window) ? '#FCECEA' : '#EEF1FF', conflictedWindows.has(window) ? '#B43830' : '#2446D8');
     ctx.fillStyle = conflictedWindows.has(window) ? '#B43830' : '#1736A3';
     ctx.textAlign = 'left';
-    ctx.font = '800 18px "Noto Sans TC", sans-serif';
+    ctx.font = '800 19px "Noto Sans TC", sans-serif';
     ctx.fillText({ full: '實習', morning: '上午實習', afternoon: '下午實習' }[window.mode], x + 12, y + 28);
     ctx.font = '700 14px "Noto Sans TC", sans-serif';
     ctx.fillText(`${formatMinutes(window.start)}-${formatMinutes(window.end)}`, x + 12, y + 50);
@@ -507,37 +508,33 @@ function renderScheduleWallpaper(canvas) {
       fillRoundRect(ctx, x, y, dayWidth - 12, height, 14, color.fill, color.stroke);
       ctx.fillStyle = color.text;
       ctx.textAlign = 'left';
-      ctx.font = '800 18px "Noto Sans TC", sans-serif';
-      drawWrappedText(ctx, course.title, x + 12, y + 28, dayWidth - 36, 22, Math.max(1, Math.floor((height - 34) / 22)));
+      ctx.font = '800 19px "Noto Sans TC", sans-serif';
+      drawWrappedText(ctx, course.title, x + 12, y + 30, dayWidth - 34, 23, Math.max(1, Math.floor((height - 34) / 23)));
       ctx.fillStyle = colors.muted;
-      ctx.font = '700 13px "Noto Sans TC", sans-serif';
+      ctx.font = '700 14px "Noto Sans TC", sans-serif';
       ctx.fillText(course.sectionCode || '', x + 12, y + height - 14);
     });
   });
 
   const asyncCourses = selected.filter((course) => course.attendance === 'async' || !meetingsForCourse(course).length);
-  const infoY = gridY + gridHeight + 42;
-  fillRoundRect(ctx, 64, infoY, 456, 330, 24, colors.surface, colors.line);
-  fillRoundRect(ctx, 544, infoY, 472, 330, 24, colors.surface, colors.line);
+  const infoY = gridY + gridHeight + 72;
+  const infoHeight = Math.min(460, canvas.height - safeBottom - infoY);
+  const gap = 28;
+  const cardWidth = (contentWidth - gap) / 2;
+  fillRoundRect(ctx, safeX, infoY, cardWidth, infoHeight, 28, colors.surface, colors.line);
+  fillRoundRect(ctx, safeX + cardWidth + gap, infoY, cardWidth, infoHeight, 28, colors.surface, colors.line);
   ctx.textAlign = 'left';
   ctx.fillStyle = colors.ink;
+  ctx.font = '800 34px Georgia, "Noto Serif TC", serif';
+  ctx.fillText('非同步與時間未定', safeX + 34, infoY + 64);
   ctx.font = '800 30px Georgia, "Noto Serif TC", serif';
-  ctx.fillText('非同步與時間未定', 92, infoY + 56);
-  ctx.font = '800 24px Georgia, "Noto Serif TC", serif';
-  ctx.fillText('排課提醒', 572, infoY + 56);
+  ctx.fillText('排課提醒', safeX + cardWidth + gap + 34, infoY + 64);
   ctx.fillStyle = colors.muted;
-  ctx.font = '700 22px "Noto Sans TC", sans-serif';
+  ctx.font = '700 24px "Noto Sans TC", sans-serif';
   const asyncList = asyncCourses.length ? asyncCourses.map((course) => `${course.title} · ${course.attendance === 'async' ? '非同步' : '時間未定'}`) : ['目前沒有非同步或時間未定課程'];
-  asyncList.slice(0, 6).forEach((item, index) => drawWrappedText(ctx, item, 92, infoY + 98 + (index * 36), 380, 26, 1));
+  asyncList.slice(0, 7).forEach((item, index) => drawWrappedText(ctx, item, safeX + 34, infoY + 112 + (index * 42), cardWidth - 68, 29, 1));
   const reminderList = reminders.length ? reminders : ['目前沒有需要處理的提醒'];
-  reminderList.slice(0, 7).forEach((item, index) => drawWrappedText(ctx, item, 572, infoY + 98 + (index * 32), 380, 24, 1));
-
-  ctx.fillStyle = colors.muted;
-  ctx.font = '700 18px "Noto Sans TC", sans-serif';
-  ctx.fillText(`匯出時間 ${new Date().toLocaleString('zh-TW', { hour12: false })}`, 64, 1840);
-  ctx.fillStyle = colors.blue;
-  ctx.font = '900 22px "Noto Sans TC", sans-serif';
-  ctx.fillText('Sunbreak', 64, 1878);
+  reminderList.slice(0, 8).forEach((item, index) => drawWrappedText(ctx, item, safeX + cardWidth + gap + 34, infoY + 112 + (index * 38), cardWidth - 68, 27, 1));
   return canvas;
 }
 
