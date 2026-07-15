@@ -143,6 +143,28 @@ test('retries recommendations once when the JSON shape is invalid', async () => 
   assert.equal(result.plans.length, 3);
 });
 
+test('allows a third recommendation attempt after two invalid model responses', async () => {
+  let calls = 0;
+  const validPlans = JSON.stringify({ summary: '摘要', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], attendance: '實體', tradeoffs: [] },
+    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['b'], attendance: '實體', tradeoffs: [] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['c'], attendance: '實體', tradeoffs: [] },
+  ] });
+  const result = await recommendCoursePlans({
+    courses: ['a', 'b', 'c'].map((id) => ({ id, title: `課程 ${id}`, credits: 3, eligibility: 'eligible' })),
+    lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+  }, {
+    apiKey: 'test-only',
+    groqRequest: async () => {
+      calls += 1;
+      return calls < 3 ? '{"plans":[]}' : validPlans;
+    },
+  });
+
+  assert.equal(calls, 3);
+  assert.equal(result.plans.length, 3);
+});
+
 test('rejects a conflicting AI route and retries before returning recommendations', async () => {
   let calls = 0;
   const requests = [];
