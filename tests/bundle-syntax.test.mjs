@@ -52,19 +52,20 @@ test('the finished server bundle can validate AI route conflicts', async () => {
   workerUrl.searchParams.set('ai-bundle-test', String(Date.now()));
   const { default: worker } = await import(workerUrl.href);
   const originalFetch = globalThis.fetch;
-  globalThis.fetch = async () => Response.json({ choices: [{ message: { content: JSON.stringify({
-    summary: '無衝堂方案',
-    plans: [
-      { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], attendance: '實體', tradeoffs: [] },
-      { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['b'], attendance: '實體', tradeoffs: [] },
-      { id: 'explore', title: '探索', reason: '探索', courseIds: ['c'], attendance: '實體', tradeoffs: [] },
-    ],
-  }) } }] });
+  globalThis.fetch = async () => Response.json({ candidates: [{ content: { parts: [{ text: JSON.stringify({
+      summary: '無衝堂方案',
+      plans: [
+        { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], attendance: '實體', tradeoffs: [] },
+        { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['b'], attendance: '實體', tradeoffs: [] },
+        { id: 'explore', title: '探索', reason: '探索', courseIds: ['c'], attendance: '實體', tradeoffs: [] },
+      ],
+    }) }] } }] });
   try {
     const response = await worker.fetch(new Request('http://localhost/api/ai/recommend-plans', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
+        apiKey: 'test-only',
         courses: [
           { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible', schedule: { day: 1, start: 610, end: 780 } },
           { id: 'b', title: '課程 B', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 610, end: 780 } },
@@ -72,7 +73,7 @@ test('the finished server bundle can validate AI route conflicts', async () => {
         ],
         selectedCourseIds: [], lockedCourseIds: [], internshipSettings: {},
       }),
-    }), { GROQ_API_KEY: 'test-only' });
+    }));
     assert.equal(response.status, 200, await response.text());
   } finally {
     globalThis.fetch = originalFetch;

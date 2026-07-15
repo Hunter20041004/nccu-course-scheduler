@@ -1,4 +1,5 @@
 import { importCoursesFromScreenshot, recommendCoursePlans } from './ai-service.mjs';
+import { validateGeminiKey } from './gemini-client.mjs';
 
 const jsonResponse = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -25,11 +26,25 @@ async function readJson(request) {
   }
 }
 
+function takeUserApiKey(input) {
+  const apiKey = typeof input?.apiKey === 'string' ? input.apiKey.trim() : '';
+  if (!apiKey) {
+    const error = new Error('請先設定自己的 Gemini API Key。');
+    error.status = 400;
+    error.code = 'GEMINI_KEY_REQUIRED';
+    throw error;
+  }
+  const serviceInput = { ...input };
+  delete serviceInput.apiKey;
+  return { apiKey, serviceInput };
+}
+
 export function createWorker({
   html,
   catalog = [],
   importService = importCoursesFromScreenshot,
   recommendationService = recommendCoursePlans,
+  validateKey = validateGeminiKey,
 } = {}) {
   return {
     async fetch(request, env = {}) {
@@ -43,17 +58,21 @@ export function createWorker({
         });
       }
       try {
+        if (request.method === 'POST' && url.pathname === '/api/ai/validate-key') {
+          const { apiKey } = takeUserApiKey(await readJson(request));
+          return jsonResponse(await validateKey({ apiKey }));
+        }
         if (request.method === 'POST' && url.pathname === '/api/ai/import-courses') {
-          const input = await readJson(request);
-          return jsonResponse(await importService(input, {
-            apiKey: env.GROQ_API_KEY,
+          const { apiKey, serviceInput } = takeUserApiKey(await readJson(request));
+          return jsonResponse(await importService(serviceInput, {
+            apiKey,
             catalog,
           }));
         }
         if (request.method === 'POST' && url.pathname === '/api/ai/recommend-plans') {
-          const input = await readJson(request);
-          return jsonResponse(await recommendationService(input, {
-            apiKey: env.GROQ_API_KEY,
+          const { apiKey, serviceInput } = takeUserApiKey(await readJson(request));
+          return jsonResponse(await recommendationService(serviceInput, {
+            apiKey,
           }));
         }
         return jsonResponse({ error: { code: 'NOT_FOUND', message: '找不到此路徑。' } }, 404);
