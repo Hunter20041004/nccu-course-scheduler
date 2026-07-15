@@ -82,6 +82,22 @@ test('turns an official enrollment restriction into a required selectable condit
   }]);
 });
 
+test('creates a selectable condition from a department limit without 修讀 wording', async () => {
+  const result = await importCoursesFromScreenshot(validImport, {
+    apiKey: 'test-only', catalog: [],
+    groqRequest: async () => JSON.stringify({ recognizedCourses: [{
+      courseCode: '123456001', title: '系所限制課程', teacher: '老師', confidence: 0.99,
+    }] }),
+    nccuSearch: async () => [{
+      courseCode: '123456001', title: '系所限制課程', teacher: '老師', credits: 3,
+      scheduleText: '二234', available: true, restrictionText: '限本系學生',
+    }],
+  });
+
+  assert.equal(result.importedCourses[0].eligibilityRules[0].conditionLabel, '我符合：限本系學生');
+  assert.equal(result.importedCourses[0].eligibilityRules[0].enforcement, 'required');
+});
+
 test('retries screenshot recognition once when the JSON shape is invalid', async () => {
   let calls = 0;
   const result = await importCoursesFromScreenshot(validImport, {
