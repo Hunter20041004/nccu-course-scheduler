@@ -701,6 +701,7 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
           teacher: course.teacher,
           schedule: course.schedule,
           meetings: course.meetings,
+          events: course.events,
           asyncAllowed: course.asyncAllowed,
           conditions: course.conditions,
           eligibility: evaluateEligibility(course, profile).status,

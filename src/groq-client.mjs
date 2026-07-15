@@ -21,6 +21,7 @@ export async function requestGroqJson({
   messages,
   reasoningEffort,
   maxCompletionTokens,
+  retryJsonValidation = true,
   fetchImpl = fetch,
   timeoutMs = 45_000,
   sleepImpl = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
@@ -53,7 +54,7 @@ export async function requestGroqJson({
     if (response.ok) break;
     const errorPayload = await response.json().catch(() => null);
     if (response.status === 400 && errorPayload?.error?.code === 'json_validate_failed') {
-      if (!retriedJsonValidation) {
+      if (retryJsonValidation && !retriedJsonValidation) {
         retriedJsonValidation = true;
         continue;
       }

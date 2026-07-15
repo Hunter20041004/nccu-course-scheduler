@@ -32,6 +32,26 @@ function parseJsonObject(content) {
 
 const text = (value) => typeof value === 'string' ? value.trim() : '';
 
+function editDistance(first, second) {
+  let previous = Array.from({ length: second.length + 1 }, (_, index) => index);
+  for (let firstIndex = 1; firstIndex <= first.length; firstIndex += 1) {
+    const current = [firstIndex];
+    for (let secondIndex = 1; secondIndex <= second.length; secondIndex += 1) {
+      current[secondIndex] = first[firstIndex - 1] === second[secondIndex - 1]
+        ? previous[secondIndex - 1]
+        : Math.min(previous[secondIndex - 1], previous[secondIndex], current[secondIndex - 1]) + 1;
+    }
+    previous = current;
+  }
+  return previous[second.length];
+}
+
+function resolveAllowedCourseId(courseId, allowedCourseIds) {
+  if (allowedCourseIds.has(courseId)) return courseId;
+  const closeMatches = [...allowedCourseIds].filter((allowedId) => editDistance(courseId, allowedId) <= 2);
+  return closeMatches.length === 1 ? closeMatches[0] : courseId;
+}
+
 export function parseRecognizedCourses(content) {
   const payload = parseJsonObject(content);
   if (!Array.isArray(payload.recognizedCourses) || payload.recognizedCourses.length > 50) {
@@ -84,6 +104,13 @@ export function validateRecommendationRequest(input) {
       teacher: text(course.teacher),
       schedule: course.schedule || null,
       meetings: Array.isArray(course.meetings) ? course.meetings : [],
+      events: Array.isArray(course.events) ? course.events.slice(0, 50).map((event) => ({
+        label: text(event?.label),
+        date: text(event?.date),
+        day: Number(event?.day),
+        start: Number(event?.start),
+        end: Number(event?.end),
+      })) : [],
       asyncAllowed: Boolean(course.asyncAllowed),
       conditions: Array.isArray(course.conditions) ? course.conditions.map(text).filter(Boolean) : [],
       eligibility: text(course.eligibility) || 'eligible',
@@ -112,9 +139,12 @@ export function parseRecommendedPlans(content, allowedCourseIds) {
     const id = text(plan?.id);
     const title = text(plan?.title);
     const reason = text(plan?.reason);
-    const courseIds = Array.isArray(plan?.courseIds) ? plan.courseIds.map(text).filter(Boolean) : [];
+    const courseIds = Array.isArray(plan?.courseIds)
+      ? plan.courseIds.map(text).filter(Boolean).map((courseId) => resolveAllowedCourseId(courseId, allowedCourseIds))
+      : [];
     const asyncCourseIds = Array.isArray(plan?.asyncCourseIds)
-      ? [...new Set(plan.asyncCourseIds.map(text).filter(Boolean))]
+      ? [...new Set(plan.asyncCourseIds.map(text).filter(Boolean)
+        .map((courseId) => resolveAllowedCourseId(courseId, allowedCourseIds)))]
       : [];
     if (!id || !title || !reason || !courseIds.length || planIds.has(id)) {
       throw new ContractError('AI 回覆格式不正確。', 502, 'INVALID_AI_RESPONSE');

@@ -129,20 +129,28 @@ function parseConflictFreePlans(content, courses, lockedCourseIds) {
         'INVALID_AI_RESPONSE',
       );
     }
-    const selected = [...selectedIds]
-      .map((id) => byId.get(id))
-      .filter(Boolean)
-      .map((course) => ({
+    const selected = [];
+    const retainedIds = new Set();
+    const removedTitles = [];
+    for (const id of [...lockedCourseIds, ...plan.courseIds]) {
+      if (retainedIds.has(id)) continue;
+      const course = byId.get(id);
+      if (!course) continue;
+      const candidate = {
         ...course,
         attendance: effectiveAsyncCourseIds.includes(course.id) ? 'async' : 'physical',
-      }));
-    const conflicts = findConflicts(selected);
-    if (conflicts.length) {
-      throw new ContractError(
-        `AI 推薦方案「${plan.title}」包含衝堂：${conflicts.map((conflict) => conflict.message).join('；')}`,
-        502,
-        'INVALID_AI_RESPONSE',
-      );
+      };
+      if (!lockedCourseIds.includes(id) && findConflicts([...selected, candidate]).length) {
+        removedTitles.push(course.title);
+        continue;
+      }
+      retainedIds.add(id);
+      selected.push(candidate);
+    }
+    if (removedTitles.length) {
+      plan.courseIds = plan.courseIds.filter((id) => retainedIds.has(id));
+      plan.asyncCourseIds = plan.asyncCourseIds.filter((id) => retainedIds.has(id));
+      plan.tradeoffs.push(`已移除衝堂課程：${removedTitles.join('、')}`);
     }
   }
   return result;
@@ -359,10 +367,11 @@ export async function recommendCoursePlans(input, dependencies = {}) {
     apiKey: dependencies.apiKey,
     reasoningEffort: 'none',
     maxCompletionTokens: 2_200,
+    retryJsonValidation: false,
     messages: [
     { role: 'system', content: `你是政大排課顧問。只可逐字引用輸入 courses 內的 id，且每個方案都要保留 lockedCourseIds。產生三個內容不同的方案：集中實習、平衡探索、目標優先。所有課程預設以實體方式計算；只有 asyncAllowed=true 的課程可列入 asyncCourseIds，列入後不占每週固定時段。同一方案不得包含其餘 schedule 或 meetings 時段重疊的課程。${maximumCreditsRequested ? '使用者明確要求學分越多越好；在不衝堂且符合資格的前提下，至少一個方案必須追求最高總學分，並在理由說明取捨。' : ''}不要宣稱已完成衝堂檢查，因為網站仍會用確定性規則驗證。文字務必精簡：summary 60 字內；每個 title 20 字內、reason 80 字內、attendance 30 字內；tradeoffs 最多 2 項且每項 40 字內。只輸出 JSON object：{"summary":"整體建議","plans":[{"id":"focus","title":"方案名","reason":"理由","courseIds":["course-id"],"asyncCourseIds":["可非同步的course-id"],"attendance":"出席策略","tradeoffs":["取捨"]}]}，plans 必須恰好三筆。` },
     { role: 'user', content: JSON.stringify(promptRequest) },
-  ] }, (content) => parseConflictFreePlans(content, eligibleCourses, request.lockedCourseIds), 3);
+  ] }, (content) => parseConflictFreePlans(content, eligibleCourses, request.lockedCourseIds), 1);
   return maximumCreditsRequested
     ? addDeterministicMaximumCreditRoute(result, eligibleCourses, request.lockedCourseIds)
     : result;

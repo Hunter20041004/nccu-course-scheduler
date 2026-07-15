@@ -174,6 +174,7 @@ test('excludes blocked and unavailable courses from recommendation prompts', asy
   let promptedCourseIds;
   let recommendationReasoningEffort;
   let recommendationMaxCompletionTokens;
+  let recommendationRetriesJsonValidation;
   const eligibleCourse = { id: 'eligible', title: '合格課', credits: 3, eligibility: 'eligible' };
   const blockedCourse = { id: 'blocked', title: '不合格課', credits: 3, eligibility: 'blocked' };
   const validThreePlans = JSON.stringify({ summary: '摘要', plans: [
@@ -185,74 +186,38 @@ test('excludes blocked and unavailable courses from recommendation prompts', asy
     profileText: '大三', desiredActivities: '實習', futureDirection: 'AI', semesterGoals: '作品', preferences: '集中',
     internshipSettings: {}, selectedCourseIds: [], lockedCourseIds: ['locked'],
     courses: [eligibleCourse, blockedCourse, { id: 'locked', title: '鎖定課', credits: 2, eligibility: 'eligible' }],
-  }, { apiKey: 'test-only', groqRequest: async ({ messages, reasoningEffort, maxCompletionTokens }) => {
+  }, { apiKey: 'test-only', groqRequest: async ({ messages, reasoningEffort, maxCompletionTokens, retryJsonValidation }) => {
     promptedCourseIds = JSON.parse(messages[1].content).courses.map(({ id }) => id);
     recommendationReasoningEffort = reasoningEffort;
     recommendationMaxCompletionTokens = maxCompletionTokens;
+    recommendationRetriesJsonValidation = retryJsonValidation;
     return validThreePlans;
   } });
   assert.deepEqual(promptedCourseIds, ['eligible', 'locked']);
   assert.equal(recommendationReasoningEffort, 'none');
   assert.equal(recommendationMaxCompletionTokens, 2_200);
+  assert.equal(recommendationRetriesJsonValidation, false);
 });
 
-test('retries recommendations once when the JSON shape is invalid', async () => {
+test('does not resend the full recommendation payload when the JSON shape is invalid', async () => {
   let calls = 0;
-  const validPlans = JSON.stringify({ summary: '摘要', plans: [
-    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], attendance: '實體', tradeoffs: [] },
-    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['a', 'b'], attendance: '混合', tradeoffs: [] },
-    { id: 'explore', title: '探索', reason: '探索', courseIds: ['b'], attendance: '彈性', tradeoffs: [] },
-  ] });
-  const result = await recommendCoursePlans({
-    courses: [
-      { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible' },
-      { id: 'b', title: '課程 B', credits: 3, eligibility: 'eligible' },
-    ],
+  await assert.rejects(() => recommendCoursePlans({
+    courses: [{ id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible' }],
     lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
-  }, {
-    apiKey: 'test-only',
-    groqRequest: async () => {
-      calls += 1;
-      return calls === 1 ? '{"plans":[]}' : validPlans;
-    },
-  });
-  assert.equal(calls, 2);
-  assert.equal(result.plans.length, 3);
+  }, { apiKey: 'test-only', groqRequest: async () => {
+    calls += 1;
+    return '{"plans":[]}';
+  } }), { code: 'INVALID_AI_RESPONSE' });
+  assert.equal(calls, 1);
 });
 
-test('allows a third recommendation attempt after two invalid model responses', async () => {
+test('repairs a conflicting AI route locally without spending a second Groq request', async () => {
   let calls = 0;
-  const validPlans = JSON.stringify({ summary: '摘要', plans: [
-    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], attendance: '實體', tradeoffs: [] },
-    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['b'], attendance: '實體', tradeoffs: [] },
-    { id: 'explore', title: '探索', reason: '探索', courseIds: ['c'], attendance: '實體', tradeoffs: [] },
-  ] });
-  const result = await recommendCoursePlans({
-    courses: ['a', 'b', 'c'].map((id) => ({ id, title: `課程 ${id}`, credits: 3, eligibility: 'eligible' })),
-    lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
-  }, {
-    apiKey: 'test-only',
-    groqRequest: async () => {
-      calls += 1;
-      return calls < 3 ? '{"plans":[]}' : validPlans;
-    },
-  });
-
-  assert.equal(calls, 3);
-  assert.equal(result.plans.length, 3);
-});
-
-test('rejects a conflicting AI route and retries before returning recommendations', async () => {
-  let calls = 0;
-  const requests = [];
   const plan = (id, courseIds) => ({
     id, title: id, reason: id, courseIds, attendance: '實體', tradeoffs: [],
   });
   const conflicting = JSON.stringify({ summary: '第一次', plans: [
     plan('focus', ['a', 'b']), plan('balance', ['a', 'c']), plan('explore', ['c']),
-  ] });
-  const conflictFree = JSON.stringify({ summary: '第二次', plans: [
-    plan('focus', ['a']), plan('balance', ['b', 'c']), plan('explore', ['c']),
   ] });
   const courses = [
     { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible', schedule: { day: 1, start: 610, end: 780 } },
@@ -264,17 +229,16 @@ test('rejects a conflicting AI route and retries before returning recommendation
     courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
   }, {
     apiKey: 'test-only',
-    groqRequest: async (request) => {
+    groqRequest: async () => {
       calls += 1;
-      requests.push(request);
-      return calls === 1 ? conflicting : conflictFree;
+      return conflicting;
     },
   });
 
-  assert.equal(calls, 2);
-  assert.equal(result.summary, '第二次');
-  assert.match(requests[1].messages.at(-1).content, /上一個回覆未通過驗證.*衝堂/);
-  assert.match(requests[1].messages.at(-1).content, /課程 A 與 課程 B 每週時段重疊/);
+  assert.equal(calls, 1);
+  assert.equal(result.summary, '第一次');
+  assert.deepEqual(result.plans[0].courseIds, ['a']);
+  assert.match(result.plans[0].tradeoffs.join(''), /已移除衝堂課程：課程 B/);
 });
 
 test('accepts an overlapping route only when an async-capable course is explicitly asynchronous', async () => {
