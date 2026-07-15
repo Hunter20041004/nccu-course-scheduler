@@ -8,16 +8,15 @@ Add a one-click export that turns the current completed timetable into a polishe
 
 - Add a visible `匯出手機桌布` button in the schedule panel controls.
 - Clicking the button downloads a PNG named `nccu-schedule-wallpaper-115-1.png`.
-- The PNG is `1080×1920`, optimized for phone wallpaper use rather than a raw webpage screenshot.
+- The PNG is `1170×2532`, a modern phone-wallpaper ratio with generous safe-area margins so the image is less likely to be cropped by lock-screen or home-screen placement.
 - The exported image includes:
-  - title and term;
-  - selected credits;
-  - internship availability;
+  - minimal title and term;
   - weekly NCCU timetable from Monday to Sunday;
   - selected physical/synchronous courses;
   - internship reservations;
   - asynchronous or time-undetermined courses;
   - reminders such as conflicts, eligibility warnings, and special events.
+- The exported image must not include the three top metric cards (`已選學分`, `可實習`, `提醒`) or the bottom export timestamp.
 
 ## Visual direction
 

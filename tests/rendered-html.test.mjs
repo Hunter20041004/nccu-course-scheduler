@@ -331,10 +331,16 @@ test('exports the current timetable as a phone wallpaper PNG', async () => {
   assert.match(html, /id="export-wallpaper"[^>]*>匯出手機桌布<\/button>/);
   assert.match(html, /function exportScheduleWallpaper\(\)/);
   assert.match(html, /function renderScheduleWallpaper\(canvas\)/);
-  assert.match(html, /canvas\.width = 1080/);
-  assert.match(html, /canvas\.height = 1920/);
+  assert.match(html, /canvas\.width = 1170/);
+  assert.match(html, /canvas\.height = 2532/);
   assert.match(html, /downloadCanvasPng\(canvas, 'nccu-schedule-wallpaper-115-1\.png'\)/);
   assert.match(html, /canvas\.toDataURL\('image\/png'\)/);
+  assert.doesNotMatch(html, /drawWallpaperStat\(ctx, '已選學分'/);
+  assert.doesNotMatch(html, /drawWallpaperStat\(ctx, '可實習'/);
+  assert.doesNotMatch(html, /drawWallpaperStat\(ctx, '提醒'/);
+  assert.doesNotMatch(html, /匯出時間/);
+  assert.match(html, /const safeX = 96/);
+  assert.match(html, /const safeBottom = 176/);
   assert.match(html, /byId\('export-wallpaper'\)\.addEventListener\('click', exportScheduleWallpaper\)/);
   assert.match(html, /手機桌布已匯出/);
 });
