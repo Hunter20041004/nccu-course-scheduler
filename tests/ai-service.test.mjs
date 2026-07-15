@@ -213,11 +213,12 @@ test('does not resend the full recommendation payload when the JSON shape is inv
 
 test('repairs a conflicting AI route locally without spending a second Groq request', async () => {
   let calls = 0;
-  const plan = (id, courseIds) => ({
-    id, title: id, reason: id, courseIds, attendance: '實體', tradeoffs: [],
+  const plan = (id, courseIds, reason = id, tradeoffs = []) => ({
+    id, title: id, reason, courseIds, attendance: '實體', tradeoffs,
   });
   const conflicting = JSON.stringify({ summary: '第一次', plans: [
-    plan('focus', ['a', 'b']), plan('balance', ['a', 'c']), plan('explore', ['c']),
+    plan('focus', ['a', 'b'], '選入課程 B 來加強能力', ['課程 B 作業較多']),
+    plan('balance', ['a', 'c']), plan('explore', ['c']),
   ] });
   const courses = [
     { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible', schedule: { day: 1, start: 610, end: 780 } },
@@ -238,7 +239,8 @@ test('repairs a conflicting AI route locally without spending a second Groq requ
   assert.equal(calls, 1);
   assert.equal(result.summary, '第一次');
   assert.deepEqual(result.plans[0].courseIds, ['a']);
-  assert.match(result.plans[0].tradeoffs.join(''), /已移除衝堂課程：課程 B/);
+  assert.doesNotMatch(result.plans[0].reason, /課程 B/);
+  assert.deepEqual(result.plans[0].tradeoffs, ['已移除衝堂課程：課程 B']);
 });
 
 test('accepts an overlapping route only when an async-capable course is explicitly asynchronous', async () => {
@@ -328,7 +330,7 @@ test('treats maximum credits as an explicit objective and orders routes by total
 
 test('builds a deterministic maximum-credit route when the model omits compatible courses', async () => {
   const response = JSON.stringify({ summary: '模型漏選課程', plans: [
-    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+    { id: 'focus', title: '集中', reason: '只選低學分課程 a', courseIds: ['a'], asyncCourseIds: [], attendance: '實體', tradeoffs: ['保留課程 a'] },
     { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['c'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
     { id: 'explore', title: '探索', reason: '探索', courseIds: ['d'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
   ] });
@@ -345,5 +347,108 @@ test('builds a deterministic maximum-credit route when the model omits compatibl
   }, { apiKey: 'test-only', groqRequest: async () => response });
 
   assert.deepEqual(result.plans[0].courseIds, ['b', 'c', 'd']);
-  assert.match(result.plans[0].reason, /系統已在不衝堂前提下補齊最高學分組合/);
+  assert.doesNotMatch(result.plans[0].reason, /課程 a/);
+  assert.equal(result.plans[0].reason, '系統已在不衝堂且符合資格的前提下，重建為最高學分組合。');
+  assert.deepEqual(result.plans[0].tradeoffs, ['最高學分組合可能壓縮實習或自主安排時間']);
+});
+
+test('adds an actual preferred language course when every model route only claims to include one', async () => {
+  const plan = (id, courseId) => ({
+    id,
+    title: id,
+    reason: '已安排法文課',
+    courseIds: [courseId],
+    asyncCourseIds: [],
+    attendance: '實體',
+    tradeoffs: ['日文／法文擇一'],
+  });
+  const response = JSON.stringify({ summary: '三個方案都有語文課', plans: [
+    plan('focus', 'a'), plan('balance', 'b'), plan('explore', 'c'),
+  ] });
+  const courses = [
+    { id: 'a', title: 'AI 課程', credits: 3, eligibility: 'eligible', schedule: { day: 1, start: 610, end: 780 } },
+    { id: 'b', title: '金融課程', credits: 3, eligibility: 'eligible', schedule: { day: 3, start: 610, end: 780 } },
+    { id: 'c', title: '數位課程', credits: 3, eligibility: 'eligible', schedule: { day: 4, start: 610, end: 780 } },
+    { id: 'jp-law', title: '日文法學名著選讀（二）', credits: 3, eligibility: 'eligible', schedule: { day: 5, start: 610, end: 780 } },
+    { id: 'nlp', title: '自然語言處理', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 610, end: 780 } },
+  ];
+
+  const result = await recommendCoursePlans({
+    courses,
+    lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+    semesterGoals: '一堂語文相關',
+    preferences: '語文偏好日文跟法文相關的',
+  }, { apiKey: 'test-only', groqRequest: async () => response });
+
+  result.plans.forEach((recommended) => {
+    assert.ok(recommended.courseIds.includes('jp-law'));
+    assert.ok(!recommended.courseIds.includes('nlp'));
+    assert.match(recommended.reason, /已加入「日文法學名著選讀（二）」/);
+    assert.deepEqual(recommended.tradeoffs, ['已加入語文課程：日文法學名著選讀（二）']);
+  });
+});
+
+test('rewrites a language claim from the course ids even when the route already has a language course', async () => {
+  const plan = (id, extraId) => ({
+    id,
+    title: id,
+    reason: '已安排法文課',
+    courseIds: ['jp-law', extraId],
+    asyncCourseIds: [],
+    attendance: '實體',
+    tradeoffs: ['放棄日文'],
+  });
+  const response = JSON.stringify({ summary: '摘要', plans: [
+    plan('focus', 'a'), plan('balance', 'b'), plan('explore', 'c'),
+  ] });
+  const courses = [
+    { id: 'jp-law', title: '日文法學名著選讀（二）', credits: 3, eligibility: 'eligible' },
+    ...['a', 'b', 'c'].map((id) => ({ id, title: `課程 ${id}`, credits: 3, eligibility: 'eligible' })),
+  ];
+
+  const result = await recommendCoursePlans({
+    courses,
+    lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+    semesterGoals: '一堂語文相關', preferences: '偏好日文或法文',
+  }, { apiKey: 'test-only', groqRequest: async () => response });
+
+  result.plans.forEach((recommended) => {
+    assert.match(recommended.reason, /實際安排的語文課是「日文法學名著選讀（二）」/);
+    assert.doesNotMatch(recommended.reason, /法文課/);
+    assert.deepEqual(recommended.tradeoffs, ['已安排語文課程：日文法學名著選讀（二）']);
+  });
+});
+
+test('removes every language claim when no eligible language candidate exists', async () => {
+  const plan = (id, courseId) => ({
+    id,
+    title: id,
+    reason: '已安排日文課',
+    courseIds: [courseId],
+    asyncCourseIds: [],
+    attendance: '週末補修語言課程',
+    tradeoffs: ['日文與法文擇一'],
+  });
+  const response = JSON.stringify({ summary: '已安排語文', plans: [
+    plan('focus', 'a'), plan('balance', 'b'), plan('explore', 'c'),
+  ] });
+  const courses = ['a', 'b', 'c', 'nlp'].map((id) => ({
+    id,
+    title: id === 'nlp' ? '自然語言處理' : `課程 ${id}`,
+    credits: 3,
+    eligibility: 'eligible',
+  }));
+
+  const result = await recommendCoursePlans({
+    courses,
+    lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+    semesterGoals: '一堂語文相關', preferences: '偏好日文或法文',
+  }, { apiKey: 'test-only', groqRequest: async () => response });
+
+  assert.match(result.summary, /無法加入/);
+  result.plans.forEach((recommended) => {
+    assert.match(recommended.reason, /目前沒有可.*加入的日文／法文語文課/);
+    assert.equal(recommended.attendance, '依實際課程時段安排');
+    assert.doesNotMatch(recommended.attendance, /語言課程/);
+  });
 });
