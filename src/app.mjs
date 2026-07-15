@@ -1,6 +1,5 @@
 const byId = (id) => document.getElementById(id);
 const FIRST_USE_TUTORIAL_SEEN_KEY = 'sunbreak:first-use-tutorial-seen:v1';
-const API_ONBOARDING_SEEN_KEY = 'sunbreak:api-onboarding-seen:v1';
 const apiKeySession = createApiKeySession();
 const defaultProfile = {
   level: 'undergrad',
@@ -127,10 +126,10 @@ document.addEventListener('keydown', (event) => {
 });
 byId('api-key-status-button').addEventListener('click', openApiKeyDialog);
 byId('api-key-dialog-close').addEventListener('click', () => byId('api-key-dialog').close());
-byId('api-key-skip').addEventListener('click', () => { try { localStorage.setItem(API_ONBOARDING_SEEN_KEY, 'true'); } catch {} byId('api-key-dialog').close(); });
+byId('api-key-skip').addEventListener('click', () => byId('api-key-dialog').close());
 byId('api-key-reveal').addEventListener('click', () => { const input = byId('api-key-input'); const reveal = input.type === 'password'; input.type = reveal ? 'text' : 'password'; byId('api-key-reveal').textContent = reveal ? '隱藏' : '顯示'; byId('api-key-reveal').setAttribute('aria-pressed', String(reveal)); });
 byId('api-key-clear').addEventListener('click', () => { apiKeySession.clearKey(); renderApiKeyState(); byId('api-key-status').textContent = '已清除本分頁的 API Key。'; });
-byId('api-key-form').addEventListener('submit', async (event) => { event.preventDefault(); const input = byId('api-key-input'); const status = byId('api-key-status'); try { await validateAndStoreApiKey({ apiKey: input.value, session: apiKeySession }); input.value = ''; try { localStorage.setItem(API_ONBOARDING_SEEN_KEY, 'true'); } catch {} renderApiKeyState(); byId('api-key-dialog').close(); } catch (error) { status.textContent = error.message; } });
+byId('api-key-form').addEventListener('submit', async (event) => { event.preventDefault(); const input = byId('api-key-input'); const status = byId('api-key-status'); try { await validateAndStoreApiKey({ apiKey: input.value, session: apiKeySession }); input.value = ''; renderApiKeyState(); byId('api-key-dialog').close(); } catch (error) { status.textContent = error.message; } });
 
 function escapeHtml(value) {
   return String(value ?? '')

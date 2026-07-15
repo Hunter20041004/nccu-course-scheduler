@@ -22,7 +22,7 @@ test('serves the private NCCU course scheduler with schedule before catalog', as
   assert.match(html, /23 門候選課程/);
 });
 
-test('renders and wires secure Gemini API key onboarding', async () => {
+test('renders secure Gemini API key setup without first-load auto prompt', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="api-key-status-button"/);
   assert.match(html, /<dialog id="api-key-dialog"[^>]*aria-labelledby="api-key-title"/);
@@ -31,8 +31,13 @@ test('renders and wires secure Gemini API key onboarding', async () => {
   assert.match(html, /Google Assistant／Gemini App 不等於 Gemini API/);
   assert.match(html, /createApiKeySession\(\)/);
   assert.match(html, /validateAndStoreApiKey/);
+  assert.match(html, /function requireApiKeyForAi\(status\)/);
+  assert.match(html, /byId\('api-key-status-button'\)\.addEventListener\('click', openApiKeyDialog\)/);
+  assert.match(html, /const apiKey = requireApiKeyForAi\(status\)/);
   assert.match(html, /apiKey,\s*profileText:/);
   assert.match(html, /JSON\.stringify\(\{ apiKey, imageDataUrl, term: '115-1' \}\)/);
+  assert.doesNotMatch(html, /API_ONBOARDING_SEEN_KEY/);
+  assert.doesNotMatch(html, /openApiKeyDialog\(\);[\s\S]{0,240}renderApiKeyState\(\)/);
   assert.doesNotMatch(html, /sessionStorage/);
 });
 
