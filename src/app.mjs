@@ -690,7 +690,6 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         profileText: byId('ai-profile').value,
-        desiredActivities: byId('ai-activities').value,
         futureDirection: byId('ai-future').value,
         semesterGoals: byId('ai-goals').value,
         preferences: byId('ai-preferences').value,

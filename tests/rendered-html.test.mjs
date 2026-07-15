@@ -173,9 +173,11 @@ test('switches between the schedule and tools on compact screens', async () => {
 
 test('collects the student profile and goals for AI planning', async () => {
   const html = await (await render()).text();
-  for (const id of ['ai-profile', 'ai-activities', 'ai-future', 'ai-goals', 'ai-preferences']) {
+  for (const id of ['ai-profile', 'ai-future', 'ai-goals', 'ai-preferences']) {
     assert.match(html, new RegExp(`id="${id}"`));
   }
+  assert.doesNotMatch(html, /id="ai-activities"/);
+  assert.match(html, /這學期想達成什麼/);
   assert.match(html, /個人敘述會傳送給 Groq/);
   assert.match(html, /id="ai-advisor-status"[^>]*aria-live="polite"/);
 });

@@ -10,6 +10,19 @@ test('merges verified imports without duplicating existing course ids', () => {
   });
 });
 
+test('refreshes an existing imported course with newly verified eligibility rules', () => {
+  const existing = { id: 'ai-509041001', title: '德國文學概論', source: 'nccu-verified-import' };
+  const refreshed = {
+    ...existing,
+    eligibilityRules: [{ conditionId: 'official-restriction:509041001', enforcement: 'required' }],
+  };
+
+  const result = mergeImportedCourses([existing], [refreshed]);
+
+  assert.deepEqual(result.duplicateIds, ['ai-509041001']);
+  assert.deepEqual(result.courseStore[0].eligibilityRules, refreshed.eligibilityRules);
+});
+
 test('applies a recommendation while preserving every locked selected course', () => {
   const profile = { level: 'undergrad', year: 3, programs: [], prerequisites: [] };
   const catalog = [

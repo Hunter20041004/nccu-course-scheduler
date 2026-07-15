@@ -60,6 +60,28 @@ test('uses a recognized course code to disambiguate same-title official courses'
   assert.deepEqual(result.importedCourses.map((course) => course.sectionCode), ['781063001']);
 });
 
+test('turns an official enrollment restriction into a required selectable condition', async () => {
+  const recognizedCourse = JSON.stringify({ recognizedCourses: [{
+    courseCode: '509041001', title: '德國文學概論', teacher: '蔡莫妮', confidence: 0.99,
+  }] });
+  const result = await importCoursesFromScreenshot(validImport, {
+    apiKey: 'test-only', catalog: [], groqRequest: async () => recognizedCourse,
+    nccuSearch: async () => [{
+      courseCode: '509041001', title: '德國文學概論', teacher: '蔡莫妮', credits: 2,
+      scheduleText: '四78', available: true,
+      restrictionText: '僅限歐文系及雙主修學生修讀。',
+    }],
+  });
+
+  assert.deepEqual(result.importedCourses[0].eligibilityRules, [{
+    conditionId: 'official-restriction:509041001',
+    conditionLabel: '我是歐文系或雙主修學生',
+    conditionDescription: '政大官方備註：僅限歐文系及雙主修學生修讀。',
+    enforcement: 'required',
+    rationale: '僅限歐文系及雙主修學生修讀。',
+  }]);
+});
+
 test('retries screenshot recognition once when the JSON shape is invalid', async () => {
   let calls = 0;
   const result = await importCoursesFromScreenshot(validImport, {
@@ -212,4 +234,29 @@ test('ignores asynchronous metadata for courses outside a route', async () => {
   }, { apiKey: 'test-only', groqRequest: async () => response });
 
   assert.deepEqual(result.plans[0].asyncCourseIds, []);
+});
+
+test('treats maximum credits as an explicit objective and orders routes by total credits', async () => {
+  let systemPrompt = '';
+  const response = JSON.stringify({ summary: '依學分排序', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+    { id: 'balance', title: '高學分', reason: '高學分', courseIds: ['a', 'b'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['c'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+  ] });
+  const courses = [
+    { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible' },
+    { id: 'b', title: '課程 B', credits: 3, eligibility: 'eligible' },
+    { id: 'c', title: '課程 C', credits: 2, eligibility: 'eligible' },
+  ];
+
+  const result = await recommendCoursePlans({
+    courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+    preferences: '集中週二週四，學分越多越好',
+  }, { apiKey: 'test-only', groqRequest: async ({ messages }) => {
+    systemPrompt = messages[0].content;
+    return response;
+  } });
+
+  assert.match(systemPrompt, /最高總學分/);
+  assert.deepEqual(result.plans.map((plan) => plan.id), ['balance', 'focus', 'explore']);
 });

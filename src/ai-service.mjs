@@ -70,8 +70,25 @@ function meetingsFromNccuText(scheduleText) {
   return meetings;
 }
 
+function eligibilityRuleFromOfficialRestriction(course) {
+  const restriction = String(course.restrictionText || '').trim();
+  if (!restriction || !/(僅限|限.+修讀|須具|需具|先修|雙主修|輔系)/.test(restriction)) return [];
+  const audience = restriction.match(/^僅限(.+?)學生修讀[。.]?$/)?.[1];
+  const conditionLabel = audience
+    ? `我是${audience.replace('及雙主修', '或雙主修')}學生`
+    : `我符合：${restriction.replace(/[。.]$/, '')}`;
+  return [{
+    conditionId: `official-restriction:${course.courseCode}`,
+    conditionLabel,
+    conditionDescription: `政大官方備註：${restriction}`,
+    enforcement: 'required',
+    rationale: restriction,
+  }];
+}
+
 function officialToCandidate(course) {
   const meetings = meetingsFromNccuText(course.scheduleText);
+  const eligibilityRules = eligibilityRuleFromOfficialRestriction(course);
   return {
     id: `ai-${course.courseCode}`,
     title: course.title,
@@ -85,7 +102,11 @@ function officialToCandidate(course) {
     asyncAllowed: false,
     source: 'nccu-verified-import',
     sourceUrl: course.sourceUrl || '',
-    conditions: ['由截圖匯入並經政大 115-1 公開課程資料核對'],
+    conditions: [
+      '由截圖匯入並經政大 115-1 公開課程資料核對',
+      ...(course.restrictionText ? [course.restrictionText] : []),
+    ],
+    eligibilityRules,
     sections: [`${course.courseCode}｜${course.scheduleText || '時間未定'}`],
   };
 }
@@ -122,6 +143,20 @@ function parseConflictFreePlans(content, courses, lockedCourseIds) {
     }
   }
   return result;
+}
+
+function requestsMaximumCredits(preferences) {
+  return /學分.{0,8}(越多越好|最多|最大|優先)/.test(String(preferences || ''));
+}
+
+function orderPlansByCredits(result, courses, lockedCourseIds) {
+  const creditsById = new Map(courses.map((course) => [course.id, Number(course.credits || 0)]));
+  const totalCredits = (plan) => [...new Set([...plan.courseIds, ...lockedCourseIds])]
+    .reduce((total, id) => total + (creditsById.get(id) || 0), 0);
+  return {
+    ...result,
+    plans: [...result.plans].sort((first, second) => totalCredits(second) - totalCredits(first)),
+  };
 }
 
 export async function importCoursesFromScreenshot(input, dependencies = {}) {
@@ -195,11 +230,15 @@ export async function recommendCoursePlans(input, dependencies = {}) {
   const eligibleCourses = request.courses.filter((course) => !['blocked', 'unavailable'].includes(course.eligibility));
   const promptRequest = { ...request, courses: eligibleCourses };
   const groqRequest = dependencies.groqRequest || requestGroqJson;
-  return requestWithOneSchemaRetry(groqRequest, {
+  const maximumCreditsRequested = requestsMaximumCredits(request.preferences);
+  const result = await requestWithOneSchemaRetry(groqRequest, {
     apiKey: dependencies.apiKey,
     reasoningEffort: 'none',
     messages: [
-    { role: 'system', content: `你是政大排課顧問。只可逐字引用輸入 courses 內的 id，且每個方案都要保留 lockedCourseIds。產生三個內容不同的方案：集中實習、平衡探索、目標優先。所有課程預設以實體方式計算；只有 asyncAllowed=true 的課程可列入 asyncCourseIds，列入後不占每週固定時段。同一方案不得包含其餘 schedule 或 meetings 時段重疊的課程。不要宣稱已完成衝堂檢查，因為網站仍會用確定性規則驗證。只輸出 JSON object：{"summary":"整體建議","plans":[{"id":"focus","title":"方案名","reason":"理由","courseIds":["course-id"],"asyncCourseIds":["可非同步的course-id"],"attendance":"出席策略","tradeoffs":["取捨"]}]}，plans 必須恰好三筆。` },
+    { role: 'system', content: `你是政大排課顧問。只可逐字引用輸入 courses 內的 id，且每個方案都要保留 lockedCourseIds。產生三個內容不同的方案：集中實習、平衡探索、目標優先。所有課程預設以實體方式計算；只有 asyncAllowed=true 的課程可列入 asyncCourseIds，列入後不占每週固定時段。同一方案不得包含其餘 schedule 或 meetings 時段重疊的課程。${maximumCreditsRequested ? '使用者明確要求學分越多越好；在不衝堂且符合資格的前提下，至少一個方案必須追求最高總學分，並在理由說明取捨。' : ''}不要宣稱已完成衝堂檢查，因為網站仍會用確定性規則驗證。只輸出 JSON object：{"summary":"整體建議","plans":[{"id":"focus","title":"方案名","reason":"理由","courseIds":["course-id"],"asyncCourseIds":["可非同步的course-id"],"attendance":"出席策略","tradeoffs":["取捨"]}]}，plans 必須恰好三筆。` },
     { role: 'user', content: JSON.stringify(promptRequest) },
   ] }, (content) => parseConflictFreePlans(content, eligibleCourses, request.lockedCourseIds));
+  return maximumCreditsRequested
+    ? orderPlansByCredits(result, eligibleCourses, request.lockedCourseIds)
+    : result;
 }

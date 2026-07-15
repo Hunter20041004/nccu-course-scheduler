@@ -10,16 +10,25 @@ export function validateScreenshotFile(file) {
 
 export function mergeImportedCourses(courseStore, importedCourses) {
   const ids = new Set(courseStore.map((course) => course.id));
+  const refreshedStore = [...courseStore];
   const duplicateIds = [];
   const additions = [];
   importedCourses.forEach((course) => {
-    if (ids.has(course.id)) duplicateIds.push(course.id);
+    if (ids.has(course.id)) {
+      duplicateIds.push(course.id);
+      const existingIndex = refreshedStore.findIndex((existing) => existing.id === course.id);
+      if (
+        existingIndex >= 0
+        && refreshedStore[existingIndex].source === 'nccu-verified-import'
+        && course.source === 'nccu-verified-import'
+      ) refreshedStore[existingIndex] = { ...refreshedStore[existingIndex], ...course };
+    }
     else {
       ids.add(course.id);
       additions.push(course);
     }
   });
-  return { courseStore: [...courseStore, ...additions], duplicateIds };
+  return { courseStore: [...refreshedStore, ...additions], duplicateIds };
 }
 
 export function applyRecommendedPlan(plan, courseStore, selected, lockedCourseIds, profile) {
