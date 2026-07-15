@@ -302,7 +302,7 @@ function renderSchedule() {
     : '<p class="empty">目前沒有非同步或時間未定課程</p>';
 }
 
-function renderWarnings() {
+function collectScheduleReminders() {
   const items = findConflicts(selected).map((conflict) => conflict.message);
   const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
   internshipPlan.conflicts.forEach((conflict) => {
@@ -317,9 +317,244 @@ function renderWarnings() {
     }
     (course.events || []).forEach((event) => items.push(`${course.title}：${event.date} ${event.label}`));
   });
+  return items;
+}
+
+function renderWarnings() {
+  const items = collectScheduleReminders();
   byId('warning-list').innerHTML = items.length
     ? `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
     : '<p class="empty">目前沒有需要處理的提醒。</p>';
+}
+
+function canvasRoundRect(ctx, x, y, width, height, radius) {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
+  ctx.closePath();
+}
+
+function fillRoundRect(ctx, x, y, width, height, radius, fill, stroke = null) {
+  canvasRoundRect(ctx, x, y, width, height, radius);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  if (stroke) {
+    ctx.strokeStyle = stroke;
+    ctx.stroke();
+  }
+}
+
+function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 2) {
+  const words = String(text || '').split('');
+  const lines = [];
+  let line = '';
+  words.forEach((word) => {
+    const nextLine = `${line}${word}`;
+    if (ctx.measureText(nextLine).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = nextLine;
+    }
+  });
+  if (line) lines.push(line);
+  const visible = lines.slice(0, maxLines);
+  if (lines.length > maxLines) {
+    visible[maxLines - 1] = `${visible[maxLines - 1].slice(0, Math.max(0, visible[maxLines - 1].length - 1))}…`;
+  }
+  visible.forEach((row, index) => ctx.fillText(row, x, y + (index * lineHeight)));
+  return visible.length * lineHeight;
+}
+
+function drawWallpaperStat(ctx, label, value, x, y, width) {
+  fillRoundRect(ctx, x, y, width, 92, 18, '#FFFFFF', '#DAD7E2');
+  ctx.fillStyle = '#5E5B68';
+  ctx.font = '700 24px "Noto Sans TC", sans-serif';
+  ctx.fillText(label, x + 22, y + 34);
+  ctx.fillStyle = '#211F26';
+  ctx.font = '800 34px "Noto Sans TC", sans-serif';
+  ctx.fillText(String(value), x + 22, y + 72);
+}
+
+function wallpaperCourseColor(course, conflictingIds) {
+  if (conflictingIds.has(course.id)) return { fill: '#FCECEA', stroke: '#B43830', text: '#211F26' };
+  if (course.itemType === 'club') return { fill: '#FFF4D8', stroke: '#C88B2E', text: '#211F26' };
+  if (course.itemType === 'personal') return { fill: '#EEF1FF', stroke: '#2446D8', text: '#211F26' };
+  return { fill: '#F2ECFA', stroke: '#6E46B8', text: '#211F26' };
+}
+
+function renderScheduleWallpaper(canvas) {
+  canvas.width = 1080;
+  canvas.height = 1920;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  const colors = {
+    canvas: '#F7F6FA',
+    surface: '#FFFFFF',
+    ink: '#211F26',
+    muted: '#5E5B68',
+    line: '#DAD7E2',
+    blue: '#2446D8',
+    violet: '#6E46B8',
+    sun: '#E7A43A',
+    sunSoft: '#FFF4D8',
+  };
+  ctx.fillStyle = colors.canvas;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = colors.sun;
+  ctx.beginPath();
+  ctx.arc(890, 150, 94, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(820, 170, 76, 0, Math.PI * 2);
+  ctx.arc(730, 178, 56, 0, Math.PI * 2);
+  ctx.arc(780, 125, 68, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = colors.violet;
+  ctx.font = '800 22px "Noto Sans TC", sans-serif';
+  ctx.letterSpacing = '2px';
+  ctx.fillText('NCCU · 115-1 · SUNBREAK', 64, 86);
+  ctx.letterSpacing = '0px';
+  ctx.fillStyle = colors.ink;
+  ctx.font = '800 66px Georgia, "Noto Serif TC", serif';
+  ctx.fillText('我的課表', 64, 166);
+
+  const credits = selected.reduce((total, course) => total + Number(course.credits || 0), 0);
+  const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
+  const reminders = collectScheduleReminders();
+  drawWallpaperStat(ctx, '已選學分', `${credits}`, 64, 220, 288);
+  drawWallpaperStat(ctx, '可實習', `${internshipPlan.availableDays} / ${internshipSettings.targetDays} 天`, 376, 220, 336);
+  drawWallpaperStat(ctx, '提醒', `${reminders.length}`, 736, 220, 280);
+
+  const gridX = 64;
+  const gridY = 360;
+  const periodWidth = 76;
+  const dayWidth = 128;
+  const headerHeight = 54;
+  const periodHeight = 54;
+  const gridWidth = periodWidth + (dayWidth * 7);
+  const gridHeight = headerHeight + (periodHeight * NCCU_PERIODS.length);
+  fillRoundRect(ctx, gridX, gridY, gridWidth, gridHeight, 24, colors.surface, colors.line);
+
+  ctx.fillStyle = '#FBFAFC';
+  fillRoundRect(ctx, gridX + 8, gridY + 8, gridWidth - 16, headerHeight - 8, 16, '#FBFAFC');
+  ctx.fillStyle = colors.muted;
+  ctx.font = '800 22px "Noto Sans TC", sans-serif';
+  ctx.textAlign = 'center';
+  dayLabels.slice(1, 8).forEach((label, index) => {
+    ctx.fillText(label.replace('週', ''), gridX + periodWidth + (index * dayWidth) + (dayWidth / 2), gridY + 42);
+  });
+
+  ctx.strokeStyle = colors.line;
+  ctx.lineWidth = 1;
+  NCCU_PERIODS.forEach((period, index) => {
+    const y = gridY + headerHeight + (index * periodHeight);
+    ctx.beginPath();
+    ctx.moveTo(gridX + 14, y);
+    ctx.lineTo(gridX + gridWidth - 14, y);
+    ctx.stroke();
+    ctx.fillStyle = period.special ? colors.violet : colors.ink;
+    ctx.font = '800 24px "Noto Sans TC", sans-serif';
+    ctx.fillText(period.code, gridX + 38, y + 34);
+    ctx.fillStyle = colors.muted;
+    ctx.font = '600 12px "Noto Sans TC", sans-serif';
+    ctx.fillText(period.time.replace('–', '-'), gridX + 38, y + 49);
+  });
+  for (let day = 0; day <= 7; day += 1) {
+    const x = gridX + periodWidth + (day * dayWidth);
+    ctx.beginPath();
+    ctx.moveTo(x, gridY + 14);
+    ctx.lineTo(x, gridY + gridHeight - 14);
+    ctx.stroke();
+  }
+
+  const conflicts = findConflicts(selected);
+  const conflictingIds = new Set(conflicts.flatMap(({ courseIds }) => courseIds));
+  const conflictedWindows = new Set(internshipPlan.conflicts.map(({ window }) => window));
+  internshipPlan.displayWindows.forEach((window) => {
+    const placement = gridPlacement(window);
+    if (!placement) return;
+    const x = gridX + periodWidth + ((window.day - 1) * dayWidth) + 6;
+    const y = gridY + headerHeight + ((placement.rowStart - 2) * periodHeight) + 4;
+    const height = Math.max(44, (placement.rowSpan * periodHeight) - 8);
+    fillRoundRect(ctx, x, y, dayWidth - 12, height, 14, conflictedWindows.has(window) ? '#FCECEA' : '#EEF1FF', conflictedWindows.has(window) ? '#B43830' : '#2446D8');
+    ctx.fillStyle = conflictedWindows.has(window) ? '#B43830' : '#1736A3';
+    ctx.textAlign = 'left';
+    ctx.font = '800 18px "Noto Sans TC", sans-serif';
+    ctx.fillText({ full: '實習', morning: '上午實習', afternoon: '下午實習' }[window.mode], x + 12, y + 28);
+    ctx.font = '700 14px "Noto Sans TC", sans-serif';
+    ctx.fillText(`${formatMinutes(window.start)}-${formatMinutes(window.end)}`, x + 12, y + 50);
+  });
+
+  selected.forEach((course) => {
+    meetingsForCourse(course).forEach((meeting) => {
+      const placement = gridPlacement(meeting);
+      if (!placement) return;
+      const x = gridX + periodWidth + ((meeting.day - 1) * dayWidth) + 6;
+      const y = gridY + headerHeight + ((placement.rowStart - 2) * periodHeight) + 4;
+      const height = Math.max(44, (placement.rowSpan * periodHeight) - 8);
+      const color = wallpaperCourseColor(course, conflictingIds);
+      ctx.lineWidth = conflictingIds.has(course.id) ? 4 : 2;
+      fillRoundRect(ctx, x, y, dayWidth - 12, height, 14, color.fill, color.stroke);
+      ctx.fillStyle = color.text;
+      ctx.textAlign = 'left';
+      ctx.font = '800 18px "Noto Sans TC", sans-serif';
+      drawWrappedText(ctx, course.title, x + 12, y + 28, dayWidth - 36, 22, Math.max(1, Math.floor((height - 34) / 22)));
+      ctx.fillStyle = colors.muted;
+      ctx.font = '700 13px "Noto Sans TC", sans-serif';
+      ctx.fillText(course.sectionCode || '', x + 12, y + height - 14);
+    });
+  });
+
+  const asyncCourses = selected.filter((course) => course.attendance === 'async' || !meetingsForCourse(course).length);
+  const infoY = gridY + gridHeight + 42;
+  fillRoundRect(ctx, 64, infoY, 456, 330, 24, colors.surface, colors.line);
+  fillRoundRect(ctx, 544, infoY, 472, 330, 24, colors.surface, colors.line);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = colors.ink;
+  ctx.font = '800 30px Georgia, "Noto Serif TC", serif';
+  ctx.fillText('非同步與時間未定', 92, infoY + 56);
+  ctx.font = '800 24px Georgia, "Noto Serif TC", serif';
+  ctx.fillText('排課提醒', 572, infoY + 56);
+  ctx.fillStyle = colors.muted;
+  ctx.font = '700 22px "Noto Sans TC", sans-serif';
+  const asyncList = asyncCourses.length ? asyncCourses.map((course) => `${course.title} · ${course.attendance === 'async' ? '非同步' : '時間未定'}`) : ['目前沒有非同步或時間未定課程'];
+  asyncList.slice(0, 6).forEach((item, index) => drawWrappedText(ctx, item, 92, infoY + 98 + (index * 36), 380, 26, 1));
+  const reminderList = reminders.length ? reminders : ['目前沒有需要處理的提醒'];
+  reminderList.slice(0, 7).forEach((item, index) => drawWrappedText(ctx, item, 572, infoY + 98 + (index * 32), 380, 24, 1));
+
+  ctx.fillStyle = colors.muted;
+  ctx.font = '700 18px "Noto Sans TC", sans-serif';
+  ctx.fillText(`匯出時間 ${new Date().toLocaleString('zh-TW', { hour12: false })}`, 64, 1840);
+  ctx.fillStyle = colors.blue;
+  ctx.font = '900 22px "Noto Sans TC", sans-serif';
+  ctx.fillText('Sunbreak', 64, 1878);
+  return canvas;
+}
+
+function downloadCanvasPng(canvas, filename) {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = canvas.toDataURL('image/png');
+  document.body.append(link);
+  link.click();
+  link.remove();
+}
+
+function exportScheduleWallpaper() {
+  const canvas = document.createElement('canvas');
+  renderScheduleWallpaper(canvas);
+  downloadCanvasPng(canvas, 'nccu-schedule-wallpaper-115-1.png');
+  byId('planner-status').textContent = '手機桌布已匯出。';
 }
 
 function renderCatalog() {
@@ -667,6 +902,7 @@ byId('clear-schedule').addEventListener('click', () => {
   persistState();
   renderAll();
 });
+byId('export-wallpaper').addEventListener('click', exportScheduleWallpaper);
 
 let manualSequence = 1 + courseStore.filter((course) => course.source === 'manual').length;
 byId('manual-form').innerHTML = `<form id="manual-course-form" class="manual-course-form" novalidate>

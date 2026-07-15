@@ -70,6 +70,7 @@ main { padding-bottom: 28px; }
 .section-heading h2, .workspace-tab-panel > h2, .add-grid h2 { margin: 2px 0 0; font-family: Georgia, "Noto Serif TC", serif; font-size: 1.35rem; line-height: 1.05; letter-spacing: -.035em; }
 h3 { margin: 0; font-size: .9rem; }
 .eyebrow { margin: 0; color: var(--violet); font-size: .62rem; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+.schedule-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; align-items: center; }
 .status-pill { border: 1px solid #EAC46F; border-radius: 999px; background: var(--sun-soft); color: #6B4917; padding: 5px 9px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
 
 .schedule-scroll { max-height: min(72vh, 620px); margin-top: 10px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-control); overscroll-behavior: contain; scrollbar-gutter: stable; }
