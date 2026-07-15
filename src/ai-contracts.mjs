@@ -61,7 +61,7 @@ export function parseRecognizedCourses(content) {
   return { recognizedCourses };
 }
 
-const PROFILE_FIELDS = ['profileText', 'desiredActivities', 'futureDirection', 'semesterGoals', 'preferences'];
+const PROFILE_FIELDS = ['profileText', 'futureDirection', 'semesterGoals', 'preferences'];
 
 export function validateRecommendationRequest(input) {
   if (!input || typeof input !== 'object') throw new ContractError('推薦需求格式不正確。');

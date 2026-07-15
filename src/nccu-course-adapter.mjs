@@ -24,6 +24,10 @@ export function normalizeNccuRows(rows, term) {
       scheduleText: String(row.subTime || '').trim(),
       available: true,
       sourceUrl: String(row.teaSchmUrl || '').trim(),
+      restrictionText: String(row.note || '')
+        .replace(/^＠備註\s*[:：]?\s*/, '')
+        .trim()
+        .replace(/^無$/, ''),
     }))
     .filter((course) => course.courseCode && course.title && Number.isFinite(course.credits));
 }

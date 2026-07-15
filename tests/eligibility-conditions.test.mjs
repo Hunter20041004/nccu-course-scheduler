@@ -90,6 +90,27 @@ test('discovers course conditions before unique custom conditions with human lab
   ]);
 });
 
+test('uses labels and explanations supplied by an imported official restriction', () => {
+  const definitions = buildConditionDefinitions([{
+    id: 'ai-509041001',
+    eligibilityRules: [{
+      conditionId: 'official-restriction:509041001',
+      conditionLabel: '我是歐文系或雙主修學生',
+      conditionDescription: '政大官方備註：僅限歐文系及雙主修學生修讀。',
+      enforcement: 'required',
+      rationale: '僅限歐文系及雙主修學生修讀。',
+    }],
+  }]);
+
+  assert.deepEqual(definitions[0], {
+    id: 'official-restriction:509041001',
+    label: '我是歐文系或雙主修學生',
+    category: 'official-restriction',
+    description: '政大官方備註：僅限歐文系及雙主修學生修讀。',
+    source: 'course',
+  });
+});
+
 test('rejects a custom condition without a name', () => {
   assert.deepEqual(validateCustomCondition({
     label: '   ',

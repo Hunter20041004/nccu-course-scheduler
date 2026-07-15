@@ -47,14 +47,21 @@ function fallbackDefinition(id) {
 }
 
 export function buildConditionDefinitions(courses = [], customConditions = []) {
-  const courseConditionIds = unique(courses.flatMap((course) => (
-    rulesForCourse(course).map((rule) => rule.conditionId)
-  )));
-  const courseDefinitions = courseConditionIds.map((id) => ({
-    id,
-    ...(KNOWN_CONDITIONS[id] || fallbackDefinition(id)),
-    source: 'course',
-  }));
+  const courseRules = courses.flatMap((course) => rulesForCourse(course));
+  const courseConditionIds = unique(courseRules.map((rule) => rule.conditionId));
+  const courseDefinitions = courseConditionIds.map((id) => {
+    const rule = courseRules.find((candidate) => candidate.conditionId === id);
+    const fallback = fallbackDefinition(id);
+    return {
+      id,
+      ...(KNOWN_CONDITIONS[id] || {
+        ...fallback,
+        label: rule?.conditionLabel || fallback.label,
+        description: rule?.conditionDescription || fallback.description,
+      }),
+      source: 'course',
+    };
+  });
   const knownIds = new Set(courseConditionIds);
   return [
     ...courseDefinitions,
