@@ -258,5 +258,28 @@ test('treats maximum credits as an explicit objective and orders routes by total
   } });
 
   assert.match(systemPrompt, /最高總學分/);
-  assert.deepEqual(result.plans.map((plan) => plan.id), ['balance', 'focus', 'explore']);
+  assert.deepEqual(result.plans[0].courseIds, ['a', 'b', 'c']);
+  assert.deepEqual(result.plans.map((plan) => plan.id), ['focus', 'balance', 'explore']);
+});
+
+test('builds a deterministic maximum-credit route when the model omits compatible courses', async () => {
+  const response = JSON.stringify({ summary: '模型漏選課程', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['c'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['d'], asyncCourseIds: [], attendance: '實體', tradeoffs: [] },
+  ] });
+  const courses = [
+    { id: 'a', title: '低學分衝堂課', credits: 3, eligibility: 'eligible', schedule: { day: 1, start: 610, end: 780 } },
+    { id: 'b', title: '高學分衝堂課', credits: 5, eligibility: 'eligible', schedule: { day: 1, start: 700, end: 870 } },
+    { id: 'c', title: '週二課程', credits: 4, eligibility: 'eligible', schedule: { day: 2, start: 610, end: 780 } },
+    { id: 'd', title: '週三課程', credits: 2, eligibility: 'eligible', schedule: { day: 3, start: 610, end: 780 } },
+  ];
+
+  const result = await recommendCoursePlans({
+    courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+    preferences: '集中週二週四，學分越多越好',
+  }, { apiKey: 'test-only', groqRequest: async () => response });
+
+  assert.deepEqual(result.plans[0].courseIds, ['b', 'c', 'd']);
+  assert.match(result.plans[0].reason, /系統已在不衝堂前提下補齊最高學分組合/);
 });
