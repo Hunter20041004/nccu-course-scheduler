@@ -49,6 +49,21 @@ test('shows a first-use tutorial welcome instead of auto-opening API setup', asy
   assert.doesNotMatch(html, /catch \{ openApiKeyDialog\(\); \}/);
 });
 
+test('keeps a permanent tutorial center with detailed first-run help', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="open-tutorial-center"[^>]*>使用教學<\/button>/);
+  assert.match(html, /id="tutorial-center"[^>]*aria-labelledby="tutorial-center-title"/);
+  assert.match(html, /id="tutorial-center-close"/);
+  assert.match(html, /id="restart-quick-tour"/);
+  for (const label of ['第一次使用', '取得 Gemini API Key', '匯入候選課程', '管理選課條件', '排課操作', '實習與個人行程', 'AI 推薦方案', '常見問題']) {
+    assert.match(html, new RegExp(label));
+  }
+  assert.match(html, /API Key 等同使用者自己的額度，請不要傳給別人/);
+  assert.match(html, /function openTutorialCenter\(\)/);
+  assert.match(html, /byId\('open-tutorial-center'\)\.addEventListener\('click', openTutorialCenter\)/);
+});
+
 test('uses an inline favicon so the private app makes no missing icon request', async () => {
   const html = await (await render()).text();
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);

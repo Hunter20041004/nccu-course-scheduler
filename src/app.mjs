@@ -37,12 +37,27 @@ function closeFirstUseWelcome({ remember = true } = {}) {
   const dialog = byId('first-use-dialog');
   if (dialog.open) dialog.close();
 }
+function openTutorialCenter() {
+  const dialog = byId('tutorial-center');
+  if (!dialog.open) dialog.showModal();
+  byId('tutorial-center-close').focus();
+}
+function closeTutorialCenter() {
+  const dialog = byId('tutorial-center');
+  if (dialog.open) dialog.close();
+}
 try {
   if (localStorage.getItem(FIRST_USE_TUTORIAL_SEEN_KEY) !== 'true') openFirstUseWelcome();
 } catch {
   openFirstUseWelcome();
 }
 renderApiKeyState();
+byId('open-tutorial-center').addEventListener('click', openTutorialCenter);
+byId('open-tutorial-from-welcome').addEventListener('click', () => {
+  closeFirstUseWelcome();
+  openTutorialCenter();
+});
+byId('tutorial-center-close').addEventListener('click', closeTutorialCenter);
 byId('api-key-status-button').addEventListener('click', openApiKeyDialog);
 byId('api-key-dialog-close').addEventListener('click', () => byId('api-key-dialog').close());
 byId('api-key-skip').addEventListener('click', () => { try { localStorage.setItem(API_ONBOARDING_SEEN_KEY, 'true'); } catch {} byId('api-key-dialog').close(); });
