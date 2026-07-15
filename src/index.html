@@ -25,6 +25,7 @@
       <div><small>待處理</small><strong id="warning-value">0</strong></div>
     </section>
     <div class="header-actions">
+      <button id="open-tutorial-center" class="button button-quiet" type="button">使用教學</button>
       <button id="api-key-status-button" class="button button-quiet" type="button">API Key 未設定</button>
       <button id="clear-schedule" class="button button-quiet" type="button">清空目前課表</button>
       <button id="reset-plan" class="button button-secondary" type="button">恢復建議方案</button>
@@ -139,6 +140,66 @@
         <button id="start-quick-tour" class="button button-primary" type="button">開始快速導覽</button>
         <button id="skip-quick-tour" class="button button-quiet" type="button">直接開始使用</button>
         <button id="open-tutorial-from-welcome" class="button button-secondary" type="button">打開完整教學</button>
+      </div>
+    </section>
+  </dialog>
+  <dialog id="tutorial-center" class="tutorial-center" aria-labelledby="tutorial-center-title">
+    <section class="tutorial-center-panel">
+      <header class="tutorial-center-header">
+        <p class="eyebrow">GUIDE · FRIEND TEST</p>
+        <h2 id="tutorial-center-title">使用教學</h2>
+        <button id="tutorial-center-close" class="dialog-close" type="button" aria-label="關閉使用教學">×</button>
+      </header>
+      <nav class="tutorial-center-nav" aria-label="教學章節">
+        <a href="#guide-first-run">第一次使用</a>
+        <a href="#guide-api-key">取得 Gemini API Key</a>
+        <a href="#guide-import">匯入候選課程</a>
+        <a href="#guide-conditions">管理選課條件</a>
+        <a href="#guide-schedule">排課操作</a>
+        <a href="#guide-internship">實習與個人行程</a>
+        <a href="#guide-ai">AI 推薦方案</a>
+        <a href="#guide-faq">常見問題</a>
+      </nav>
+      <div class="tutorial-center-body">
+        <section id="guide-first-run">
+          <h3>第一次使用</h3>
+          <p>你可以先手動排課，不設定 API Key 也能使用候選課程、課表、條件與實習設定。快速導覽只會切換畫面與指示位置，不會改你的課表。</p>
+          <button id="restart-quick-tour" class="button button-secondary" type="button">重新開始快速導覽</button>
+        </section>
+        <section id="guide-api-key">
+          <h3>取得 Gemini API Key</h3>
+          <ol>
+            <li>前往 Google AI Studio。</li>
+            <li>登入 Google 帳號；學校帳號受限時請改用個人帳號。</li>
+            <li>建立 API Key。</li>
+            <li>複製 Key 後回到網站貼上。</li>
+          </ol>
+          <p>API Key 等同使用者自己的額度，請不要傳給別人。Key 不會存到伺服器、資料庫或網址；關閉或重新整理分頁即清除。</p>
+        </section>
+        <section id="guide-import">
+          <h3>匯入候選課程</h3>
+          <p>可以用政大課程追蹤清單截圖辨識匯入，也可以手動新增。沒有開的課不會匯入；待確認課程需要自己檢查。</p>
+        </section>
+        <section id="guide-conditions">
+          <h3>管理選課條件</h3>
+          <p>有系所、雙主修、學程、年級或身分限制的課會出現在選課條件。條件不符合時請看詳細。</p>
+        </section>
+        <section id="guide-schedule">
+          <h3>排課操作</h3>
+          <p>點候選課程可加入課表；詳細、鎖定、刪除可管理每門課。任何課程都能鎖定，鎖定課會在 AI 方案中保留。</p>
+        </section>
+        <section id="guide-internship">
+          <h3>實習與個人行程</h3>
+          <p>可設定實習天數、固定時段、彈性時段，也可新增社團、課外組織、打工或自修來檢查衝堂。</p>
+        </section>
+        <section id="guide-ai">
+          <h3>AI 推薦方案</h3>
+          <p>寫清楚最低學分、想留幾天實習、主題偏好、語文課偏好和不想考試等條件。有衝堂的方案不應顯示；非同步課可以補學分但仍需符合資格。</p>
+        </section>
+        <section id="guide-faq">
+          <h3>常見問題</h3>
+          <p>如果 AI 說 API Key 沒設定，代表目前分頁還沒貼 Key。若截圖匯入後有待確認，請自行核對政大課程資料。想重跑方案時，回到 AI 推薦重新送出需求即可。</p>
+        </section>
       </div>
     </section>
   </dialog>
