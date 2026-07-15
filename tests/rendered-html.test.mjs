@@ -22,6 +22,20 @@ test('serves the private NCCU course scheduler with schedule before catalog', as
   assert.match(html, /23 門候選課程/);
 });
 
+test('renders and wires secure Gemini API key onboarding', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="api-key-status-button"/);
+  assert.match(html, /<dialog id="api-key-dialog"[^>]*aria-labelledby="api-key-title"/);
+  assert.match(html, /id="api-key-input"[^>]*type="password"[^>]*autocomplete="off"/);
+  assert.match(html, /aistudio\.google\.com\/app\/apikey/);
+  assert.match(html, /Google Assistant／Gemini App 不等於 Gemini API/);
+  assert.match(html, /createApiKeySession\(\)/);
+  assert.match(html, /validateAndStoreApiKey/);
+  assert.match(html, /apiKey,\s*profileText:/);
+  assert.match(html, /JSON\.stringify\(\{ apiKey, imageDataUrl, term: '115-1' \}\)/);
+  assert.doesNotMatch(html, /sessionStorage/);
+});
+
 test('uses an inline favicon so the private app makes no missing icon request', async () => {
   const html = await (await render()).text();
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
@@ -124,7 +138,7 @@ test('uploads a screenshot to the private import API and renders review groups',
   const html = await (await render()).text();
   assert.match(html, /id="import-screenshot"/);
   assert.match(html, /fetch\('\/api\/ai\/import-courses'/);
-  assert.match(html, /截圖會傳送給 Groq/);
+  assert.match(html, /截圖會以你的 Key 傳送給 Gemini 3\.1 Flash-Lite/);
   assert.match(html, /id="imported-courses"/);
   assert.match(html, /id="pending-courses"/);
   assert.doesNotMatch(html, /copy-codex-prompt/);
@@ -178,7 +192,7 @@ test('collects the student profile and goals for AI planning', async () => {
   }
   assert.doesNotMatch(html, /id="ai-activities"/);
   assert.match(html, /這學期想達成什麼/);
-  assert.match(html, /個人敘述會傳送給 Groq/);
+  assert.match(html, /個人敘述會以你的 Key 傳送給 Gemini/);
   assert.match(html, /id="ai-advisor-status"[^>]*aria-live="polite"/);
 });
 

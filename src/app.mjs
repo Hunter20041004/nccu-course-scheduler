@@ -1,4 +1,6 @@
 const byId = (id) => document.getElementById(id);
+const API_ONBOARDING_SEEN_KEY = 'sunbreak:api-onboarding-seen:v1';
+const apiKeySession = createApiKeySession();
 const defaultProfile = {
   level: 'undergrad',
   year: 3,
@@ -18,6 +20,18 @@ let lastImportedCourses = [];
 let recommendedPlans = [];
 let previewedPlanId = null;
 let customConditions = [];
+
+function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
+function renderApiKeyState() { const ready = apiKeySession.hasKey(); byId('api-key-status-button').textContent = ready ? '本分頁已連線' : 'API Key 未設定'; byId('api-key-clear').hidden = !ready; }
+function requireApiKeyForAi(status) { const apiKey = apiKeySession.getKey(); if (apiKey) return apiKey; status.textContent = '請先貼上自己的 Gemini API Key，再使用 AI 功能。'; openApiKeyDialog(); return null; }
+try { if (localStorage.getItem(API_ONBOARDING_SEEN_KEY) !== 'true') openApiKeyDialog(); } catch { openApiKeyDialog(); }
+renderApiKeyState();
+byId('api-key-status-button').addEventListener('click', openApiKeyDialog);
+byId('api-key-dialog-close').addEventListener('click', () => byId('api-key-dialog').close());
+byId('api-key-skip').addEventListener('click', () => { try { localStorage.setItem(API_ONBOARDING_SEEN_KEY, 'true'); } catch {} byId('api-key-dialog').close(); });
+byId('api-key-reveal').addEventListener('click', () => { const input = byId('api-key-input'); const reveal = input.type === 'password'; input.type = reveal ? 'text' : 'password'; byId('api-key-reveal').textContent = reveal ? '隱藏' : '顯示'; byId('api-key-reveal').setAttribute('aria-pressed', String(reveal)); });
+byId('api-key-clear').addEventListener('click', () => { apiKeySession.clearKey(); renderApiKeyState(); byId('api-key-status').textContent = '已清除本分頁的 API Key。'; });
+byId('api-key-form').addEventListener('submit', async (event) => { event.preventDefault(); const input = byId('api-key-input'); const status = byId('api-key-status'); try { await validateAndStoreApiKey({ apiKey: input.value, session: apiKeySession }); input.value = ''; try { localStorage.setItem(API_ONBOARDING_SEEN_KEY, 'true'); } catch {} renderApiKeyState(); byId('api-key-dialog').close(); } catch (error) { status.textContent = error.message; } });
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -691,6 +705,8 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
   const form = event.currentTarget;
   const submit = form.querySelector('button[type="submit"]');
   const status = byId('ai-advisor-status');
+  const apiKey = requireApiKeyForAi(status);
+  if (!apiKey) return;
   submit.disabled = true;
   form.setAttribute('aria-busy', 'true');
   status.textContent = '正在分析你的目標與候選課程…';
@@ -699,6 +715,7 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
+        apiKey,
         profileText: byId('ai-profile').value,
         futureDirection: byId('ai-future').value,
         semesterGoals: byId('ai-goals').value,
@@ -758,7 +775,7 @@ byId('ai-plan-results').addEventListener('click', (event) => {
 byId('screenshot-handoff').innerHTML = `<div class="screenshot-handoff">
   <label>選擇備選清單截圖<input id="screenshot-input" type="file" accept="image/png,image/jpeg,image/webp"></label>
   <img id="screenshot-preview" class="screenshot-preview" alt="備選課程截圖預覽" hidden>
-  <p class="privacy-note">截圖會傳送給 Groq 進行辨識，網站不會長期保存原始圖片。辨識後仍會核對政大 115-1 公開課程資料。</p>
+  <p class="privacy-note">截圖會以你的 Key 傳送給 Gemini 3.1 Flash-Lite，網站不會長期保存原始圖片。辨識後仍會核對政大 115-1 公開課程資料。</p>
   <button id="import-screenshot" class="button button-primary" type="button">開始辨識並匯入</button>
   <p id="screenshot-status" class="form-status" aria-live="polite"></p>
   <div class="ai-import-layout">
@@ -818,6 +835,8 @@ byId('pending-courses').addEventListener('click', (event) => {
 
 byId('import-screenshot').addEventListener('click', async () => {
   const status = byId('screenshot-status');
+  const apiKey = requireApiKeyForAi(status);
+  if (!apiKey) return;
   const [file] = byId('screenshot-input').files;
   if (!file) {
     status.textContent = '請先選擇一張課程備選清單截圖。';
@@ -839,7 +858,7 @@ byId('import-screenshot').addEventListener('click', async () => {
     const response = await fetch('/api/ai/import-courses', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ imageDataUrl, term: '115-1' }),
+      body: JSON.stringify({ apiKey, imageDataUrl, term: '115-1' }),
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.error?.message || '辨識失敗，請稍後重試。');

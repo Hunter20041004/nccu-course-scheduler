@@ -12,7 +12,7 @@
     "test:contract:nccu": "node --test tests/nccu-live-contract.test.mjs",
     "test:contract:groq": "node --test tests/groq-live-contract.test.mjs",
     "test": "npm run test:unit && npm run build && node --test tests/rendered-html.test.mjs",
-    "lint": "node --check src/app.mjs && node --check src/planner-core.mjs && node --check src/planner-storage.mjs && node --check src/ai-contracts.mjs && node --check src/groq-client.mjs && node --check src/nccu-course-adapter.mjs && node --check src/ai-service.mjs && node --check src/worker.mjs && node --check src/ai-planner.mjs && node --check scripts/build.mjs && node --check scripts/dev.mjs",
+    "lint": "node --check src/app.mjs && node --check src/planner-core.mjs && node --check src/planner-storage.mjs && node --check src/api-key-session.mjs && node --check src/ai-contracts.mjs && node --check src/groq-client.mjs && node --check src/gemini-client.mjs && node --check src/nccu-course-adapter.mjs && node --check src/ai-service.mjs && node --check src/worker.mjs && node --check src/ai-planner.mjs && node --check scripts/build.mjs && node --check scripts/dev.mjs",
     "verify": "npm test && npm run lint && npm run test:contract:nccu"
   },
   "dependencies": {},

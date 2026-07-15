@@ -4,7 +4,7 @@ const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const [
   template, styles, nccuPeriods, internshipPlanner, courseData, eligibilityConditions,
-  plannerCore, plannerStorage, app,
+  plannerCore, plannerStorage, apiKeySession, app,
   aiContracts, geminiClient, nccuCourseAdapter, aiService, worker, aiPlanner,
 ] = await Promise.all([
   read('src/index.html'),
@@ -15,6 +15,7 @@ const [
   read('src/eligibility-conditions.mjs'),
   read('src/planner-core.mjs'),
   read('src/planner-storage.mjs'),
+  read('src/api-key-session.mjs'),
   read('src/app.mjs'),
   read('src/ai-contracts.mjs'),
   read('src/gemini-client.mjs'),
@@ -53,6 +54,7 @@ const script = [
   wrapModule(plannerStorage, '__plannerStorage', [
     'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState',
   ]),
+  wrapModule(apiKeySession, '__apiKeySession', ['createApiKeySession', 'validateAndStoreApiKey']),
   wrapModule(aiPlanner, '__aiPlanner', [
     'validateScreenshotFile', 'mergeImportedCourses', 'applyRecommendedPlan',
   ]),
