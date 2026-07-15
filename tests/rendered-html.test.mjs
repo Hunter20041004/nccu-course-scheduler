@@ -459,3 +459,13 @@ test('keeps compact course detail disclosure targets at least 44 pixels tall', a
 
   assert.match(html, /\.course-details summary[^}]*\{[^}]*min-height:\s*44px/s);
 });
+
+test('keeps tutorial UI usable on compact screens', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.quick-tour-card\s*\{[\s\S]*right:\s*10px[\s\S]*bottom:\s*10px/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.quick-tour-actions\s*\{[\s\S]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.tutorial-center\s*\{[\s\S]*width:\s*calc\(100% - 12px\)/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.first-use-actions\s*\{[\s\S]*display:\s*grid/s);
+  assert.match(html, /max-height:\s*calc\(100dvh - 20px\)/);
+});
