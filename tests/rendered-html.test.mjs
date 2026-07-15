@@ -99,6 +99,21 @@ test('defines a native eight-step quick tour that can switch tabs without mutati
   assert.doesNotMatch(html, /renderQuickTourStep[\s\S]{0,1600}persistState\(\)/);
 });
 
+test('positions a visible spotlight for every quick tour target after each step changes', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /function positionQuickTourSpotlight\(targetElement\)/);
+  assert.match(html, /targetElement\.getBoundingClientRect\(\)/);
+  assert.match(html, /const spotlight = byId\('quick-tour-spotlight'\)/);
+  assert.match(html, /spotlight\.style\.setProperty\('--tour-x'/);
+  assert.match(html, /spotlight\.style\.setProperty\('--tour-y'/);
+  assert.match(html, /spotlight\.style\.setProperty\('--tour-width'/);
+  assert.match(html, /spotlight\.style\.setProperty\('--tour-height'/);
+  assert.match(html, /positionQuickTourSpotlight\(targetElement\)/);
+  assert.match(html, /\.quick-tour-spotlight\s*\{[^}]*transform:\s*translate\(var\(--tour-x\),\s*var\(--tour-y\)\)/s);
+  assert.match(html, /\.quick-tour-spotlight\s*\{[^}]*box-shadow:\s*0 0 0 9999px rgba\(33,31,38,\.42\)/s);
+});
+
 test('uses an inline favicon so the private app makes no missing icon request', async () => {
   const html = await (await render()).text();
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
