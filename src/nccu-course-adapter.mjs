@@ -11,6 +11,13 @@ export function buildNccuCourseUrl({ term, keyword }) {
   return new URL(`/course/zh-TW/${encodeURIComponent(query)}/`, 'https://es.nccu.edu.tw');
 }
 
+function normalizeRestriction(value) {
+  const normalized = String(value || '')
+    .replace(/^＠備註\s*[:：]?\s*/, '')
+    .trim();
+  return ['無', '無資料'].includes(normalized) ? '' : normalized;
+}
+
 export function normalizeNccuRows(rows, term) {
   if (!Array.isArray(rows)) throw new NccuLookupError();
   const [year, semester] = String(term).split('-');
@@ -24,10 +31,11 @@ export function normalizeNccuRows(rows, term) {
       scheduleText: String(row.subTime || '').trim(),
       available: true,
       sourceUrl: String(row.teaSchmUrl || '').trim(),
-      restrictionText: String(row.note || '')
-        .replace(/^＠備註\s*[:：]?\s*/, '')
-        .trim()
-        .replace(/^無$/, ''),
+      restrictionText: [...new Set([
+        normalizeRestriction(row.note),
+        normalizeRestriction(row.lmtKind),
+        normalizeRestriction(row.gdeTpeMsg),
+      ].filter(Boolean))].join('；'),
     }))
     .filter((course) => course.courseCode && course.title && Number.isFinite(course.credits));
 }
