@@ -75,6 +75,17 @@ function closeTutorialCenter() {
 }
 function clearQuickTourTarget() {
   document.querySelectorAll('.is-tour-target').forEach((item) => item.classList.remove('is-tour-target'));
+  byId('quick-tour-spotlight').hidden = true;
+}
+function positionQuickTourSpotlight(targetElement) {
+  const rect = targetElement.getBoundingClientRect();
+  const inset = 6;
+  const spotlight = byId('quick-tour-spotlight');
+  spotlight.hidden = false;
+  spotlight.style.setProperty('--tour-x', `${Math.max(8, rect.left - inset)}px`);
+  spotlight.style.setProperty('--tour-y', `${Math.max(8, rect.top - inset)}px`);
+  spotlight.style.setProperty('--tour-width', `${Math.min(window.innerWidth - 16, rect.width + inset * 2)}px`);
+  spotlight.style.setProperty('--tour-height', `${Math.min(window.innerHeight - 16, rect.height + inset * 2)}px`);
 }
 function renderQuickTourStep() {
   const step = quickTourSteps[quickTourIndex];
@@ -90,6 +101,7 @@ function renderQuickTourStep() {
   overlay.hidden = false;
   if (targetElement) {
     targetElement.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    positionQuickTourSpotlight(targetElement);
     targetElement.classList.add('is-tour-target');
   }
 }
