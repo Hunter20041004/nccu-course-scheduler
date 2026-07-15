@@ -21,6 +21,18 @@ let lastImportedCourses = [];
 let recommendedPlans = [];
 let previewedPlanId = null;
 let customConditions = [];
+let quickTourIndex = 0;
+
+const quickTourSteps = [
+  { target: 'schedule-panel', compactView: 'schedule', title: '課表', body: '左側是政大官方節次課表，會顯示週一到週日、實習保留與衝堂。' },
+  { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '點候選課程可加入左側課表，列表可搜尋、篩選與檢查資格。' },
+  { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '詳細、鎖定、刪除', body: '每門課都可以看詳細、鎖定或刪除；鎖定不限於必修課。' },
+  { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '有條件的課會在這裡生成可勾選條件，並說明為什麼需要。' },
+  { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '可以設定目標天數、固定時段或自動找可用時段。' },
+  { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、目標與偏好後產生三個方案；只有按 AI 功能時才需要 API Key。' },
+  { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可以上傳課程備選清單截圖、手動新增課程，或加入社團與個人行程。' },
+  { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查', body: '套用方案前確認學分、衝堂、非同步課與條件是否符合。' },
+];
 
 function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
 function renderApiKeyState() { const ready = apiKeySession.hasKey(); byId('api-key-status-button').textContent = ready ? '本分頁已連線' : 'API Key 未設定'; byId('api-key-clear').hidden = !ready; }
@@ -44,9 +56,14 @@ function startQuickTour() {
   closeFirstUseWelcome();
   closeTutorialCenter();
   markFirstUseTutorialSeen();
+  clearQuickTourTarget();
+  quickTourIndex = 0;
+  renderQuickTourStep();
 }
 function endQuickTour({ completed = false } = {}) {
   if (completed) markFirstUseTutorialSeen();
+  clearQuickTourTarget();
+  byId('quick-tour-overlay').hidden = true;
 }
 function openTutorialCenter() {
   const dialog = byId('tutorial-center');
@@ -56,6 +73,36 @@ function openTutorialCenter() {
 function closeTutorialCenter() {
   const dialog = byId('tutorial-center');
   if (dialog.open) dialog.close();
+}
+function clearQuickTourTarget() {
+  document.querySelectorAll('.is-tour-target').forEach((item) => item.classList.remove('is-tour-target'));
+}
+function renderQuickTourStep() {
+  const step = quickTourSteps[quickTourIndex];
+  if (step.tab) setWorkspaceTab(step.tab);
+  if (step.compactView) setCompactView(step.compactView);
+  const overlay = byId('quick-tour-overlay');
+  const targetElement = document.getElementById(step.target) || document.querySelector(`.${step.target}`);
+  byId('quick-tour-count').textContent = `步驟 ${quickTourIndex + 1} / ${quickTourSteps.length}`;
+  byId('quick-tour-title').textContent = step.title;
+  byId('quick-tour-body').textContent = step.body;
+  byId('quick-tour-prev').disabled = quickTourIndex === 0;
+  byId('quick-tour-next').textContent = quickTourIndex === quickTourSteps.length - 1 ? '完成導覽' : '下一步';
+  overlay.hidden = false;
+  if (targetElement) {
+    targetElement.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    targetElement.classList.add('is-tour-target');
+  }
+}
+function goQuickTourStep(offset) {
+  clearQuickTourTarget();
+  quickTourIndex += offset;
+  if (quickTourIndex >= quickTourSteps.length) {
+    endQuickTour({ completed: true });
+    return;
+  }
+  quickTourIndex = Math.max(0, quickTourIndex);
+  renderQuickTourStep();
 }
 try {
   if (localStorage.getItem(FIRST_USE_TUTORIAL_SEEN_KEY) !== 'true') openFirstUseWelcome();
@@ -72,6 +119,12 @@ byId('tutorial-center-close').addEventListener('click', closeTutorialCenter);
 byId('skip-quick-tour').addEventListener('click', () => closeFirstUseWelcome());
 byId('start-quick-tour').addEventListener('click', startQuickTour);
 byId('restart-quick-tour').addEventListener('click', startQuickTour);
+byId('quick-tour-prev').addEventListener('click', () => goQuickTourStep(-1));
+byId('quick-tour-next').addEventListener('click', () => goQuickTourStep(1));
+byId('quick-tour-end').addEventListener('click', () => endQuickTour());
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && !byId('quick-tour-overlay').hidden) endQuickTour();
+});
 byId('api-key-status-button').addEventListener('click', openApiKeyDialog);
 byId('api-key-dialog-close').addEventListener('click', () => byId('api-key-dialog').close());
 byId('api-key-skip').addEventListener('click', () => { try { localStorage.setItem(API_ONBOARDING_SEEN_KEY, 'true'); } catch {} byId('api-key-dialog').close(); });

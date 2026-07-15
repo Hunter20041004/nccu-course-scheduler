@@ -77,6 +77,23 @@ test('marks quick tour skipped or completed without changing planner data', asyn
   assert.doesNotMatch(html, /startQuickTour[\s\S]{0,1200}courseStore =/);
 });
 
+test('defines a native eight-step quick tour that can switch tabs without mutating data', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="quick-tour-overlay"/);
+  assert.match(html, /id="quick-tour-prev"/);
+  assert.match(html, /id="quick-tour-next"/);
+  assert.match(html, /id="quick-tour-end"/);
+  assert.match(html, /const quickTourSteps = \[/);
+  for (const target of ['schedule-panel', 'workspace-panel-catalog', 'course-actions', 'workspace-panel-conditions', 'workspace-panel-internship', 'workspace-panel-ai', 'workspace-panel-add', 'schedule-grid']) {
+    assert.match(html, new RegExp(`target: '${target}'`));
+  }
+  assert.match(html, /setWorkspaceTab\(step\.tab\)/);
+  assert.match(html, /setCompactView\(step\.compactView\)/);
+  assert.match(html, /targetElement\.scrollIntoView\(\{ block: 'nearest', inline: 'nearest' \}\)/);
+  assert.doesNotMatch(html, /renderQuickTourStep[\s\S]{0,1600}persistState\(\)/);
+});
+
 test('uses an inline favicon so the private app makes no missing icon request', async () => {
   const html = await (await render()).text();
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
