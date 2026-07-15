@@ -74,9 +74,12 @@ function eligibilityRuleFromOfficialRestriction(course) {
   const restriction = String(course.restrictionText || '').trim();
   if (!restriction || !/(僅限|(^|[；。])限|須|需|先修|雙主修|輔系|不得|優先)/.test(restriction)) return [];
   const audience = restriction.match(/^僅限(.+?)學生修讀[。.]?$/)?.[1];
-  const conditionLabel = audience
-    ? `我是${audience.replace('及雙主修', '或雙主修')}學生`
-    : `我符合：${restriction.replace(/[。.]$/, '')}`;
+  const prerequisiteLanguage = restriction.match(/先修習[^。；]{0,30}(日文|英文|德文|法文)/)?.[1];
+  const conditionLabel = prerequisiteLanguage && restriction.includes('或')
+    ? `我符合本課程任一項${prerequisiteLanguage}先修資格`
+    : audience
+      ? `我是${audience.replace('及雙主修', '或雙主修')}學生`
+      : `我符合：${restriction.replace(/[。.]$/, '')}`;
   return [{
     conditionId: `official-restriction:${course.courseCode}`,
     conditionLabel,
