@@ -36,6 +36,19 @@ test('renders and wires secure Gemini API key onboarding', async () => {
   assert.doesNotMatch(html, /sessionStorage/);
 });
 
+test('shows a first-use tutorial welcome instead of auto-opening API setup', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="first-use-dialog"[^>]*aria-labelledby="first-use-title"/);
+  assert.match(html, /id="start-quick-tour"/);
+  assert.match(html, /id="skip-quick-tour"/);
+  assert.match(html, /id="open-tutorial-from-welcome"/);
+  assert.match(html, /FIRST_USE_TUTORIAL_SEEN_KEY/);
+  assert.match(html, /openFirstUseWelcome\(\)/);
+  assert.doesNotMatch(html, /if \(localStorage\.getItem\(API_ONBOARDING_SEEN_KEY\) !== 'true'\) openApiKeyDialog\(\)/);
+  assert.doesNotMatch(html, /catch \{ openApiKeyDialog\(\); \}/);
+});
+
 test('uses an inline favicon so the private app makes no missing icon request', async () => {
   const html = await (await render()).text();
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);
