@@ -173,6 +173,7 @@ test('retries screenshot recognition once when the JSON shape is invalid', async
 test('excludes blocked and unavailable courses from recommendation prompts', async () => {
   let promptedCourseIds;
   let recommendationReasoningEffort;
+  let recommendationMaxCompletionTokens;
   const eligibleCourse = { id: 'eligible', title: '合格課', credits: 3, eligibility: 'eligible' };
   const blockedCourse = { id: 'blocked', title: '不合格課', credits: 3, eligibility: 'blocked' };
   const validThreePlans = JSON.stringify({ summary: '摘要', plans: [
@@ -184,13 +185,15 @@ test('excludes blocked and unavailable courses from recommendation prompts', asy
     profileText: '大三', desiredActivities: '實習', futureDirection: 'AI', semesterGoals: '作品', preferences: '集中',
     internshipSettings: {}, selectedCourseIds: [], lockedCourseIds: ['locked'],
     courses: [eligibleCourse, blockedCourse, { id: 'locked', title: '鎖定課', credits: 2, eligibility: 'eligible' }],
-  }, { apiKey: 'test-only', groqRequest: async ({ messages, reasoningEffort }) => {
+  }, { apiKey: 'test-only', groqRequest: async ({ messages, reasoningEffort, maxCompletionTokens }) => {
     promptedCourseIds = JSON.parse(messages[1].content).courses.map(({ id }) => id);
     recommendationReasoningEffort = reasoningEffort;
+    recommendationMaxCompletionTokens = maxCompletionTokens;
     return validThreePlans;
   } });
   assert.deepEqual(promptedCourseIds, ['eligible', 'locked']);
   assert.equal(recommendationReasoningEffort, 'none');
+  assert.equal(recommendationMaxCompletionTokens, 2_200);
 });
 
 test('retries recommendations once when the JSON shape is invalid', async () => {
@@ -354,6 +357,7 @@ test('treats maximum credits as an explicit objective and orders routes by total
   } });
 
   assert.match(systemPrompt, /最高總學分/);
+  assert.match(systemPrompt, /summary 60 字內/);
   assert.deepEqual(result.plans[0].courseIds, ['a', 'b', 'c']);
   assert.deepEqual(result.plans.map((plan) => plan.id), ['focus', 'balance', 'explore']);
 });

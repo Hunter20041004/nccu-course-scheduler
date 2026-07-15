@@ -20,8 +20,10 @@ export async function requestGroqJson({
   apiKey,
   messages,
   reasoningEffort,
+  maxCompletionTokens,
   fetchImpl = fetch,
   timeoutMs = 45_000,
+  sleepImpl = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)),
 }) {
   if (!apiKey) throw new GroqError('AI 服務尚未設定。', 503, 'AI_NOT_CONFIGURED');
   const requestBody = JSON.stringify({
@@ -29,9 +31,12 @@ export async function requestGroqJson({
     messages,
     response_format: { type: 'json_object' },
     ...(reasoningEffort ? { reasoning_effort: reasoningEffort } : {}),
+    ...(maxCompletionTokens ? { max_completion_tokens: maxCompletionTokens } : {}),
   });
   let response;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  let retriedJsonValidation = false;
+  let retriedRateLimit = false;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       response = await fetchImpl(GROQ_ENDPOINT, {
         method: 'POST',
@@ -48,8 +53,24 @@ export async function requestGroqJson({
     if (response.ok) break;
     const errorPayload = await response.json().catch(() => null);
     if (response.status === 400 && errorPayload?.error?.code === 'json_validate_failed') {
-      if (attempt === 0) continue;
+      if (!retriedJsonValidation) {
+        retriedJsonValidation = true;
+        continue;
+      }
       throw new GroqError('AI 辨識格式失敗，請再試一次。', 502, 'AI_OUTPUT_INVALID');
+    }
+    const retryAfterHeader = response.headers.get('retry-after');
+    const retryAfterSeconds = retryAfterHeader === null ? Number.NaN : Number(retryAfterHeader);
+    if (
+      response.status === 429
+      && !retriedRateLimit
+      && Number.isFinite(retryAfterSeconds)
+      && retryAfterSeconds >= 0
+      && retryAfterSeconds <= 15
+    ) {
+      retriedRateLimit = true;
+      await sleepImpl((retryAfterSeconds * 1_000) + 100);
+      continue;
     }
     throw mapGroqStatus(response.status);
   }
