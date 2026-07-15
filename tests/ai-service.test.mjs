@@ -134,6 +134,28 @@ test('creates a selectable condition from a department limit without 修讀 word
   assert.equal(result.importedCourses[0].eligibilityRules[0].enforcement, 'required');
 });
 
+test('summarizes alternative language prerequisites as one selectable condition', async () => {
+  const restrictionText = '須先修習學士班日文（一）、（二）其中一門，或曾在大學修習日文語文 4 學分以上，或通過日本語能力試驗 N3 以上，或 FLPT 日語能力測驗筆試 150 分以上，始得修習本課程。';
+  const result = await importCoursesFromScreenshot(validImport, {
+    apiKey: 'test-only', catalog: [],
+    groqRequest: async () => JSON.stringify({ recognizedCourses: [{
+      courseCode: '651171001', title: '日文法學名著選讀（二）', teacher: '張韻琪', confidence: 0.99,
+    }] }),
+    nccuSearch: async () => [{
+      courseCode: '651171001', title: '日文法學名著選讀（二）', teacher: '張韻琪', credits: 3,
+      scheduleText: '五567', available: true, restrictionText,
+    }],
+  });
+
+  assert.deepEqual(result.importedCourses[0].eligibilityRules[0], {
+    conditionId: 'official-restriction:651171001',
+    conditionLabel: '我符合本課程任一項日文先修資格',
+    conditionDescription: `政大官方備註：${restrictionText}`,
+    enforcement: 'required',
+    rationale: restrictionText,
+  });
+});
+
 test('retries screenshot recognition once when the JSON shape is invalid', async () => {
   let calls = 0;
   const result = await importCoursesFromScreenshot(validImport, {
