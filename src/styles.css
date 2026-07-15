@@ -277,6 +277,14 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
   .section-heading h2 { font-size: 1.2rem; }
   .course-actions { grid-template-columns: repeat(3, 40px); }
   .course-details summary, .catalog-delete, .catalog-lock { width: 40px; }
+  .first-use-actions { display: grid; }
+  .first-use-actions .button { width: 100%; }
+  .tutorial-center { width: calc(100% - 12px); max-height: calc(100dvh - 12px); }
+  .tutorial-center-panel { max-height: calc(100dvh - 12px); }
+  .tutorial-center-nav { padding: 6px; }
+  .tutorial-center-body { padding: 12px; }
+  .quick-tour-card { right: 10px; bottom: 10px; width: calc(100% - 20px); }
+  .quick-tour-actions { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
