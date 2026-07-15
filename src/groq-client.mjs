@@ -47,8 +47,9 @@ export async function requestGroqJson({
     }
     if (response.ok) break;
     const errorPayload = await response.json().catch(() => null);
-    if (attempt === 0 && response.status === 400 && errorPayload?.error?.code === 'json_validate_failed') {
-      continue;
+    if (response.status === 400 && errorPayload?.error?.code === 'json_validate_failed') {
+      if (attempt === 0) continue;
+      throw new GroqError('AI 辨識格式失敗，請再試一次。', 502, 'AI_OUTPUT_INVALID');
     }
     throw mapGroqStatus(response.status);
   }

@@ -42,6 +42,20 @@ test('retries one transient Groq JSON validation failure', async () => {
   assert.equal(content, '{"plans":[]}');
 });
 
+test('reports repeated Groq JSON generation failures accurately', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    return Response.json({ error: { code: 'json_validate_failed' } }, { status: 400 });
+  };
+
+  await assert.rejects(
+    requestGroqJson({ apiKey: 'test-only', fetchImpl, messages: [] }),
+    { status: 502, code: 'AI_OUTPUT_INVALID', message: 'AI 辨識格式失敗，請再試一次。' },
+  );
+  assert.equal(calls, 2);
+});
+
 test('maps aborted Groq requests to a timeout', async () => {
   const fetchImpl = async (_url, { signal }) => new Promise((resolve, reject) => {
     signal.addEventListener('abort', () => reject(signal.reason), { once: true });

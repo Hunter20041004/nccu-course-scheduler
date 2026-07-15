@@ -10,6 +10,20 @@ const recognizedUnknown = JSON.stringify({ recognizedCourses: [{
 const officialA = { courseCode: '123456001', title: '未知課程', teacher: '老師', credits: 3, scheduleText: '一234', available: true };
 const officialB = { ...officialA, courseCode: '123456002' };
 
+test('disables model reasoning for screenshot recognition', async () => {
+  let reasoningEffort;
+  await importCoursesFromScreenshot(validImport, {
+    apiKey: 'test-only', catalog: [],
+    groqRequest: async (request) => {
+      reasoningEffort = request.reasoningEffort;
+      return '{"recognizedCourses":[]}';
+    },
+    nccuSearch: async () => [],
+  });
+
+  assert.equal(reasoningEffort, 'none');
+});
+
 test('matches recognized course codes against the verified built-in catalog', async () => {
   let officialCalls = 0;
   const result = await importCoursesFromScreenshot(
@@ -58,6 +72,28 @@ test('uses a recognized course code to disambiguate same-title official courses'
 
   assert.equal(result.pendingCourses.length, 0);
   assert.deepEqual(result.importedCourses.map((course) => course.sectionCode), ['781063001']);
+});
+
+test('recovers an exact course code when OCR inserts a character into the title', async () => {
+  const queries = [];
+  const result = await importCoursesFromScreenshot(validImport, {
+    apiKey: 'test-only', catalog: [],
+    groqRequest: async () => JSON.stringify({ recognizedCourses: [{
+      courseCode: '651171001', title: '日文法律學名著選讀', teacher: '張韻琪', confidence: 0.99,
+    }] }),
+    nccuSearch: async ({ keyword }) => {
+      queries.push(keyword);
+      return keyword === '日文法' ? [{
+        courseCode: '651171001', title: '日文法學名著選讀（二）', teacher: '張韻琪', credits: 3,
+        scheduleText: '五567', available: true,
+      }] : [];
+    },
+  });
+
+  assert.deepEqual(queries, ['651171001', '日文法律學名著選讀', '日文法']);
+  assert.deepEqual(result.importedCourses.map((course) => [course.sectionCode, course.title]), [
+    ['651171001', '日文法學名著選讀（二）'],
+  ]);
 });
 
 test('turns an official enrollment restriction into a required selectable condition', async () => {
