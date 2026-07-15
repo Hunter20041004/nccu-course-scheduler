@@ -159,6 +159,121 @@ function orderPlansByCredits(result, courses, lockedCourseIds) {
   };
 }
 
+function solveMaximumCreditComponent(component, adjacency, courses) {
+  if (component.length > 30) {
+    const selected = [];
+    [...component]
+      .sort((first, second) => Number(courses[second].credits || 0) - Number(courses[first].credits || 0))
+      .forEach((index) => {
+        if (selected.every((selectedIndex) => !adjacency[index].has(selectedIndex))) selected.push(index);
+      });
+    return selected;
+  }
+
+  const localIndex = new Map(component.map((index, position) => [index, position]));
+  const localAdjacency = component.map((index) => [...adjacency[index]].reduce(
+    (mask, neighbor) => localIndex.has(neighbor) ? mask | (1n << BigInt(localIndex.get(neighbor))) : mask,
+    0n,
+  ));
+  const memo = new Map();
+  const solve = (mask) => {
+    if (mask === 0n) return { credits: 0, selected: [] };
+    if (memo.has(mask)) return memo.get(mask);
+    let chosen = 0;
+    let highestDegree = -1;
+    component.forEach((_, position) => {
+      const bit = 1n << BigInt(position);
+      if (!(mask & bit)) return;
+      let neighbors = localAdjacency[position] & mask;
+      let degree = 0;
+      while (neighbors) {
+        degree += Number(neighbors & 1n);
+        neighbors >>= 1n;
+      }
+      if (degree > highestDegree) {
+        highestDegree = degree;
+        chosen = position;
+      }
+    });
+    const chosenBit = 1n << BigInt(chosen);
+    const excluded = solve(mask & ~chosenBit);
+    const includedRest = solve(mask & ~chosenBit & ~localAdjacency[chosen]);
+    const included = {
+      credits: includedRest.credits + Number(courses[component[chosen]].credits || 0),
+      selected: [component[chosen], ...includedRest.selected],
+    };
+    const best = included.credits >= excluded.credits ? included : excluded;
+    memo.set(mask, best);
+    return best;
+  };
+
+  return solve((1n << BigInt(component.length)) - 1n).selected;
+}
+
+function buildMaximumCreditSelection(courses, lockedCourseIds) {
+  const locked = new Set(lockedCourseIds);
+  const effectiveCourses = courses.map((course) => ({
+    ...course,
+    attendance: course.asyncAllowed ? 'async' : 'physical',
+  }));
+  const lockedIndexes = effectiveCourses
+    .map((course, index) => locked.has(course.id) ? index : -1)
+    .filter((index) => index >= 0);
+  const candidates = effectiveCourses
+    .map((course, index) => ({ course, index }))
+    .filter(({ course, index }) => !locked.has(course.id)
+      && Number(course.credits || 0) > 0
+      && lockedIndexes.every((lockedIndex) => !findConflicts([course, effectiveCourses[lockedIndex]]).length));
+  const adjacency = effectiveCourses.map(() => new Set());
+  for (let index = 0; index < candidates.length; index += 1) {
+    for (let other = index + 1; other < candidates.length; other += 1) {
+      const first = candidates[index];
+      const second = candidates[other];
+      if (!findConflicts([first.course, second.course]).length) continue;
+      adjacency[first.index].add(second.index);
+      adjacency[second.index].add(first.index);
+    }
+  }
+
+  const unseen = new Set(candidates.map(({ index }) => index));
+  const selectedIndexes = [...lockedIndexes];
+  while (unseen.size) {
+    const component = [];
+    const pending = [unseen.values().next().value];
+    while (pending.length) {
+      const index = pending.pop();
+      if (!unseen.delete(index)) continue;
+      component.push(index);
+      adjacency[index].forEach((neighbor) => { if (unseen.has(neighbor)) pending.push(neighbor); });
+    }
+    selectedIndexes.push(...solveMaximumCreditComponent(component, adjacency, effectiveCourses));
+  }
+
+  const selectedIds = new Set(selectedIndexes.map((index) => effectiveCourses[index].id));
+  const courseIds = courses.filter((course) => selectedIds.has(course.id)).map((course) => course.id);
+  return {
+    courseIds,
+    asyncCourseIds: courses
+      .filter((course) => selectedIds.has(course.id) && course.asyncAllowed)
+      .map((course) => course.id),
+  };
+}
+
+function addDeterministicMaximumCreditRoute(result, courses, lockedCourseIds) {
+  const maximum = buildMaximumCreditSelection(courses, lockedCourseIds);
+  const signature = [...maximum.courseIds].sort().join('|');
+  const matchingIndex = result.plans.findIndex((plan) => [...plan.courseIds].sort().join('|') === signature);
+  const replacementIndex = matchingIndex >= 0 ? matchingIndex : 0;
+  const plans = result.plans.map((plan, index) => index === replacementIndex ? {
+    ...plan,
+    courseIds: maximum.courseIds,
+    asyncCourseIds: maximum.asyncCourseIds,
+    reason: `${plan.reason}；系統已在不衝堂前提下補齊最高學分組合。`,
+    tradeoffs: [...plan.tradeoffs, '最高學分組合可能壓縮實習或自主安排時間'],
+  } : plan);
+  return orderPlansByCredits({ ...result, plans }, courses, lockedCourseIds);
+}
+
 export async function importCoursesFromScreenshot(input, dependencies = {}) {
   const request = validateImportRequest(input);
   const {
@@ -239,6 +354,6 @@ export async function recommendCoursePlans(input, dependencies = {}) {
     { role: 'user', content: JSON.stringify(promptRequest) },
   ] }, (content) => parseConflictFreePlans(content, eligibleCourses, request.lockedCourseIds));
   return maximumCreditsRequested
-    ? orderPlansByCredits(result, eligibleCourses, request.lockedCourseIds)
+    ? addDeterministicMaximumCreditRoute(result, eligibleCourses, request.lockedCourseIds)
     : result;
 }
