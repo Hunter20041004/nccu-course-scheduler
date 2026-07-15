@@ -45,3 +45,26 @@ test('preserves explicit per-course asynchronous attendance in recommendation pl
 
   assert.deepEqual(result.plans[0].asyncCourseIds, ['async']);
 });
+
+test('preserves one-time course events needed for recommendation conflict checks', () => {
+  const event = { label: '實體期末考', date: '2026-12-23', day: 3, start: 550, end: 730 };
+
+  const result = validateRecommendationRequest({
+    courses: [{ id: 'fintech', title: '金融科技導論', credits: 3, events: [event] }],
+    selectedCourseIds: [], lockedCourseIds: [], internshipSettings: {},
+  });
+
+  assert.deepEqual(result.courses[0].events, [event]);
+});
+
+test('repairs a uniquely identifiable two-character course id typo', () => {
+  const content = JSON.stringify({ summary: '摘要', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['social-mineding'], attendance: '實體', tradeoffs: [] },
+    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['a'], attendance: '實體', tradeoffs: [] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['b'], attendance: '實體', tradeoffs: [] },
+  ] });
+
+  const result = parseRecommendedPlans(content, new Set(['social-mining', 'a', 'b']));
+
+  assert.deepEqual(result.plans[0].courseIds, ['social-mining']);
+});

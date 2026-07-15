@@ -187,6 +187,7 @@ test('sends current courses locks and internship settings to the advisor API', a
   assert.match(html, /fetch\('\/api\/ai\/recommend-plans'/);
   assert.match(html, /internshipSettings,/);
   assert.match(html, /lockedCourseIds,/);
+  assert.match(html, /events:\s*course\.events/);
   assert.match(html, /eligibility:\s*evaluateEligibility\(course, profile\)\.status/);
 });
 

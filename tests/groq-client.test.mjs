@@ -73,6 +73,22 @@ test('retries one transient Groq JSON validation failure', async () => {
   assert.equal(content, '{"plans":[]}');
 });
 
+test('can report a JSON validation failure without resending a large request', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    return Response.json({ error: { code: 'json_validate_failed' } }, { status: 400 });
+  };
+
+  await assert.rejects(
+    requestGroqJson({
+      apiKey: 'test-only', fetchImpl, messages: [], retryJsonValidation: false,
+    }),
+    { status: 502, code: 'AI_OUTPUT_INVALID' },
+  );
+  assert.equal(calls, 1);
+});
+
 test('reports repeated Groq JSON generation failures accurately', async () => {
   let calls = 0;
   const fetchImpl = async () => {
