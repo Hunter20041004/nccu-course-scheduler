@@ -72,7 +72,7 @@ function meetingsFromNccuText(scheduleText) {
 
 function eligibilityRuleFromOfficialRestriction(course) {
   const restriction = String(course.restrictionText || '').trim();
-  if (!restriction || !/(僅限|限.+修讀|須具|需具|先修|雙主修|輔系)/.test(restriction)) return [];
+  if (!restriction || !/(僅限|(^|[；。])限|須|需|先修|雙主修|輔系|不得|優先)/.test(restriction)) return [];
   const audience = restriction.match(/^僅限(.+?)學生修讀[。.]?$/)?.[1];
   const conditionLabel = audience
     ? `我是${audience.replace('及雙主修', '或雙主修')}學生`
