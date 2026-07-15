@@ -1,4 +1,5 @@
 const byId = (id) => document.getElementById(id);
+const FIRST_USE_TUTORIAL_SEEN_KEY = 'sunbreak:first-use-tutorial-seen:v1';
 const API_ONBOARDING_SEEN_KEY = 'sunbreak:api-onboarding-seen:v1';
 const apiKeySession = createApiKeySession();
 const defaultProfile = {
@@ -24,7 +25,23 @@ let customConditions = [];
 function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
 function renderApiKeyState() { const ready = apiKeySession.hasKey(); byId('api-key-status-button').textContent = ready ? '本分頁已連線' : 'API Key 未設定'; byId('api-key-clear').hidden = !ready; }
 function requireApiKeyForAi(status) { const apiKey = apiKeySession.getKey(); if (apiKey) return apiKey; status.textContent = '請先貼上自己的 Gemini API Key，再使用 AI 功能。'; openApiKeyDialog(); return null; }
-try { if (localStorage.getItem(API_ONBOARDING_SEEN_KEY) !== 'true') openApiKeyDialog(); } catch { openApiKeyDialog(); }
+function openFirstUseWelcome() {
+  const dialog = byId('first-use-dialog');
+  if (!dialog.open) dialog.showModal();
+  byId('start-quick-tour').focus();
+}
+function closeFirstUseWelcome({ remember = true } = {}) {
+  if (remember) {
+    try { localStorage.setItem(FIRST_USE_TUTORIAL_SEEN_KEY, 'true'); } catch {}
+  }
+  const dialog = byId('first-use-dialog');
+  if (dialog.open) dialog.close();
+}
+try {
+  if (localStorage.getItem(FIRST_USE_TUTORIAL_SEEN_KEY) !== 'true') openFirstUseWelcome();
+} catch {
+  openFirstUseWelcome();
+}
 renderApiKeyState();
 byId('api-key-status-button').addEventListener('click', openApiKeyDialog);
 byId('api-key-dialog-close').addEventListener('click', () => byId('api-key-dialog').close());

@@ -130,6 +130,18 @@
       </aside>
     </div>
   </main>
+  <dialog id="first-use-dialog" class="first-use-dialog" aria-labelledby="first-use-title">
+    <section class="first-use-card">
+      <p class="eyebrow">FIRST RUN · GUIDE</p>
+      <h2 id="first-use-title">第一次使用 Sunbreak</h2>
+      <p>先用 1 到 2 分鐘看快速導覽，或直接開始排課；AI 功能需要你自己的 Gemini API Key。</p>
+      <div class="first-use-actions">
+        <button id="start-quick-tour" class="button button-primary" type="button">開始快速導覽</button>
+        <button id="skip-quick-tour" class="button button-quiet" type="button">直接開始使用</button>
+        <button id="open-tutorial-from-welcome" class="button button-secondary" type="button">打開完整教學</button>
+      </div>
+    </section>
+  </dialog>
   <dialog id="api-key-dialog" class="api-key-dialog" aria-labelledby="api-key-title">
     <form id="api-key-form" class="api-key-card">
       <button id="api-key-dialog-close" class="dialog-close" type="button" aria-label="關閉 API Key 教學">×</button>
