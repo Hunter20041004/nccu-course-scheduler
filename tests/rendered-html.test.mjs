@@ -214,13 +214,14 @@ test('presents AI recommendations as previewable strategy routes', async () => {
   assert.match(html, /toggleRecommendedPlanPreview\(previewButton\.dataset\.previewAiPlan\)/);
 });
 
-test('never allows a locally conflicting AI route to be applied', async () => {
+test('does not render locally conflicting AI routes', async () => {
   const html = await (await render()).text();
 
   assert.match(html, /conflicts,/);
-  assert.match(html, /const blockedByConflict = preview\.conflicts\.length > 0/);
-  assert.match(html, /blockedByConflict \? 'disabled' : ''/);
-  assert.match(html, /此方案有 \$\{preview\.conflicts\.length\} 組衝堂/);
+  assert.match(html, /const safePlans = previewedPlans\.filter\(\(\{ preview \}\) => preview\.conflicts\.length === 0\)/);
+  assert.match(html, /已隱藏 \$\{hiddenConflictCount\} 個衝堂方案/);
+  assert.match(html, /目前沒有可安全套用的方案/);
+  assert.doesNotMatch(html, /方案有衝堂/);
 });
 
 test('clears the current timetable while preserving the candidate catalog', async () => {

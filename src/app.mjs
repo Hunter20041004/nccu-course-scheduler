@@ -654,15 +654,25 @@ function renderRecommendedPlans() {
     results.innerHTML = '';
     return;
   }
-  results.innerHTML = recommendedPlans.map((plan, index) => {
-    const preview = previewRecommendedPlan(plan);
-    const blockedByConflict = preview.conflicts.length > 0;
+  const previewedPlans = recommendedPlans.map((plan) => ({
+    plan,
+    preview: previewRecommendedPlan(plan),
+  }));
+  const safePlans = previewedPlans.filter(({ preview }) => preview.conflicts.length === 0);
+  const hiddenConflictCount = previewedPlans.length - safePlans.length;
+  if (!safePlans.length) {
+    results.innerHTML = '<p class="route-conflict" role="alert">目前沒有可安全套用的方案，請重新產生。</p>';
+    return;
+  }
+  const hiddenNotice = hiddenConflictCount
+    ? `<p class="form-status" role="status">已隱藏 ${hiddenConflictCount} 個衝堂方案。</p>`
+    : '';
+  results.innerHTML = hiddenNotice + safePlans.map(({ plan, preview }, index) => {
     const expanded = previewedPlanId === plan.id;
-    return `<article class="ai-route-board" data-route-id="${escapeHtml(plan.id)}" data-conflict="${blockedByConflict}">
+    return `<article class="ai-route-board" data-route-id="${escapeHtml(plan.id)}">
       <div class="route-index"><span>路線 ${String(index + 1).padStart(2, '0')}</span><b>${escapeHtml(plan.attendance || '彈性安排')}</b></div>
       <h3>${escapeHtml(plan.title)}</h3>
       <p class="route-strategy">${escapeHtml(plan.reason)}</p>
-      ${blockedByConflict ? `<p class="route-conflict" role="alert">此方案有 ${preview.conflicts.length} 組衝堂，請重新產生方案。</p>` : ''}
       <dl class="route-metrics"><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.availableDays} 天</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
       ${renderRouteWeekPreview(preview.planCourses)}
       <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li><span>${escapeHtml(course.title)}</span><span class="route-course-flags">${plan.asyncCourseIds?.includes(course.id) ? '<b>非同步</b>' : ''}${lockedCourseIds.includes(course.id) ? '<b>鎖定保留</b>' : ''}</span></li>`).join('')}</ul>
@@ -670,7 +680,7 @@ function renderRecommendedPlans() {
       ${expanded ? renderRouteComparison(preview.planCourses) : ''}
       <div class="route-actions">
         <button class="button button-quiet" type="button" data-preview-ai-plan="${escapeHtml(plan.id)}" aria-expanded="${expanded}">${expanded ? '收起預覽' : '預覽'}</button>
-        <button class="button button-primary" type="button" data-apply-ai-plan="${escapeHtml(plan.id)}" ${blockedByConflict ? 'disabled' : ''}>${blockedByConflict ? '方案有衝堂' : '套用此方案'}</button>
+        <button class="button button-primary" type="button" data-apply-ai-plan="${escapeHtml(plan.id)}">套用此方案</button>
       </div>
     </article>`;
   }).join('');
