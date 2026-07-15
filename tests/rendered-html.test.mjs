@@ -325,6 +325,20 @@ test('clears the current timetable while preserving the candidate catalog', asyn
   assert.match(html, /persistState\(\);\s*renderAll\(\)/);
 });
 
+test('exports the current timetable as a phone wallpaper PNG', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="export-wallpaper"[^>]*>匯出手機桌布<\/button>/);
+  assert.match(html, /function exportScheduleWallpaper\(\)/);
+  assert.match(html, /function renderScheduleWallpaper\(canvas\)/);
+  assert.match(html, /canvas\.width = 1080/);
+  assert.match(html, /canvas\.height = 1920/);
+  assert.match(html, /downloadCanvasPng\(canvas, 'nccu-schedule-wallpaper-115-1\.png'\)/);
+  assert.match(html, /canvas\.toDataURL\('image\/png'\)/);
+  assert.match(html, /byId\('export-wallpaper'\)\.addEventListener\('click', exportScheduleWallpaper\)/);
+  assert.match(html, /手機桌布已匯出/);
+});
+
 test('lets the student lock and unlock selected core courses', async () => {
   const html = await (await render()).text();
   assert.match(html, /data-lock-course/);
