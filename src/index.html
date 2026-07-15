@@ -25,6 +25,7 @@
       <div><small>待處理</small><strong id="warning-value">0</strong></div>
     </section>
     <div class="header-actions">
+      <button id="api-key-status-button" class="button button-quiet" type="button">API Key 未設定</button>
       <button id="clear-schedule" class="button button-quiet" type="button">清空目前課表</button>
       <button id="reset-plan" class="button button-secondary" type="button">恢復建議方案</button>
     </div>
@@ -76,7 +77,7 @@
             <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
             <label>這學期想達成什麼<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：每週實習三天、完成 AI 作品並補足研究方法"></textarea></label>
             <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
-            <p class="privacy-note">個人敘述會傳送給 Groq 產生建議，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
+            <p class="privacy-note">個人敘述會以你的 Key 傳送給 Gemini，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
             <button class="button button-primary" type="submit">產生三個推薦方案</button>
             <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
           </form>
@@ -129,6 +130,17 @@
       </aside>
     </div>
   </main>
+  <dialog id="api-key-dialog" class="api-key-dialog" aria-labelledby="api-key-title">
+    <form id="api-key-form" class="api-key-card">
+      <button id="api-key-dialog-close" class="dialog-close" type="button" aria-label="關閉 API Key 教學">×</button>
+      <p class="eyebrow">AI SETUP · FREE TIER</p><h2 id="api-key-title">讓 AI 使用你自己的免費額度</h2>
+      <ol><li>Google Assistant／Gemini App 不等於 Gemini API；一般排課不需要 Key。</li><li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">前往 Google AI Studio 建立 API Key</a>，學校帳號受限時請改用個人帳號。</li><li>貼上後只供本分頁使用，關閉或重新整理即清除。</li></ol>
+      <label>Gemini API Key<div class="secret-field"><input id="api-key-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="api-key-reveal" type="button" aria-pressed="false">顯示</button></div></label>
+      <p class="privacy-note">Key 僅供本分頁使用，關閉或重新整理即清除。網站不要求啟用付費帳務。</p>
+      <p id="api-key-status" class="form-status" role="status" aria-live="polite"></p>
+      <div class="api-key-actions"><button class="button button-primary" type="submit">驗證並開始使用</button><button id="api-key-skip" class="button button-quiet" type="button">先使用一般排課功能</button><button id="api-key-clear" class="button button-quiet" type="button" hidden>立即清除 Key</button></div>
+    </form>
+  </dialog>
   <script type="module">/*__SCRIPT__*/</script>
 </body>
 </html>
