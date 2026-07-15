@@ -64,6 +64,19 @@ test('keeps a permanent tutorial center with detailed first-run help', async () 
   assert.match(html, /byId\('open-tutorial-center'\)\.addEventListener\('click', openTutorialCenter\)/);
 });
 
+test('marks quick tour skipped or completed without changing planner data', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /function markFirstUseTutorialSeen\(\)/);
+  assert.match(html, /localStorage\.setItem\(FIRST_USE_TUTORIAL_SEEN_KEY, 'true'\)/);
+  assert.match(html, /byId\('skip-quick-tour'\)\.addEventListener\('click'/);
+  assert.match(html, /byId\('start-quick-tour'\)\.addEventListener\('click', startQuickTour\)/);
+  assert.match(html, /byId\('restart-quick-tour'\)\.addEventListener\('click', startQuickTour\)/);
+  assert.match(html, /function endQuickTour\(\{ completed = false \} = \{\}\)/);
+  assert.doesNotMatch(html, /startQuickTour[\s\S]{0,1200}selected =/);
+  assert.doesNotMatch(html, /startQuickTour[\s\S]{0,1200}courseStore =/);
+});
+
 test('uses an inline favicon so the private app makes no missing icon request', async () => {
   const html = await (await render()).text();
   assert.match(html, /<link rel="icon" href="data:image\/svg\+xml,/);

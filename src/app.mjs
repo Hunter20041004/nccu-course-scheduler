@@ -30,12 +30,23 @@ function openFirstUseWelcome() {
   if (!dialog.open) dialog.showModal();
   byId('start-quick-tour').focus();
 }
+function markFirstUseTutorialSeen() {
+  try { localStorage.setItem(FIRST_USE_TUTORIAL_SEEN_KEY, 'true'); } catch {}
+}
 function closeFirstUseWelcome({ remember = true } = {}) {
   if (remember) {
-    try { localStorage.setItem(FIRST_USE_TUTORIAL_SEEN_KEY, 'true'); } catch {}
+    markFirstUseTutorialSeen();
   }
   const dialog = byId('first-use-dialog');
   if (dialog.open) dialog.close();
+}
+function startQuickTour() {
+  closeFirstUseWelcome();
+  closeTutorialCenter();
+  markFirstUseTutorialSeen();
+}
+function endQuickTour({ completed = false } = {}) {
+  if (completed) markFirstUseTutorialSeen();
 }
 function openTutorialCenter() {
   const dialog = byId('tutorial-center');
@@ -58,6 +69,9 @@ byId('open-tutorial-from-welcome').addEventListener('click', () => {
   openTutorialCenter();
 });
 byId('tutorial-center-close').addEventListener('click', closeTutorialCenter);
+byId('skip-quick-tour').addEventListener('click', () => closeFirstUseWelcome());
+byId('start-quick-tour').addEventListener('click', startQuickTour);
+byId('restart-quick-tour').addEventListener('click', startQuickTour);
 byId('api-key-status-button').addEventListener('click', openApiKeyDialog);
 byId('api-key-dialog-close').addEventListener('click', () => byId('api-key-dialog').close());
 byId('api-key-skip').addEventListener('click', () => { try { localStorage.setItem(API_ONBOARDING_SEEN_KEY, 'true'); } catch {} byId('api-key-dialog').close(); });
