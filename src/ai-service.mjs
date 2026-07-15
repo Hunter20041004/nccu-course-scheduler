@@ -282,7 +282,7 @@ export async function importCoursesFromScreenshot(input, dependencies = {}) {
     groqRequest = requestGroqJson,
     nccuSearch = searchNccuCourses,
   } = dependencies;
-  const recognition = await requestWithSchemaRetries(groqRequest, { apiKey, messages: [
+  const recognition = await requestWithSchemaRetries(groqRequest, { apiKey, reasoningEffort: 'none', messages: [
     { role: 'system', content: IMPORT_SYSTEM_PROMPT },
     { role: 'user', content: [
       { type: 'text', text: '辨識這張政大 115-1 課程追蹤清單截圖。' },
@@ -311,6 +311,12 @@ export async function importCoursesFromScreenshot(input, dependencies = {}) {
       });
       if (!officialMatches.length && recognized.courseCode && recognized.title) {
         officialMatches = await nccuSearch({ term: request.term, keyword: recognized.title });
+      }
+      if (!officialMatches.length && recognized.courseCode && recognized.title) {
+        const titlePrefix = [...recognized.title].slice(0, 3).join('');
+        if (titlePrefix && titlePrefix !== recognized.title) {
+          officialMatches = await nccuSearch({ term: request.term, keyword: titlePrefix });
+        }
       }
       const exactOfficialMatch = recognized.courseCode
         ? officialMatches.find((course) => normalizeKey(course.courseCode) === normalizeKey(recognized.courseCode))
