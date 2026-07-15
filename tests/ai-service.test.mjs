@@ -10,18 +10,18 @@ const recognizedUnknown = JSON.stringify({ recognizedCourses: [{
 const officialA = { courseCode: '123456001', title: '未知課程', teacher: '老師', credits: 3, scheduleText: '一234', available: true };
 const officialB = { ...officialA, courseCode: '123456002' };
 
-test('disables model reasoning for screenshot recognition', async () => {
-  let reasoningEffort;
+test('uses the free Gemini screenshot model for recognition', async () => {
+  let model;
   await importCoursesFromScreenshot(validImport, {
     apiKey: 'test-only', catalog: [],
-    groqRequest: async (request) => {
-      reasoningEffort = request.reasoningEffort;
+    aiRequest: async (request) => {
+      model = request.model;
       return '{"recognizedCourses":[]}';
     },
     nccuSearch: async () => [],
   });
 
-  assert.equal(reasoningEffort, 'none');
+  assert.equal(model, 'gemini-3.1-flash-lite');
 });
 
 test('matches recognized course codes against the verified built-in catalog', async () => {
@@ -31,7 +31,7 @@ test('matches recognized course codes against the verified built-in catalog', as
     {
       apiKey: 'test-only',
       catalog: [{ id: 'hci', sectionCode: '703055001', title: '人機互動', available: true }],
-      groqRequest: async () => JSON.stringify({ recognizedCourses: [{
+      aiRequest: async () => JSON.stringify({ recognizedCourses: [{
         courseCode: '703055001', title: '人機互動', confidence: 0.99,
       }] }),
       nccuSearch: async () => { officialCalls += 1; return []; },
@@ -44,7 +44,7 @@ test('matches recognized course codes against the verified built-in catalog', as
 test('returns ambiguous official matches as pending instead of importing them', async () => {
   const result = await importCoursesFromScreenshot(validImport, {
     apiKey: 'test-only', catalog: [],
-    groqRequest: async () => recognizedUnknown,
+    aiRequest: async () => recognizedUnknown,
     nccuSearch: async () => [officialA, officialB],
   });
   assert.equal(result.importedCourses.length, 0);
@@ -63,7 +63,7 @@ test('uses a recognized course code to disambiguate same-title official courses'
 
   const result = await importCoursesFromScreenshot(validImport, {
     apiKey: 'test-only', catalog: [],
-    groqRequest: async () => recognizedCourse,
+    aiRequest: async () => recognizedCourse,
     nccuSearch: async () => {
       searches += 1;
       return searches === 1 ? [] : sameTitleCourses;
@@ -78,7 +78,7 @@ test('recovers an exact course code when OCR inserts a character into the title'
   const queries = [];
   const result = await importCoursesFromScreenshot(validImport, {
     apiKey: 'test-only', catalog: [],
-    groqRequest: async () => JSON.stringify({ recognizedCourses: [{
+    aiRequest: async () => JSON.stringify({ recognizedCourses: [{
       courseCode: '651171001', title: '日文法律學名著選讀', teacher: '張韻琪', confidence: 0.99,
     }] }),
     nccuSearch: async ({ keyword }) => {
@@ -101,7 +101,7 @@ test('turns an official enrollment restriction into a required selectable condit
     courseCode: '509041001', title: '德國文學概論', teacher: '蔡莫妮', confidence: 0.99,
   }] });
   const result = await importCoursesFromScreenshot(validImport, {
-    apiKey: 'test-only', catalog: [], groqRequest: async () => recognizedCourse,
+    apiKey: 'test-only', catalog: [], aiRequest: async () => recognizedCourse,
     nccuSearch: async () => [{
       courseCode: '509041001', title: '德國文學概論', teacher: '蔡莫妮', credits: 2,
       scheduleText: '四78', available: true,
@@ -121,7 +121,7 @@ test('turns an official enrollment restriction into a required selectable condit
 test('creates a selectable condition from a department limit without 修讀 wording', async () => {
   const result = await importCoursesFromScreenshot(validImport, {
     apiKey: 'test-only', catalog: [],
-    groqRequest: async () => JSON.stringify({ recognizedCourses: [{
+    aiRequest: async () => JSON.stringify({ recognizedCourses: [{
       courseCode: '123456001', title: '系所限制課程', teacher: '老師', confidence: 0.99,
     }] }),
     nccuSearch: async () => [{
@@ -138,7 +138,7 @@ test('summarizes alternative language prerequisites as one selectable condition'
   const restrictionText = '須先修習學士班日文（一）、（二）其中一門，或曾在大學修習日文語文 4 學分以上，或通過日本語能力試驗 N3 以上，或 FLPT 日語能力測驗筆試 150 分以上，始得修習本課程。';
   const result = await importCoursesFromScreenshot(validImport, {
     apiKey: 'test-only', catalog: [],
-    groqRequest: async () => JSON.stringify({ recognizedCourses: [{
+    aiRequest: async () => JSON.stringify({ recognizedCourses: [{
       courseCode: '651171001', title: '日文法學名著選讀（二）', teacher: '張韻琪', confidence: 0.99,
     }] }),
     nccuSearch: async () => [{
@@ -160,7 +160,7 @@ test('retries screenshot recognition once when the JSON shape is invalid', async
   let calls = 0;
   const result = await importCoursesFromScreenshot(validImport, {
     apiKey: 'test-only', catalog: [],
-    groqRequest: async () => {
+    aiRequest: async () => {
       calls += 1;
       return calls === 1 ? '{"courses":[]}' : '{"recognizedCourses":[]}';
     },
@@ -172,9 +172,8 @@ test('retries screenshot recognition once when the JSON shape is invalid', async
 
 test('excludes blocked and unavailable courses from recommendation prompts', async () => {
   let promptedCourseIds;
-  let recommendationReasoningEffort;
+  let recommendationModel;
   let recommendationMaxCompletionTokens;
-  let recommendationRetriesJsonValidation;
   const eligibleCourse = { id: 'eligible', title: '合格課', credits: 3, eligibility: 'eligible' };
   const blockedCourse = { id: 'blocked', title: '不合格課', credits: 3, eligibility: 'blocked' };
   const validThreePlans = JSON.stringify({ summary: '摘要', plans: [
@@ -186,17 +185,15 @@ test('excludes blocked and unavailable courses from recommendation prompts', asy
     profileText: '大三', desiredActivities: '實習', futureDirection: 'AI', semesterGoals: '作品', preferences: '集中',
     internshipSettings: {}, selectedCourseIds: [], lockedCourseIds: ['locked'],
     courses: [eligibleCourse, blockedCourse, { id: 'locked', title: '鎖定課', credits: 2, eligibility: 'eligible' }],
-  }, { apiKey: 'test-only', groqRequest: async ({ messages, reasoningEffort, maxCompletionTokens, retryJsonValidation }) => {
+  }, { apiKey: 'test-only', aiRequest: async ({ messages, model, maxCompletionTokens }) => {
     promptedCourseIds = JSON.parse(messages[1].content).courses.map(({ id }) => id);
-    recommendationReasoningEffort = reasoningEffort;
+    recommendationModel = model;
     recommendationMaxCompletionTokens = maxCompletionTokens;
-    recommendationRetriesJsonValidation = retryJsonValidation;
     return validThreePlans;
   } });
   assert.deepEqual(promptedCourseIds, ['eligible', 'locked']);
-  assert.equal(recommendationReasoningEffort, 'none');
+  assert.equal(recommendationModel, 'gemini-3.5-flash');
   assert.equal(recommendationMaxCompletionTokens, 2_200);
-  assert.equal(recommendationRetriesJsonValidation, false);
 });
 
 test('does not resend the full recommendation payload when the JSON shape is invalid', async () => {
@@ -204,7 +201,7 @@ test('does not resend the full recommendation payload when the JSON shape is inv
   await assert.rejects(() => recommendCoursePlans({
     courses: [{ id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible' }],
     lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
-  }, { apiKey: 'test-only', groqRequest: async () => {
+  }, { apiKey: 'test-only', aiRequest: async () => {
     calls += 1;
     return '{"plans":[]}';
   } }), { code: 'INVALID_AI_RESPONSE' });
@@ -230,7 +227,7 @@ test('repairs a conflicting AI route locally without spending a second Groq requ
     courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
   }, {
     apiKey: 'test-only',
-    groqRequest: async () => {
+    aiRequest: async () => {
       calls += 1;
       return conflicting;
     },
@@ -258,7 +255,7 @@ test('accepts an overlapping route only when an async-capable course is explicit
 
   const result = await recommendCoursePlans({
     courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
-  }, { apiKey: 'test-only', groqRequest: async () => { calls += 1; return response; } });
+  }, { apiKey: 'test-only', aiRequest: async () => { calls += 1; return response; } });
 
   assert.equal(calls, 1);
   assert.deepEqual(result.plans[0].asyncCourseIds, ['b']);
@@ -279,7 +276,7 @@ test('allows a locked async course to be named outside each plan course list', a
 
   const result = await recommendCoursePlans({
     courses, lockedCourseIds: ['locked'], selectedCourseIds: ['locked'], internshipSettings: {},
-  }, { apiKey: 'test-only', groqRequest: async () => response });
+  }, { apiKey: 'test-only', aiRequest: async () => response });
 
   assert.deepEqual(result.plans[0].asyncCourseIds, ['locked']);
 });
@@ -296,7 +293,7 @@ test('ignores asynchronous metadata for courses outside a route', async () => {
 
   const result = await recommendCoursePlans({
     courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
-  }, { apiKey: 'test-only', groqRequest: async () => response });
+  }, { apiKey: 'test-only', aiRequest: async () => response });
 
   assert.deepEqual(result.plans[0].asyncCourseIds, []);
 });
@@ -317,7 +314,7 @@ test('treats maximum credits as an explicit objective and orders routes by total
   const result = await recommendCoursePlans({
     courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
     preferences: '集中週二週四，學分越多越好',
-  }, { apiKey: 'test-only', groqRequest: async ({ messages }) => {
+  }, { apiKey: 'test-only', aiRequest: async ({ messages }) => {
     systemPrompt = messages[0].content;
     return response;
   } });
@@ -344,7 +341,7 @@ test('builds a deterministic maximum-credit route when the model omits compatibl
   const result = await recommendCoursePlans({
     courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
     preferences: '集中週二週四，學分越多越好',
-  }, { apiKey: 'test-only', groqRequest: async () => response });
+  }, { apiKey: 'test-only', aiRequest: async () => response });
 
   assert.deepEqual(result.plans[0].courseIds, ['b', 'c', 'd']);
   assert.doesNotMatch(result.plans[0].reason, /課程 a/);
@@ -379,7 +376,7 @@ test('fills every route to the requested minimum credits with asynchronous cours
     courses,
     lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
     preferences: '至少要 17 學分，並保留兩天實習',
-  }, { apiKey: 'test-only', groqRequest: async () => response });
+  }, { apiKey: 'test-only', aiRequest: async () => response });
 
   const creditsById = new Map(courses.map((course) => [course.id, course.credits]));
   result.plans.forEach((recommended) => {
@@ -417,7 +414,7 @@ test('adds an actual preferred language course when every model route only claim
     lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
     semesterGoals: '一堂語文相關',
     preferences: '語文偏好日文跟法文相關的',
-  }, { apiKey: 'test-only', groqRequest: async () => response });
+  }, { apiKey: 'test-only', aiRequest: async () => response });
 
   result.plans.forEach((recommended) => {
     assert.ok(recommended.courseIds.includes('jp-law'));
@@ -449,7 +446,7 @@ test('rewrites a language claim from the course ids even when the route already 
     courses,
     lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
     semesterGoals: '一堂語文相關', preferences: '偏好日文或法文',
-  }, { apiKey: 'test-only', groqRequest: async () => response });
+  }, { apiKey: 'test-only', aiRequest: async () => response });
 
   result.plans.forEach((recommended) => {
     assert.match(recommended.reason, /實際安排的語文課是「日文法學名著選讀（二）」/);
@@ -482,7 +479,7 @@ test('removes every language claim when no eligible language candidate exists', 
     courses,
     lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
     semesterGoals: '一堂語文相關', preferences: '偏好日文或法文',
-  }, { apiKey: 'test-only', groqRequest: async () => response });
+  }, { apiKey: 'test-only', aiRequest: async () => response });
 
   assert.match(result.summary, /無法加入/);
   result.plans.forEach((recommended) => {

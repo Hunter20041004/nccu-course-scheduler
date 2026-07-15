@@ -5,7 +5,7 @@ const read = (path) => readFile(new URL(path, root), 'utf8');
 const [
   template, styles, nccuPeriods, internshipPlanner, courseData, eligibilityConditions,
   plannerCore, plannerStorage, app,
-  aiContracts, groqClient, nccuCourseAdapter, aiService, worker, aiPlanner,
+  aiContracts, geminiClient, nccuCourseAdapter, aiService, worker, aiPlanner,
 ] = await Promise.all([
   read('src/index.html'),
   read('src/styles.css'),
@@ -17,7 +17,7 @@ const [
   read('src/planner-storage.mjs'),
   read('src/app.mjs'),
   read('src/ai-contracts.mjs'),
-  read('src/groq-client.mjs'),
+  read('src/gemini-client.mjs'),
   read('src/nccu-course-adapter.mjs'),
   read('src/ai-service.mjs'),
   read('src/worker.mjs'),
@@ -70,7 +70,7 @@ const serverScript = [
   stripModuleSyntax(nccuPeriods),
   stripModuleSyntax(courseData),
   stripModuleSyntax(aiContracts),
-  stripModuleSyntax(groqClient),
+  stripModuleSyntax(geminiClient),
   stripModuleSyntax(nccuCourseAdapter),
   stripModuleSyntax(plannerCore),
   stripModuleSyntax(aiService),
