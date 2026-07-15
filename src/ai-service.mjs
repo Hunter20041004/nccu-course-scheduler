@@ -162,6 +162,13 @@ function requestsMaximumCredits(preferences) {
   return /學分.{0,8}(越多越好|最多|最大|優先)/.test(String(preferences || ''));
 }
 
+function requestedMinimumCredits(request) {
+  const requestText = [request.semesterGoals, request.preferences].filter(Boolean).join('\n');
+  const minimumMatch = requestText.match(/(?:至少|最低|最少|不少於)\s*(?:要|需(?:要)?|希望)?\s*(\d{1,2}(?:\.\d+)?)\s*學分/)
+    || requestText.match(/(\d{1,2}(?:\.\d+)?)\s*學分\s*(?:以上|起)/);
+  return minimumMatch ? Number(minimumMatch[1]) : 0;
+}
+
 const LANGUAGE_GROUPS = [
   { label: '日文', patterns: ['日文', '日語', '日本語'] },
   { label: '法文', patterns: ['法文', '法語'] },
@@ -248,6 +255,74 @@ function ensureRequestedLanguageCourses(result, request, courses, lockedCourseId
     summary: allPlansIncludeLanguage
       ? `已依你的${requestedLabel}語文課需求調整三個方案；課程與說明均以實際清單為準。`
       : `已檢查${requestedLabel}語文課需求；無法加入的方案已明確標示資格或衝堂限制。`,
+    plans,
+  };
+}
+
+function ensureMinimumCredits(result, minimumCredits, courses, lockedCourseIds) {
+  if (!minimumCredits) return result;
+  const byId = new Map(courses.map((course) => [course.id, course]));
+  const creditsFor = (ids) => [...new Set(ids)]
+    .reduce((total, id) => total + Number(byId.get(id)?.credits || 0), 0);
+  const candidates = [...courses].sort((first, second) => (
+    Number(Boolean(second.asyncAllowed)) - Number(Boolean(first.asyncAllowed))
+    || Number(second.credits || 0) - Number(first.credits || 0)
+  ));
+  const plans = result.plans.map((plan) => {
+    const selectedIds = new Set([...lockedCourseIds, ...plan.courseIds]);
+    let totalCredits = creditsFor(selectedIds);
+    if (totalCredits >= minimumCredits) return plan;
+    const asyncCourseIds = new Set(plan.asyncCourseIds);
+    const selected = [...selectedIds].map((id) => byId.get(id)).filter(Boolean).map((course) => ({
+      ...course,
+      attendance: asyncCourseIds.has(course.id) ? 'async' : 'physical',
+    }));
+    const added = [];
+    const addedAsync = [];
+    for (const course of candidates) {
+      if (totalCredits >= minimumCredits) break;
+      if (selectedIds.has(course.id) || Number(course.credits || 0) <= 0) continue;
+      const candidate = { ...course, attendance: course.asyncAllowed ? 'async' : 'physical' };
+      if (findConflicts([...selected, candidate]).length) continue;
+      selectedIds.add(course.id);
+      selected.push(candidate);
+      added.push(course);
+      totalCredits += Number(course.credits || 0);
+      if (course.asyncAllowed) {
+        asyncCourseIds.add(course.id);
+        addedAsync.push(course);
+      }
+    }
+    if (!added.length) return {
+      ...plan,
+      reason: `目前符合資格且不衝堂的候選課不足，方案只能排到 ${totalCredits} 學分。`,
+      tradeoffs: [`未達至少 ${minimumCredits} 學分，請增加候選課程`],
+    };
+    const reachedMinimum = totalCredits >= minimumCredits;
+    return {
+      ...plan,
+      courseIds: [...new Set([...plan.courseIds, ...added.map(({ id }) => id)])],
+      asyncCourseIds: [...asyncCourseIds],
+      reason: reachedMinimum
+        ? `為符合至少 ${minimumCredits} 學分，已加入「${added.map(({ title }) => title).join('、')}」。`
+        : `已加入可行課程，但目前候選課最多只能排到 ${totalCredits} 學分。`,
+      attendance: addedAsync.length
+        ? '新增的可非同步課採非同步，其餘依課表出席'
+        : '依實際課程時段出席',
+      tradeoffs: [
+        reachedMinimum ? `已補至 ${totalCredits} 學分` : `仍未達至少 ${minimumCredits} 學分`,
+        ...(addedAsync.length ? [`非同步：${addedAsync.map(({ title }) => title).join('、')}`] : []),
+      ],
+    };
+  });
+  const allPlansReachMinimum = plans.every((plan) => (
+    creditsFor([...lockedCourseIds, ...plan.courseIds]) >= minimumCredits
+  ));
+  return {
+    ...result,
+    summary: allPlansReachMinimum
+      ? `三個方案皆已達至少 ${minimumCredits} 學分，並優先以非同步課保留實習時段。`
+      : `已盡量補足至少 ${minimumCredits} 學分；候選課不足的方案已明確標示。`,
     plans,
   };
 }
@@ -458,17 +533,29 @@ export async function recommendCoursePlans(input, dependencies = {}) {
   const promptRequest = { ...request, courses: eligibleCourses };
   const groqRequest = dependencies.groqRequest || requestGroqJson;
   const maximumCreditsRequested = requestsMaximumCredits(request.preferences);
+  const minimumCredits = requestedMinimumCredits(request);
   const result = await requestWithSchemaRetries(groqRequest, {
     apiKey: dependencies.apiKey,
     reasoningEffort: 'none',
     maxCompletionTokens: 2_200,
     retryJsonValidation: false,
     messages: [
-    { role: 'system', content: `你是政大排課顧問。只可逐字引用輸入 courses 內的 id，且每個方案都要保留 lockedCourseIds。產生三個內容不同的方案：集中實習、平衡探索、目標優先。所有課程預設以實體方式計算；只有 asyncAllowed=true 的課程可列入 asyncCourseIds，列入後不占每週固定時段。同一方案不得包含其餘 schedule 或 meetings 時段重疊的課程。${maximumCreditsRequested ? '使用者明確要求學分越多越好；在不衝堂且符合資格的前提下，至少一個方案必須追求最高總學分，並在理由說明取捨。' : ''}不要宣稱已完成衝堂檢查，因為網站仍會用確定性規則驗證。文字務必精簡：summary 60 字內；每個 title 20 字內、reason 80 字內、attendance 30 字內；tradeoffs 最多 2 項且每項 40 字內。只輸出 JSON object：{"summary":"整體建議","plans":[{"id":"focus","title":"方案名","reason":"理由","courseIds":["course-id"],"asyncCourseIds":["可非同步的course-id"],"attendance":"出席策略","tradeoffs":["取捨"]}]}，plans 必須恰好三筆。` },
+    { role: 'system', content: `你是政大排課顧問。只可逐字引用輸入 courses 內的 id，且每個方案都要保留 lockedCourseIds。產生三個內容不同的方案：集中實習、平衡探索、目標優先。所有課程預設以實體方式計算；只有 asyncAllowed=true 的課程可列入 asyncCourseIds，列入後不占每週固定時段。同一方案不得包含其餘 schedule 或 meetings 時段重疊的課程。${maximumCreditsRequested ? '使用者明確要求學分越多越好；在不衝堂且符合資格的前提下，至少一個方案必須追求最高總學分，並在理由說明取捨。' : ''}${minimumCredits ? `使用者要求每個方案至少 ${minimumCredits} 學分；優先用可非同步課程補足。` : ''}不要宣稱已完成衝堂檢查，因為網站仍會用確定性規則驗證。文字務必精簡：summary 60 字內；每個 title 20 字內、reason 80 字內、attendance 30 字內；tradeoffs 最多 2 項且每項 40 字內。只輸出 JSON object：{"summary":"整體建議","plans":[{"id":"focus","title":"方案名","reason":"理由","courseIds":["course-id"],"asyncCourseIds":["可非同步的course-id"],"attendance":"出席策略","tradeoffs":["取捨"]}]}，plans 必須恰好三筆。` },
     { role: 'user', content: JSON.stringify(promptRequest) },
   ] }, (content) => parseConflictFreePlans(content, eligibleCourses, request.lockedCourseIds), 1);
   const finalizedResult = maximumCreditsRequested
     ? addDeterministicMaximumCreditRoute(result, eligibleCourses, request.lockedCourseIds)
     : result;
-  return ensureRequestedLanguageCourses(finalizedResult, request, eligibleCourses, request.lockedCourseIds);
+  const languageGroundedResult = ensureRequestedLanguageCourses(
+    finalizedResult,
+    request,
+    eligibleCourses,
+    request.lockedCourseIds,
+  );
+  return ensureMinimumCredits(
+    languageGroundedResult,
+    minimumCredits,
+    eligibleCourses,
+    request.lockedCourseIds,
+  );
 }

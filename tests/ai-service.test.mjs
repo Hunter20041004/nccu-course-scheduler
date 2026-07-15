@@ -352,6 +352,45 @@ test('builds a deterministic maximum-credit route when the model omits compatibl
   assert.deepEqual(result.plans[0].tradeoffs, ['最高學分組合可能壓縮實習或自主安排時間']);
 });
 
+test('fills every route to the requested minimum credits with asynchronous courses', async () => {
+  const plan = (id, fourthCourseId) => ({
+    id,
+    title: id,
+    reason: '模型方案只有 16 學分',
+    courseIds: ['a', 'b', 'c', fourthCourseId],
+    asyncCourseIds: [],
+    attendance: '實體',
+    tradeoffs: [],
+  });
+  const response = JSON.stringify({ summary: '模型未達最低學分', plans: [
+    plan('focus', 'd'), plan('balance', 'e'), plan('explore', 'f'),
+  ] });
+  const courses = [
+    { id: 'a', title: '課程 A', credits: 4, eligibility: 'eligible', schedule: { day: 1, start: 610, end: 780 } },
+    { id: 'b', title: '課程 B', credits: 4, eligibility: 'eligible', schedule: { day: 2, start: 610, end: 780 } },
+    { id: 'c', title: '課程 C', credits: 4, eligibility: 'eligible', schedule: { day: 3, start: 610, end: 780 } },
+    { id: 'd', title: '課程 D', credits: 4, eligibility: 'eligible', schedule: { day: 4, start: 610, end: 780 } },
+    { id: 'e', title: '課程 E', credits: 4, eligibility: 'eligible', schedule: { day: 5, start: 610, end: 780 } },
+    { id: 'f', title: '課程 F', credits: 4, eligibility: 'eligible', schedule: { day: 6, start: 610, end: 780 } },
+    { id: 'async', title: '可非同步課程', credits: 3, eligibility: 'eligible', asyncAllowed: true, schedule: { day: 1, start: 610, end: 780 } },
+  ];
+
+  const result = await recommendCoursePlans({
+    courses,
+    lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+    preferences: '至少要 17 學分，並保留兩天實習',
+  }, { apiKey: 'test-only', groqRequest: async () => response });
+
+  const creditsById = new Map(courses.map((course) => [course.id, course.credits]));
+  result.plans.forEach((recommended) => {
+    const credits = recommended.courseIds.reduce((total, id) => total + creditsById.get(id), 0);
+    assert.ok(credits >= 17, `expected at least 17 credits, received ${credits}`);
+    assert.ok(recommended.courseIds.includes('async'));
+    assert.ok(recommended.asyncCourseIds.includes('async'));
+    assert.match(recommended.attendance, /非同步/);
+  });
+});
+
 test('adds an actual preferred language course when every model route only claims to include one', async () => {
   const plan = (id, courseId) => ({
     id,
