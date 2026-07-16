@@ -917,6 +917,14 @@ byId('internship-form').addEventListener('change', () => {
 
 const catalogList = byId('catalog-list');
 catalogList.addEventListener('click', (event) => {
+  const detailButton = event.target.closest('[data-details-course]');
+  if (detailButton) {
+    expandedCourseId = expandedCourseId === detailButton.dataset.detailsCourse
+      ? null
+      : detailButton.dataset.detailsCourse;
+    renderCatalog();
+    return;
+  }
   const lockButton = event.target.closest('[data-lock-course]');
   if (lockButton) {
     const course = courseStore.find((item) => item.id === lockButton.dataset.lockCourse);
