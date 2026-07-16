@@ -531,9 +531,16 @@ test('keeps compact course detail disclosure targets at least 44 pixels tall', a
 test('keeps tutorial UI usable on compact screens', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.quick-tour-card\s*\{[\s\S]*right:\s*10px[\s\S]*bottom:\s*10px/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.quick-tour-card\s*\{[\s\S]*right:\s*10px[\s\S]*bottom:\s*max\(10px,\s*env\(safe-area-inset-bottom\)\)[\s\S]*max-height:\s*min\(460px,\s*calc\(100dvh - 24px - env\(safe-area-inset-bottom\)\)\)[\s\S]*overflow:\s*hidden/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.quick-tour-body\s*\{[\s\S]*overflow:\s*auto/s);
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.quick-tour-actions\s*\{[\s\S]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.quick-tour-actions\s*\{[\s\S]*position:\s*sticky[\s\S]*bottom:\s*0/s);
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.tutorial-center\s*\{[\s\S]*width:\s*calc\(100% - 12px\)/s);
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.first-use-actions\s*\{[\s\S]*display:\s*grid/s);
+  assert.match(html, /\.quick-tour-overlay\s*\{[^}]*pointer-events:\s*auto/s);
+  assert.match(html, /\.quick-tour-overlay\s*\{[^}]*z-index:\s*1000/s);
+  assert.match(html, /\.quick-tour-spotlight\s*\{[^}]*pointer-events:\s*none/s);
+  assert.match(html, /\.quick-tour-card\s*\{[^}]*z-index:\s*1002[\s\S]*pointer-events:\s*auto/s);
+  assert.match(html, /\.is-tour-target\s*\{[^}]*z-index:\s*auto/s);
   assert.match(html, /max-height:\s*calc\(100dvh - 20px\)/);
 });
