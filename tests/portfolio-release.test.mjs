@@ -9,7 +9,9 @@ test('README presents the course scheduler as a portfolio project', () => {
 
   for (const required of [
     '[![CI](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml)',
+    '**[Share-safe Demo](https://hunter20041004.github.io/nccu-course-scheduler/)**',
     '**[Live Demo](https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site)**',
+    'GitHub Pages 靜態版適合傳給朋友測試一般排課流程',
     '## Executive Summary',
     '## 作品集重點',
     '## 60 秒 Demo',
@@ -24,10 +26,13 @@ test('README presents the course scheduler as a portfolio project', () => {
 
 test('portfolio release includes CI and a narrow MIT license', () => {
   const workflow = readText('.github/workflows/ci.yml');
+  const pagesWorkflow = readText('.github/workflows/pages.yml');
   const license = readText('LICENSE');
 
   assert.match(workflow, /npm run verify/);
   assert.match(workflow, /node-version: 22/);
+  assert.match(pagesWorkflow, /deploy-pages/);
+  assert.match(pagesWorkflow, /dist\/static/);
   assert.match(license, /MIT License/);
   assert.match(license, /Hunter Tseng/);
 });

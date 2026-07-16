@@ -1,5 +1,7 @@
 const byId = (id) => document.getElementById(id);
 const FIRST_USE_TUTORIAL_SEEN_KEY = 'sunbreak:first-use-tutorial-seen:v1';
+const FULL_LIVE_DEMO_URL = 'https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site';
+const isStaticFallbackHost = location.hostname.endsWith('github.io');
 const apiKeySession = createApiKeySession();
 const defaultProfile = {
   level: 'undergrad',
@@ -34,8 +36,18 @@ const quickTourSteps = [
 ];
 
 function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
-function renderApiKeyState() { const ready = apiKeySession.hasKey(); byId('api-key-status-button').textContent = ready ? '本分頁已連線' : 'API Key 未設定'; byId('api-key-clear').hidden = !ready; }
-function requireApiKeyForAi(status) { const apiKey = apiKeySession.getKey(); if (apiKey) return apiKey; status.textContent = '請先貼上自己的 Gemini API Key，再使用 AI 功能。'; openApiKeyDialog(); return null; }
+function renderApiKeyState() { const ready = apiKeySession.hasKey(); byId('api-key-status-button').textContent = isStaticFallbackHost ? '靜態分享版' : ready ? '本分頁已連線' : 'API Key 未設定'; byId('api-key-clear').hidden = !ready; }
+function requireApiKeyForAi(status) {
+  if (isStaticFallbackHost) {
+    status.textContent = `GitHub Pages 分享版沒有後端 API；AI 匯入與推薦請改用完整 Live Demo：${FULL_LIVE_DEMO_URL}`;
+    return null;
+  }
+  const apiKey = apiKeySession.getKey();
+  if (apiKey) return apiKey;
+  status.textContent = '請先貼上自己的 Gemini API Key，再使用 AI 功能。';
+  openApiKeyDialog();
+  return null;
+}
 function openFirstUseWelcome() {
   const dialog = byId('first-use-dialog');
   if (!dialog.open) dialog.showModal();
