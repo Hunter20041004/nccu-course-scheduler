@@ -10,7 +10,7 @@ test('live NCCU endpoint exposes the fields used by the adapter', { timeout: 20_
 });
 
 test('live NCCU 115-1 search returns a course that can become a scheduler candidate', { timeout: 20_000 }, async () => {
-  const rows = await searchNccuCourses({ term: '115-1', keyword: '人機互動' });
+  const rows = await searchNccuCourses({ term: '115-1', keyword: '703055001' });
   const candidate = nccuCourseToCandidate(
     rows.find((row) => row.courseCode === '703055001'),
   );

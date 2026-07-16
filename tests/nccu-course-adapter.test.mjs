@@ -11,7 +11,7 @@ test('builds the NCCU 115-1 keyword endpoint', () => {
   const url = buildNccuCourseUrl({ term: '115-1', keyword: '人機互動' });
   assert.equal(
     decodeURIComponent(url.pathname),
-    '/course/zh-TW/:sem=1151 :curn=人機互動 /',
+    '/course/zh-TW/:sem=1151 人機互動 /',
   );
 });
 
