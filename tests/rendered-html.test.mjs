@@ -210,6 +210,14 @@ test('renders complete course details as an inline panel', async () => {
   assert.match(html, /開啟官方課綱/);
 });
 
+test('keeps only one inline course detail panel open', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /event\.target\.closest\('\[data-details-course\]'\)/);
+  assert.match(html, /expandedCourseId = expandedCourseId === detailButton\.dataset\.detailsCourse\s*\? null\s*: detailButton\.dataset\.detailsCourse/);
+  assert.match(html, /renderCatalog\(\)/);
+});
+
 test('lets an expanded attendance control increase its candidate row height', async () => {
   const html = await (await render()).text();
 
