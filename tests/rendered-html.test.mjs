@@ -259,6 +259,14 @@ test('searches and imports official NCCU 115-1 courses without an AI key', async
   assert.match(html, /nccuCourseToCandidate/);
 });
 
+test('keeps the NCCU search form reference valid after the async request', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const searchForm = event\.currentTarget;/);
+  assert.match(html, /searchForm\.removeAttribute\('aria-busy'\)/);
+  assert.doesNotMatch(html, /event\.currentTarget\.removeAttribute\('aria-busy'\)/);
+});
+
 test('uploads a screenshot to the private import API and renders review groups', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="import-screenshot"/);

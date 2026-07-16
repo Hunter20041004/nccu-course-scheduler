@@ -999,16 +999,17 @@ function renderNccuSearchResults() {
 
 byId('nccu-course-search-form').addEventListener('submit', async (event) => {
   event.preventDefault();
+  const searchForm = event.currentTarget;
   const query = byId('nccu-course-query').value.trim();
   const status = byId('nccu-course-search-status');
-  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  const submit = searchForm.querySelector('button[type="submit"]');
   if (!query) {
     status.textContent = '請輸入課名、教師或九碼課號。';
     byId('nccu-course-query').focus();
     return;
   }
   submit.disabled = true;
-  event.currentTarget.setAttribute('aria-busy', 'true');
+  searchForm.setAttribute('aria-busy', 'true');
   status.textContent = '正在查詢政大 115-1 課程庫…';
   try {
     nccuSearchResults = await searchNccuCourses({ term: '115-1', keyword: query });
@@ -1020,7 +1021,7 @@ byId('nccu-course-search-form').addEventListener('submit', async (event) => {
     status.textContent = '政大課程資料暫時無法查詢，請稍後重試。';
   } finally {
     submit.disabled = false;
-    event.currentTarget.removeAttribute('aria-busy');
+    searchForm.removeAttribute('aria-busy');
   }
 });
 

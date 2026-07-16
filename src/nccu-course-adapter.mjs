@@ -78,7 +78,7 @@ export function candidateIncludesCourseCode(courseStore, courseCode) {
 
 export function buildNccuCourseUrl({ term, keyword }) {
   const semester = String(term).replace('-', '');
-  const query = `:sem=${semester} :curn=${String(keyword).trim()} `;
+  const query = `:sem=${semester} ${String(keyword).trim()} `;
   return new URL(`/course/zh-TW/${encodeURIComponent(query)}/`, 'https://es.nccu.edu.tw');
 }
 
