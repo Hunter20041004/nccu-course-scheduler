@@ -27,7 +27,7 @@ let quickTourIndex = 0;
 const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表', body: '左側是政大官方節次課表，會顯示週一到週日、實習保留與衝堂。' },
   { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '點候選課程可加入左側課表，列表可搜尋、篩選與檢查資格。' },
-  { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '詳細、鎖定、刪除', body: '每門課都可以看詳細、鎖定或刪除；鎖定不限於必修課。' },
+  { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '詳細、課綱、鎖定、刪除', body: '每門課都能看詳細並查看可用的官方課綱，也可以鎖定或刪除；鎖定不限於必修課。' },
   { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '有條件的課會在這裡生成可勾選條件，並說明為什麼需要。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '可以設定目標天數、固定時段或自動找可用時段。' },
   { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、目標與偏好後產生三個方案；只有按 AI 功能時才需要 API Key。' },
@@ -645,6 +645,14 @@ function renderCatalog() {
     const eligibility = evaluateEligibility(course, profile);
     const selectedNow = selected.some((item) => item.id === course.id);
     const selectedCourse = selected.find((item) => item.id === course.id);
+    const scheduleSummary = candidateScheduleSummary(selectedCourse || course, dayLabels);
+    const syllabusUrl = trustedOfficialSyllabusUrl(course);
+    const showsSyllabus = course.source !== 'manual' || course.itemType === 'course';
+    const syllabusAction = !showsSyllabus
+      ? ''
+      : syllabusUrl
+        ? `<a class="catalog-syllabus" href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">課綱</a>`
+        : '<button class="catalog-syllabus" type="button" disabled>無課綱</button>';
     const locked = lockedCourseIds.includes(course.id);
     const blocked = eligibility.status === 'blocked' || eligibility.status === 'unavailable';
     const attendance = selectedNow && course.asyncAllowed
@@ -677,11 +685,12 @@ function renderCatalog() {
       : '';
     return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
       <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked ? 'disabled' : ''}>
-        <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small></span>
+        <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small><small class="catalog-time">${escapeHtml(scheduleSummary)}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
       </button>
       <div class="course-actions">
         ${details}
+        ${syllabusAction}
         <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}" aria-label="${locked ? '解鎖' : '鎖定'} ${escapeHtml(course.title)}">${locked ? '解鎖' : '鎖定'}</button>
         <button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" aria-label="刪除候選課程 ${escapeHtml(course.title)}">刪除</button>
       </div>

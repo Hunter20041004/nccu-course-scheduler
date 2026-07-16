@@ -54,7 +54,8 @@ const script = [
   wrapModule(nccuCourseAdapter, '__nccuCourseAdapter', [
     'buildNccuCourseUrl', 'normalizeNccuRows', 'searchNccuCourses',
     'meetingsFromNccuText', 'eligibilityRuleFromOfficialRestriction',
-    'sanitizeOfficialEligibilityRules', 'nccuCourseToCandidate', 'candidateIncludesCourseCode',
+    'sanitizeOfficialEligibilityRules', 'trustedOfficialSyllabusUrl',
+    'nccuCourseToCandidate', 'candidateIncludesCourseCode',
   ]),
   wrapModule(plannerStorage, '__plannerStorage', [
     'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState', 'createStartupCatalog',

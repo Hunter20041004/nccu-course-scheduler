@@ -182,6 +182,22 @@ test('shows at least ten candidates through compact rows with progressive detail
   assert.match(html, /class="course-details-card"[\s\S]*class="course-conditions"/);
 });
 
+test('shows the NCCU schedule summary inside every candidate row', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /candidateScheduleSummary\(selectedCourse \|\| course, dayLabels\)/);
+  assert.match(html, /class="catalog-time"/);
+});
+
+test('offers safe syllabus actions only for course candidates', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /trustedOfficialSyllabusUrl\(course\)/);
+  assert.match(html, /course\.source !== 'manual' \|\| course\.itemType === 'course'/);
+  assert.match(html, /class="catalog-syllabus"[^>]*target="_blank" rel="noopener noreferrer"[^>]*>課綱<\/a>/);
+  assert.match(html, /class="catalog-syllabus"[^>]*disabled[^>]*>無課綱<\/button>/);
+});
+
 test('lets an expanded attendance control increase its candidate row height', async () => {
   const html = await (await render()).text();
 
