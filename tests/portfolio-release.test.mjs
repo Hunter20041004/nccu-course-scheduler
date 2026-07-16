@@ -36,3 +36,11 @@ test('portfolio release includes CI and a narrow MIT license', () => {
   assert.match(license, /MIT License/);
   assert.match(license, /Hunter Tseng/);
 });
+
+test('documents the empty personal workspace and official search flow', () => {
+  const readme = readText('README.md');
+
+  assert.match(readme, /新訪客.*空白/);
+  assert.match(readme, /政大 115-1.*搜尋/);
+  assert.match(readme, /同一.*網址.*瀏覽器/);
+});

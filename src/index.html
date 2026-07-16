@@ -147,7 +147,7 @@
     <section class="first-use-card">
       <p class="eyebrow">FIRST RUN · GUIDE</p>
       <h2 id="first-use-title">第一次使用 Sunbreak</h2>
-      <p>先用 1 到 2 分鐘看快速導覽，或直接開始排課；AI 功能需要你自己的 Gemini API Key。</p>
+      <p>你的候選清單與課表會從空白開始。先用 1 到 2 分鐘看快速導覽，或直接搜尋政大課程；只有 AI 功能需要你自己的 Gemini API Key。</p>
       <div class="first-use-actions">
         <button id="start-quick-tour" class="button button-primary" type="button">開始快速導覽</button>
         <button id="skip-quick-tour" class="button button-quiet" type="button">直接開始使用</button>
@@ -175,7 +175,7 @@
       <div class="tutorial-center-body">
         <section id="guide-first-run">
           <h3>第一次使用</h3>
-          <p>你可以先手動排課，不設定 API Key 也能使用候選課程、課表、條件與實習設定。快速導覽只會切換畫面與指示位置，不會改你的課表。</p>
+          <p>新訪客的候選課程與課表會從空白開始，不會看到其他人的內容。同一個網址與同一個瀏覽器會保留你的排課資料；換裝置、換瀏覽器或清除網站資料則會重新開始。不設定 API Key 也能搜尋官方課程、排課、管理條件與設定實習。快速導覽只會切換畫面與指示位置，不會改你的課表。</p>
           <button id="restart-quick-tour" class="button button-secondary" type="button">重新開始快速導覽</button>
         </section>
         <section id="guide-api-key">
@@ -190,7 +190,12 @@
         </section>
         <section id="guide-import">
           <h3>匯入候選課程</h3>
-          <p>可以用政大課程追蹤清單截圖辨識匯入，也可以手動新增。沒有開的課不會匯入；待確認課程需要自己檢查。</p>
+          <ol>
+            <li><strong>政大 115-1 課程庫：</strong>輸入課名、教師或九碼課號直接搜尋，再按「加入候選」；不需要 API Key。</li>
+            <li><strong>AI 截圖辨識：</strong>上傳政大課程追蹤清單截圖，系統會辨識並核對公開課程資料；需要自己的 Gemini API Key。</li>
+            <li><strong>手動新增：</strong>自行輸入課程、社團、課外組織、打工或私人行程。</li>
+          </ol>
+          <p>沒有開的課不會自動匯入；資料不足或資格不明的課程會標為待確認，請再查看詳細資訊。</p>
         </section>
         <section id="guide-conditions">
           <h3>管理選課條件</h3>
