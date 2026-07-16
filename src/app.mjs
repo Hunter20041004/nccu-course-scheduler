@@ -31,7 +31,7 @@ const quickTourSteps = [
   { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '有條件的課會在這裡生成可勾選條件，並說明為什麼需要。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '可以設定目標天數、固定時段或自動找可用時段。' },
   { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、目標與偏好後產生三個方案；只有按 AI 功能時才需要 API Key。' },
-  { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可以上傳課程備選清單截圖、手動新增課程，或加入社團與個人行程。' },
+  { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可以直接搜尋政大 115-1 課程庫，也能用 AI 截圖辨識、手動新增課程，或加入社團與個人行程。' },
   { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查', body: '套用方案前確認學分、衝堂、非同步課與條件是否符合。' },
 ];
 
