@@ -51,7 +51,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 main { padding-bottom: 28px; }
 .planner-status { margin: 0; }
 .button { min-height: 44px; border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 14px; cursor: pointer; font-size: .8rem; font-weight: 800; transition: transform 120ms var(--ease-out), background-color 160ms ease, border-color 160ms ease; }
-.button:active, .catalog-select:active, .catalog-delete:active, .catalog-lock:active, .async-list button:active { transform: scale(.98); }
+.button:active, .catalog-select:active, .catalog-details-trigger:active, .catalog-delete:active, .catalog-lock:active, .async-list button:active { transform: scale(.98); }
 .button-primary { border-color: var(--blue); background: var(--blue); color: #fff; }
 .button-primary:hover { background: #1736bc; }
 .button-secondary { border-color: var(--ink); background: var(--ink); color: #fff; }
@@ -140,18 +140,32 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .catalog-meta { flex: 0 0 auto; text-align: right; }
 .catalog-meta b { font-size: .68rem; }
 .course-actions { display: grid; grid-template-columns: repeat(4, 44px); gap: 0; align-items: start; }
-.course-details { position: relative; z-index: 4; }
-.course-details[open] { z-index: 12; }
-.course-details summary, .catalog-syllabus, .catalog-delete, .catalog-lock { display: grid; width: 44px; min-height: 44px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: .66rem; font-weight: 850; cursor: pointer; list-style: none; text-decoration: none; }
-.course-details summary::-webkit-details-marker { display: none; }
-.course-details summary:hover { background: var(--blue-soft); color: var(--blue); }
+.catalog-details-trigger, .catalog-syllabus, .catalog-delete, .catalog-lock { display: grid; width: 44px; min-height: 44px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: .66rem; font-weight: 850; cursor: pointer; text-decoration: none; }
+.catalog-details-trigger:hover, .catalog-details-trigger[aria-expanded="true"] { background: var(--blue-soft); color: var(--blue); }
 .catalog-syllabus { color: var(--blue); }
 .catalog-syllabus:hover:not(:disabled) { background: var(--blue-soft); }
 .catalog-syllabus:disabled { color: var(--muted); cursor: not-allowed; opacity: .42; }
-.course-details-card { position: absolute; top: 45px; right: -45px; width: min(330px, calc(100vw - 40px)); padding: 12px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); box-shadow: 0 8px 18px rgb(33 31 38 / 14%); }
-.course-details-card strong { font-size: .72rem; }
-.course-conditions, .course-sections { margin: 5px 0 8px; padding-left: 18px; color: var(--muted); font-size: .72rem; line-height: 1.4; }
-.course-details-card ul:last-child { margin-bottom: 0; }
+.course-details-panel { position: relative; grid-column: 1 / -1; display: grid; min-width: 0; gap: 12px; margin: 0 7px 10px; padding: 14px; overflow-wrap: anywhere; border: 1px solid #C8BCE0; border-left: 3px solid var(--violet); border-radius: var(--radius-control); background: linear-gradient(145deg, var(--surface), var(--violet-soft)); color: var(--ink); }
+.course-details-heading { display: flex; min-width: 0; justify-content: space-between; gap: 12px; align-items: start; }
+.course-details-heading div { min-width: 0; }
+.course-details-heading p { margin: 0 0 3px; color: var(--violet); font-size: .58rem; font-weight: 850; letter-spacing: .13em; }
+.course-details-heading h3 { font-family: Georgia, "Noto Serif TC", serif; font-size: 1.02rem; line-height: 1.25; }
+.course-details-heading > span { flex: 0 0 auto; border: 1px solid #C8BCE0; border-radius: 999px; background: var(--surface); color: var(--violet); padding: 5px 8px; font-size: .62rem; font-weight: 850; }
+.course-details-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0; }
+.course-details-facts div { min-width: 0; padding: 9px; border: 1px solid rgb(185 180 196 / 70%); border-radius: 6px; background: rgb(255 255 255 / 70%); }
+.course-details-facts dt { margin-bottom: 3px; color: var(--muted); font-size: .6rem; font-weight: 750; }
+.course-details-facts dd { margin: 0; font-size: .72rem; font-weight: 780; line-height: 1.4; }
+.course-details-sections { display: grid; gap: 10px; }
+.course-details-sections section { min-width: 0; padding-top: 10px; border-top: 1px solid rgb(185 180 196 / 75%); }
+.course-details-sections h4 { margin: 0 0 6px; font-size: .72rem; }
+.course-details-sections p { margin: 0; color: var(--muted); font-size: .7rem; line-height: 1.55; }
+.course-conditions, .course-sections { margin: 0; padding-left: 18px; color: var(--muted); font-size: .7rem; line-height: 1.55; }
+.course-conditions li + li, .course-sections li + li { margin-top: 4px; }
+.course-details-footer { padding-top: 2px; }
+.course-details-footer a, .course-details-footer span { display: inline-flex; min-height: 36px; align-items: center; border-radius: 6px; font-size: .68rem; font-weight: 850; }
+.course-details-footer a { border: 1px solid var(--blue); color: var(--blue); padding: 0 10px; text-decoration: none; }
+.course-details-footer a:hover { background: var(--blue-soft); }
+.course-details-footer span { color: var(--muted); }
 .catalog-delete { color: var(--danger); }
 .catalog-delete:hover:not(:disabled) { background: var(--danger-soft); }
 .catalog-lock:hover:not(:disabled), .catalog-lock.is-active { background: var(--violet-soft); color: var(--violet); }
@@ -302,7 +316,8 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
   .profile-helper, .internship-fixed-days, .internship-status, .form-wide, .course-option-controls p { grid-column: 1; }
   .section-heading h2 { font-size: 1.2rem; }
   .course-actions { grid-template-columns: repeat(4, 44px); }
-  .course-details summary, .catalog-syllabus, .catalog-delete, .catalog-lock { width: 44px; }
+  .catalog-details-trigger, .catalog-syllabus, .catalog-delete, .catalog-lock { width: 44px; }
+  .course-details-panel { margin-inline: 3px; padding: 12px; }
   .first-use-actions { display: grid; }
   .first-use-actions .button { width: 100%; }
   .tutorial-center { width: calc(100% - 12px); max-height: calc(100dvh - 12px); }

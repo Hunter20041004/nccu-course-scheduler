@@ -177,9 +177,9 @@ test('shows at least ten candidates through compact rows with progressive detail
 
   assert.match(html, /--catalog-row-height:\s*48px/);
   assert.match(html, /\.catalog-course\s*\{[^}]*min-height:\s*var\(--catalog-row-height\)/s);
-  assert.match(html, /class="course-details"/);
-  assert.match(html, /<summary[^>]*>詳細<\/summary>/);
-  assert.match(html, /class="course-details-card"[\s\S]*class="course-conditions"/);
+  assert.match(html, /class="catalog-details-trigger"/);
+  assert.match(html, /aria-expanded="\$\{expanded\}"/);
+  assert.match(html, /class="course-details-panel"[\s\S]*class="course-conditions"/);
 });
 
 test('shows the NCCU schedule summary inside every candidate row', async () => {
@@ -216,6 +216,15 @@ test('keeps only one inline course detail panel open', async () => {
   assert.match(html, /event\.target\.closest\('\[data-details-course\]'\)/);
   assert.match(html, /expandedCourseId = expandedCourseId === detailButton\.dataset\.detailsCourse\s*\? null\s*: detailButton\.dataset\.detailsCourse/);
   assert.match(html, /renderCatalog\(\)/);
+});
+
+test('keeps complete course details in flow without clipping', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.course-details-panel\s*\{[^}]*grid-column:\s*1 \/ -1/s);
+  assert.match(html, /\.course-details-panel\s*\{[^}]*position:\s*relative/s);
+  assert.doesNotMatch(html, /\.course-details-card\s*\{[^}]*position:\s*absolute/s);
+  assert.match(html, /\.course-details-panel[^}]*overflow-wrap:\s*anywhere/s);
 });
 
 test('lets an expanded attendance control increase its candidate row height', async () => {
@@ -583,8 +592,8 @@ test('uses plain-language eligibility labels in compact course rows', async () =
 
 test('exposes the actual eligibility reasons in every non-eligible course detail', async () => {
   const html = await (await render()).text();
-  assert.match(html, /eligibility\.status !== 'eligible'/);
-  assert.match(html, /<strong>資格說明<\/strong>/);
+  assert.match(html, /eligibility\.reasons\.length/);
+  assert.match(html, /<h4>資格說明<\/h4>/);
   assert.match(html, /eligibility\.reasons\.map\(\(reason\)/);
 });
 
@@ -598,7 +607,7 @@ test('contains the wide NCCU timetable inside the mobile schedule panel', async 
 test('keeps compact course detail disclosure targets at least 44 pixels tall', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /\.course-details summary[^}]*\{[^}]*min-height:\s*44px/s);
+  assert.match(html, /\.catalog-details-trigger[^}]*\{[^}]*min-height:\s*44px/s);
 });
 
 test('keeps tutorial UI usable on compact screens', async () => {
