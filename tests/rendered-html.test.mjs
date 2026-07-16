@@ -81,15 +81,43 @@ test('shows a first-use tutorial welcome instead of auto-opening API setup', asy
   assert.doesNotMatch(html, /catch \{ openApiKeyDialog\(\); \}/);
 });
 
-test('keeps a permanent tutorial center with detailed first-run help', async () => {
+test('teaches the complete current scheduling workflow in nine task-based chapters', async () => {
   const html = await (await render()).text();
+  const sectionIds = [
+    'guide-first-run',
+    'guide-import',
+    'guide-details',
+    'guide-conditions',
+    'guide-schedule',
+    'guide-attendance',
+    'guide-internship',
+    'guide-ai',
+    'guide-export-faq',
+  ];
 
   assert.match(html, /id="open-tutorial-center"[^>]*>使用教學<\/button>/);
   assert.match(html, /id="tutorial-center"[^>]*aria-labelledby="tutorial-center-title"/);
   assert.match(html, /id="tutorial-center-close"/);
   assert.match(html, /id="restart-quick-tour"/);
-  for (const label of ['第一次使用', '取得 Gemini API Key', '匯入候選課程', '管理選課條件', '排課操作', '實習與個人行程', 'AI 推薦方案', '常見問題']) {
-    assert.match(html, new RegExp(label));
+  for (const id of sectionIds) {
+    assert.match(html, new RegExp(`id="${id}"`));
+  }
+  for (const copy of [
+    '政大 115-1 課程庫',
+    'AI 截圖辨識',
+    '手動新增',
+    '課程時間',
+    '完整詳細資料',
+    '官方課綱',
+    '條件不符合，請看詳細。',
+    '清空目前課表',
+    '清空候選課程',
+    '實體／同步／非同步',
+    '固定實習時段',
+    '三個推薦方案',
+    '匯出手機桌布',
+  ]) {
+    assert.match(html, new RegExp(copy));
   }
   assert.match(html, /API Key 等同使用者自己的額度，請不要傳給別人/);
   assert.match(html, /function openTutorialCenter\(\)/);
