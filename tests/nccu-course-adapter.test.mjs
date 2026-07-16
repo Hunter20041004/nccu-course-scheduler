@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildNccuCourseUrl, searchNccuCourses } from '../src/nccu-course-adapter.mjs';
+import {
+  buildNccuCourseUrl,
+  candidateIncludesCourseCode,
+  nccuCourseToCandidate,
+  searchNccuCourses,
+} from '../src/nccu-course-adapter.mjs';
 
 test('builds the NCCU 115-1 keyword endpoint', () => {
   const url = buildNccuCourseUrl({ term: '115-1', keyword: '人機互動' });
@@ -21,4 +26,31 @@ test('normalizes the public NCCU course response', async () => {
     sourceUrl: 'https://newdoc.nccu.edu.tw/example.html',
     restrictionText: '僅限資訊系及雙主修學生修讀。；限本系學生',
   }]);
+});
+
+test('converts official periods and restrictions into a schedulable conditional candidate', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '509041001',
+    title: '德國文學概論',
+    teacher: '蔡莫妮',
+    credits: 2,
+    scheduleText: '四78',
+    restrictionText: '僅限歐文系及雙主修學生修讀。',
+    available: true,
+    sourceUrl: 'https://newdoc.nccu.edu.tw/example.html',
+  });
+
+  assert.equal(candidate.sectionCode, '509041001');
+  assert.deepEqual(
+    candidate.meetings.map(({ day, label }) => ({ day, label })),
+    [{ day: 4, label: '四78' }],
+  );
+  assert.equal(candidate.eligibilityRules[0].conditionId, 'official-restriction:509041001');
+});
+
+test('detects an existing NCCU section code regardless of import source', () => {
+  assert.equal(candidateIncludesCourseCode([
+    { id: 'hci', sectionCode: '703055001', source: 'built-in' },
+  ], '703055001'), true);
+  assert.equal(candidateIncludesCourseCode([], '703055001'), false);
 });
