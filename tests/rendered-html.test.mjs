@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 async function render() {
   const workerUrl = new URL('../dist/server/index.js', import.meta.url);
@@ -20,6 +21,23 @@ test('serves the private NCCU course scheduler with schedule before catalog', as
   assert.match(html, /data-testid="course-catalog"/);
   assert.ok(html.indexOf('data-testid="schedule-panel"') < html.indexOf('data-testid="course-catalog"'));
   assert.match(html, /23 門候選課程/);
+});
+
+test('build emits a GitHub Pages static fallback', () => {
+  const html = readFileSync(new URL('../dist/static/index.html', import.meta.url), 'utf8');
+
+  assert.match(html, /<title>政大排課｜實習友善課表規劃<\/title>/);
+  assert.match(html, /id="schedule-grid"/);
+  assert.match(html, /id="export-wallpaper"/);
+  assert.match(html, /第一次使用/);
+});
+
+test('static fallback warns that AI features require the full live demo', () => {
+  const html = readFileSync(new URL('../dist/static/index.html', import.meta.url), 'utf8');
+
+  assert.match(html, /GitHub Pages 分享版可測試一般排課與桌布匯出/);
+  assert.match(html, /AI 匯入與推薦請改用完整 Live Demo/);
+  assert.match(html, /isStaticFallbackHost/);
 });
 
 test('renders secure Gemini API key setup without first-load auto prompt', async () => {

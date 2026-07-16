@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml)
 
-**[Live Demo](https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site)**
+**[Share-safe Demo](https://hunter20041004.github.io/nccu-course-scheduler/)**
+· **[Live Demo](https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site)**
 
 政大學生的實習友善排課系統。它把候選課程、政大節次、課程資格、實習時段、非同步課程、個人行程與 AI 推薦整合在同一個課表工作台，讓使用者先檢查衝堂與條件，再做選課決策。
 
@@ -24,7 +25,7 @@ The project is intentionally privacy-aware: users bring their own Gemini API key
 
 ## 60 秒 Demo
 
-1. 打開 Live Demo，右側「候選課程」點選課程，加入左側政大方格式課表。
+1. 打開 Share-safe Demo，右側「候選課程」點選課程，加入左側政大方格式課表。
 2. 切到「選課條件」，勾選自己符合的系級、學程、雙主修或先修限制。
 3. 在「實習設定」調整希望保留的實習天數與時段，觀察左側保留區塊。
 4. 在「匯入／新增」貼上自己的 Gemini API Key，或手動新增課外組織、社團與個人行程。
@@ -95,7 +96,11 @@ npm run test:contract:groq
 
 ## 部署
 
-本作品集版本部署於 OpenAI Sites：
+GitHub Pages 靜態版適合傳給朋友測試一般排課流程，較不容易被 Instagram／LINE 內建瀏覽器攔截：
+
+[https://hunter20041004.github.io/nccu-course-scheduler/](https://hunter20041004.github.io/nccu-course-scheduler/)
+
+完整 Worker demo 部署於 OpenAI Sites：
 
 [https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site](https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site)
 
@@ -105,6 +110,7 @@ npm run test:contract:groq
 
 - 政大課程資料、模型可用性與免費額度可能變動；Live Demo 反映部署時的公開課程資料與目前可用模型。
 - AI 推薦是決策輔助，不保證符合每位學生的畢業門檻、學分抵免或系所人工審核。
+- GitHub Pages 版是靜態備用網址，適合測試排課、條件、實習設定與桌布匯出；需要 Worker API 的 AI 匯入／推薦功能請使用 Live Demo 或改用自有後端部署。
 - 使用者仍應以政大正式選課系統與系所公告作為最終依據。
 
 ## License
