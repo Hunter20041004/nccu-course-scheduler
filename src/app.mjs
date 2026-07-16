@@ -380,11 +380,79 @@ function drawWallpaperStat(ctx, label, value, x, y, width) {
   ctx.fillText(String(value), x + 22, y + 72);
 }
 
+const dreamcoreWallpaper = {
+  paper: '#F9F7FB',
+  mistLavender: '#ECE7F7',
+  dawnViolet: '#D7CCF0',
+  sunHalo: '#F8DFA8',
+  warmCloud: '#FFF8EA',
+  glass: 'rgba(255, 255, 255, 0.78)',
+  glassLine: 'rgba(110, 70, 184, 0.16)',
+  mistLine: 'rgba(110, 70, 184, 0.10)',
+  dreamInk: '#211F26',
+  dreamMuted: '#696371',
+};
+
+function drawDreamcoreOrb(ctx, x, y, radius, colorStop, transparentStop) {
+  const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
+  gradient.addColorStop(0, colorStop);
+  gradient.addColorStop(1, transparentStop);
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawDreamcoreBackdrop(ctx, canvas, colors, safeX, safeTop) {
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, colors.paper);
+  gradient.addColorStop(0.48, colors.warmCloud);
+  gradient.addColorStop(1, colors.mistLavender);
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.save();
+  ctx.globalCompositeOperation = 'source-over';
+  drawDreamcoreOrb(ctx, canvas.width - safeX - 126, safeTop - 26, 180, 'rgba(248, 223, 168, 0.48)', 'rgba(248, 223, 168, 0)');
+  drawDreamcoreOrb(ctx, canvas.width - safeX - 266, safeTop + 18, 150, 'rgba(255, 255, 255, 0.68)', 'rgba(255, 255, 255, 0)');
+  drawDreamcoreOrb(ctx, safeX + 90, canvas.height - 420, 260, 'rgba(110, 70, 184, 0.10)', 'rgba(110, 70, 184, 0)');
+  drawDreamcoreOrb(ctx, canvas.width - safeX - 40, canvas.height - 320, 220, 'rgba(36, 70, 216, 0.08)', 'rgba(36, 70, 216, 0)');
+  ctx.restore();
+}
+
+function drawGlassPanel(ctx, x, y, width, height, radius, colors) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(110, 70, 184, 0.10)';
+  ctx.shadowBlur = 34;
+  ctx.shadowOffsetY = 18;
+  fillRoundRect(ctx, x, y, width, height, radius, colors.glass, colors.glassLine);
+  ctx.restore();
+  ctx.save();
+  ctx.globalAlpha = 0.54;
+  const shine = ctx.createLinearGradient(x, y, x + width, y + height);
+  shine.addColorStop(0, 'rgba(255, 255, 255, 0.74)');
+  shine.addColorStop(0.42, 'rgba(255, 255, 255, 0.16)');
+  shine.addColorStop(1, 'rgba(255, 255, 255, 0)');
+  fillRoundRect(ctx, x + 1, y + 1, width - 2, height - 2, radius - 1, shine);
+  ctx.restore();
+}
+
+function drawMistDivider(ctx, x1, y1, x2, y2, colors) {
+  ctx.save();
+  ctx.strokeStyle = colors.mistLine;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function wallpaperCourseColor(course, conflictingIds) {
-  if (conflictingIds.has(course.id)) return { fill: '#FCECEA', stroke: '#B43830', text: '#211F26' };
-  if (course.itemType === 'club') return { fill: '#FFF4D8', stroke: '#C88B2E', text: '#211F26' };
-  if (course.itemType === 'personal') return { fill: '#EEF1FF', stroke: '#2446D8', text: '#211F26' };
-  return { fill: '#F2ECFA', stroke: '#6E46B8', text: '#211F26' };
+  if (conflictingIds.has(course.id)) return { fill: 'rgba(252, 236, 234, 0.86)', stroke: 'rgba(180, 56, 48, 0.58)', text: '#211F26' };
+  if (course.itemType === 'club') return { fill: 'rgba(255, 244, 216, 0.84)', stroke: 'rgba(200, 139, 46, 0.48)', text: '#211F26' };
+  if (course.itemType === 'personal') return { fill: 'rgba(238, 241, 255, 0.82)', stroke: 'rgba(36, 70, 216, 0.44)', text: '#211F26' };
+  return { fill: 'rgba(242, 236, 250, 0.84)', stroke: 'rgba(110, 70, 184, 0.46)', text: '#211F26' };
 }
 
 function renderScheduleWallpaper(canvas) {
@@ -398,6 +466,7 @@ function renderScheduleWallpaper(canvas) {
   const safeBottom = 176;
   const contentWidth = canvas.width - (safeX * 2);
   const colors = {
+    ...dreamcoreWallpaper,
     canvas: '#F7F6FA',
     surface: '#FFFFFF',
     ink: '#211F26',
@@ -408,21 +477,7 @@ function renderScheduleWallpaper(canvas) {
     sun: '#E7A43A',
     sunSoft: '#FFF4D8',
   };
-  ctx.fillStyle = colors.canvas;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.globalAlpha = 0.6;
-  ctx.fillStyle = colors.sun;
-  ctx.beginPath();
-  ctx.arc(canvas.width - safeX - 96, safeTop - 20, 96, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 0.42;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.beginPath();
-  ctx.arc(canvas.width - safeX - 170, safeTop + 8, 72, 0, Math.PI * 2);
-  ctx.arc(canvas.width - safeX - 246, safeTop + 18, 48, 0, Math.PI * 2);
-  ctx.arc(canvas.width - safeX - 212, safeTop - 32, 58, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.globalAlpha = 1;
+  drawDreamcoreBackdrop(ctx, canvas, colors, safeX, safeTop);
 
   ctx.fillStyle = colors.violet;
   ctx.font = '800 22px "Noto Sans TC", sans-serif';
@@ -432,6 +487,9 @@ function renderScheduleWallpaper(canvas) {
   ctx.fillStyle = colors.ink;
   ctx.font = '800 58px Georgia, "Noto Serif TC", serif';
   ctx.fillText('我的課表', safeX, safeTop + 76);
+  ctx.fillStyle = colors.dreamMuted;
+  ctx.font = '700 19px "Noto Sans TC", sans-serif';
+  ctx.fillText('雨後日光 · 輕夢核課表', safeX, safeTop + 112);
 
   const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
   const reminders = collectScheduleReminders();
@@ -444,10 +502,10 @@ function renderScheduleWallpaper(canvas) {
   const periodHeight = 72;
   const gridWidth = periodWidth + (dayWidth * 7);
   const gridHeight = headerHeight + (periodHeight * NCCU_PERIODS.length);
-  fillRoundRect(ctx, gridX, gridY, gridWidth, gridHeight, 28, colors.surface, colors.line);
+  drawGlassPanel(ctx, gridX, gridY, gridWidth, gridHeight, 30, colors);
 
-  ctx.fillStyle = '#FBFAFC';
-  fillRoundRect(ctx, gridX + 10, gridY + 10, gridWidth - 20, headerHeight - 10, 18, '#FBFAFC');
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.58)';
+  fillRoundRect(ctx, gridX + 10, gridY + 10, gridWidth - 20, headerHeight - 10, 18, 'rgba(255, 255, 255, 0.58)');
   ctx.fillStyle = colors.muted;
   ctx.font = '800 24px "Noto Sans TC", sans-serif';
   ctx.textAlign = 'center';
@@ -459,10 +517,7 @@ function renderScheduleWallpaper(canvas) {
   ctx.lineWidth = 1;
   NCCU_PERIODS.forEach((period, index) => {
     const y = gridY + headerHeight + (index * periodHeight);
-    ctx.beginPath();
-    ctx.moveTo(gridX + 14, y);
-    ctx.lineTo(gridX + gridWidth - 14, y);
-    ctx.stroke();
+    drawMistDivider(ctx, gridX + 14, y, gridX + gridWidth - 14, y, colors);
     ctx.fillStyle = period.special ? colors.violet : colors.ink;
     ctx.font = '800 26px "Noto Sans TC", sans-serif';
     ctx.fillText(period.code, gridX + 39, y + 38);
@@ -472,10 +527,7 @@ function renderScheduleWallpaper(canvas) {
   });
   for (let day = 0; day <= 7; day += 1) {
     const x = gridX + periodWidth + (day * dayWidth);
-    ctx.beginPath();
-    ctx.moveTo(x, gridY + 14);
-    ctx.lineTo(x, gridY + gridHeight - 14);
-    ctx.stroke();
+    drawMistDivider(ctx, x, gridY + 14, x, gridY + gridHeight - 14, colors);
   }
 
   const conflicts = findConflicts(selected);
@@ -487,7 +539,7 @@ function renderScheduleWallpaper(canvas) {
     const x = gridX + periodWidth + ((window.day - 1) * dayWidth) + 6;
     const y = gridY + headerHeight + ((placement.rowStart - 2) * periodHeight) + 4;
     const height = Math.max(44, (placement.rowSpan * periodHeight) - 8);
-    fillRoundRect(ctx, x, y, dayWidth - 12, height, 14, conflictedWindows.has(window) ? '#FCECEA' : '#EEF1FF', conflictedWindows.has(window) ? '#B43830' : '#2446D8');
+    fillRoundRect(ctx, x, y, dayWidth - 12, height, 16, conflictedWindows.has(window) ? 'rgba(252, 236, 234, 0.82)' : 'rgba(238, 241, 255, 0.76)', conflictedWindows.has(window) ? 'rgba(180, 56, 48, 0.58)' : 'rgba(36, 70, 216, 0.42)');
     ctx.fillStyle = conflictedWindows.has(window) ? '#B43830' : '#1736A3';
     ctx.textAlign = 'left';
     ctx.font = '800 19px "Noto Sans TC", sans-serif';
@@ -505,7 +557,12 @@ function renderScheduleWallpaper(canvas) {
       const height = Math.max(44, (placement.rowSpan * periodHeight) - 8);
       const color = wallpaperCourseColor(course, conflictingIds);
       ctx.lineWidth = conflictingIds.has(course.id) ? 4 : 2;
-      fillRoundRect(ctx, x, y, dayWidth - 12, height, 14, color.fill, color.stroke);
+      ctx.save();
+      ctx.shadowColor = 'rgba(110, 70, 184, 0.10)';
+      ctx.shadowBlur = 16;
+      ctx.shadowOffsetY = 8;
+      fillRoundRect(ctx, x, y, dayWidth - 12, height, 16, color.fill, color.stroke);
+      ctx.restore();
       ctx.fillStyle = color.text;
       ctx.textAlign = 'left';
       ctx.font = '800 19px "Noto Sans TC", sans-serif';
@@ -521,8 +578,8 @@ function renderScheduleWallpaper(canvas) {
   const infoHeight = Math.min(460, canvas.height - safeBottom - infoY);
   const gap = 28;
   const cardWidth = (contentWidth - gap) / 2;
-  fillRoundRect(ctx, safeX, infoY, cardWidth, infoHeight, 28, colors.surface, colors.line);
-  fillRoundRect(ctx, safeX + cardWidth + gap, infoY, cardWidth, infoHeight, 28, colors.surface, colors.line);
+  drawGlassPanel(ctx, safeX, infoY, cardWidth, infoHeight, 28, colors);
+  drawGlassPanel(ctx, safeX + cardWidth + gap, infoY, cardWidth, infoHeight, 28, colors);
   ctx.textAlign = 'left';
   ctx.fillStyle = colors.ink;
   ctx.font = '800 34px Georgia, "Noto Serif TC", serif';
