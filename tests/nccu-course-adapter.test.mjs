@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildNccuCourseUrl,
   candidateIncludesCourseCode,
+  eligibilityRuleFromOfficialRestriction,
   nccuCourseToCandidate,
   searchNccuCourses,
 } from '../src/nccu-course-adapter.mjs';
@@ -53,4 +54,11 @@ test('detects an existing NCCU section code regardless of import source', () => 
     { id: 'hci', sectionCode: '703055001', source: 'built-in' },
   ], '703055001'), true);
   assert.equal(candidateIncludesCourseCode([], '703055001'), false);
+});
+
+test('keeps expanded-minor course notes informational', () => {
+  assert.deepEqual(eligibilityRuleFromOfficialRestriction({
+    courseCode: '010056001',
+    restrictionText: '日文系擴大輔系課程',
+  }), []);
 });

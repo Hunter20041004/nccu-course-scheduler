@@ -27,7 +27,8 @@ export function meetingsFromNccuText(scheduleText) {
 
 export function eligibilityRuleFromOfficialRestriction(course) {
   const restriction = String(course.restrictionText || '').trim();
-  if (!restriction || !/(僅限|(^|[；。])限|須|需|先修|雙主修|輔系|不得|優先)/.test(restriction)) return [];
+  const hasExplicitRestriction = /(僅限|(^|[；。])限|(?<![無不])(?:須|需)|先修|不得)/.test(restriction);
+  if (!restriction || !hasExplicitRestriction) return [];
   const audience = restriction.match(/^僅限(.+?)學生修讀[。.]?$/)?.[1];
   const prerequisiteLanguage = restriction.match(/先修習[^。；]{0,30}(日文|英文|德文|法文)/)?.[1];
   const conditionLabel = prerequisiteLanguage && restriction.includes('或')
