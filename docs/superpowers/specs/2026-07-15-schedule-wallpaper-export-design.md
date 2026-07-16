@@ -20,7 +20,14 @@ Add a one-click export that turns the current completed timetable into a polishe
 
 ## Visual direction
 
-Use the existing Sunbreak / 雨後日光 palette: warm white canvas, ink text, muted gray, sun gold, blue, and violet. The image should feel like a calm desk card or lock-screen planner: readable, high-contrast, not decorative-heavy.
+Use the existing Sunbreak / 雨後日光 palette with a light dreamcore treatment: warm white canvas, mist lavender, soft sun halo, ink text, muted gray, blue, and violet. The image should feel like a calm lock-screen planner floating in a gentle weather-card scene.
+
+The dreamcore treatment must remain functional:
+
+- keep all course titles, periods, and course codes readable;
+- use soft gradients, glass panels, mist dividers, and subtle glow instead of heavy decoration;
+- avoid mint green and bright sky blue;
+- keep the timetable, asynchronous/time-undetermined card, and reminder card as the visual priority.
 
 ## Technical approach
 

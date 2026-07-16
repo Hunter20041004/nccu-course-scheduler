@@ -345,6 +345,21 @@ test('exports the current timetable as a phone wallpaper PNG', async () => {
   assert.match(html, /手機桌布已匯出/);
 });
 
+test('renders the exported wallpaper with a readable light-dreamcore visual system', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const dreamcoreWallpaper = \{/);
+  assert.match(html, /mistLavender: '#ECE7F7'/);
+  assert.match(html, /sunHalo: '#F8DFA8'/);
+  assert.match(html, /function drawDreamcoreBackdrop\(ctx, canvas, colors, safeX, safeTop\)/);
+  assert.match(html, /function drawGlassPanel\(ctx, x, y, width, height, radius, colors\)/);
+  assert.match(html, /function drawMistDivider\(ctx, x1, y1, x2, y2, colors\)/);
+  assert.match(html, /shadowBlur = 34/);
+  assert.match(html, /rgba\(110, 70, 184, 0\.10\)/);
+  assert.match(html, /rgba\(248, 223, 168, 0\.48\)/);
+  assert.match(html, /夢核/);
+});
+
 test('lets the student lock and unlock selected core courses', async () => {
   const html = await (await render()).text();
   assert.match(html, /data-lock-course/);
