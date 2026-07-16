@@ -129,6 +129,10 @@ export function clearPlannerSelection() {
   return { selected: [], lockedCourseIds: [], courseOptions: {} };
 }
 
+export function clearCandidateCatalog() {
+  return { courseStore: [], selected: [], lockedCourseIds: [], courseOptions: {} };
+}
+
 export function toggleCourseLock(lockedCourseIds, courseId) {
   return lockedCourseIds.includes(courseId)
     ? lockedCourseIds.filter((id) => id !== courseId)

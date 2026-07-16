@@ -163,6 +163,15 @@ test('deletes an optional candidate after confirmation and announces the result'
   assert.match(html, /id="catalog-status"[^>]*aria-live="polite"/);
 });
 
+test('offers a destructive bulk candidate clear without restoring author courses', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="clear-candidates"[^>]*>清空候選課程<\/button>/);
+  assert.match(html, /clearCandidateCatalog\(\)/);
+  assert.match(html, /確定清空全部候選課程/);
+  assert.doesNotMatch(html, /恢復建議方案/);
+});
+
 test('shows at least ten candidates through compact rows with progressive details', async () => {
   const html = await (await render()).text();
 
