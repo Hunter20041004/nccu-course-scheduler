@@ -20,7 +20,16 @@ test('serves the private NCCU course scheduler with schedule before catalog', as
   assert.match(html, /data-testid="schedule-panel"/);
   assert.match(html, /data-testid="course-catalog"/);
   assert.ok(html.indexOf('data-testid="schedule-panel"') < html.indexOf('data-testid="course-catalog"'));
-  assert.match(html, /23 門候選課程/);
+  assert.match(html, /候選課程/);
+});
+
+test('starts a new browser with an empty personal workspace', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /let courseStore = \[\];/);
+  assert.match(html, /let selected = \[\];/);
+  assert.match(html, /createStartupCatalog\(saved, courses\)/);
+  assert.doesNotMatch(html, /let selected = applyPreset/);
 });
 
 test('build emits a GitHub Pages static fallback', () => {
