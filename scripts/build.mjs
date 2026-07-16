@@ -49,7 +49,7 @@ const script = [
     'clearPlannerSelection', 'clearCandidateCatalog', 'toggleCourseLock', 'lockCandidateCourse',
     'toggleSelectableCourse', 'applyPreset', 'resolveCourseOption', 'applyCourseOption',
     'restoreOfficialCatalog', 'deleteCandidateCourse', 'buildCandidateCatalog',
-    'validateManualCourse', 'createManualCourse',
+    'validateManualCourse', 'createManualCourse', 'candidateScheduleSummary',
   ]),
   wrapModule(nccuCourseAdapter, '__nccuCourseAdapter', [
     'buildNccuCourseUrl', 'normalizeNccuRows', 'searchNccuCourses',

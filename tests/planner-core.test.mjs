@@ -9,6 +9,26 @@ const profile = {
   prerequisites: [],
 };
 
+test('summarizes one or more NCCU candidate meetings', () => {
+  const labels = ['', '週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+
+  assert.equal(core.candidateScheduleSummary({
+    meetings: [
+      { day: 4, start: 610, end: 720 },
+      { day: 5, start: 850, end: 960 },
+    ],
+  }, labels), '週四 34・週五 56');
+});
+
+test('distinguishes asynchronous, multi-option, and undecided candidate times', () => {
+  const labels = ['', '週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+
+  assert.equal(core.candidateScheduleSummary({ attendance: 'async' }, labels), '非同步／時間彈性');
+  assert.equal(core.candidateScheduleSummary({ asyncAllowed: true }, labels), '非同步／時間彈性');
+  assert.equal(core.candidateScheduleSummary({ variants: [{ id: 'a' }, { id: 'b' }] }, labels), '多時段可選');
+  assert.equal(core.candidateScheduleSummary({}, labels), '時間未定');
+});
+
 test('marks a program-only junior course eligible for a matching year-three student', () => {
   assert.equal(typeof core.evaluateEligibility, 'function');
   assert.deepEqual(

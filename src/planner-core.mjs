@@ -68,6 +68,21 @@ function physicalMeetings(course) {
   return course.schedule ? [course.schedule] : [];
 }
 
+export function candidateScheduleSummary(course = {}, labels = []) {
+  if (course.attendance === 'async') return '非同步／時間彈性';
+  const meetings = course.meetings?.length
+    ? course.meetings
+    : course.schedule ? [course.schedule] : [];
+  const summaries = [...new Set(
+    meetings.map((meeting) => formatNccuSchedule(meeting, labels)),
+  )];
+  if (summaries.length) return summaries.join('・');
+  if (course.asyncAllowed) return '非同步／時間彈性';
+  if (course.selectedVariantId) return '時間未定';
+  if (course.variants?.length > 1) return '多時段可選';
+  return '時間未定';
+}
+
 export function findConflicts(selected) {
   const conflicts = [];
   for (let index = 0; index < selected.length; index += 1) {
