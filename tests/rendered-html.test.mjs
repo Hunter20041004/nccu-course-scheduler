@@ -137,6 +137,31 @@ test('marks quick tour skipped or completed without changing planner data', asyn
   assert.doesNotMatch(html, /startQuickTour[\s\S]{0,1200}courseStore =/);
 });
 
+test('aligns the first-use message and eight-step tour with the current workflow', async () => {
+  const html = await (await render()).text();
+
+  for (const copy of [
+    '搜尋或匯入課程',
+    '加入候選清單',
+    '檢查時間與修課條件',
+    '加入課表並處理衝堂',
+  ]) {
+    assert.match(html, new RegExp(copy));
+  }
+  const stepBlock = html.match(/const quickTourSteps = \[([\s\S]*?)\n\];/)?.[1] ?? '';
+  assert.equal((stepBlock.match(/target:/g) ?? []).length, 8);
+  for (const copy of [
+    '課名、教師、課號、學分、時間與資格狀態',
+    '完整詳細資料',
+    '實體／同步／非同步',
+    '最低學分',
+    '手動新增課程',
+    '匯出手機桌布',
+  ]) {
+    assert.match(stepBlock, new RegExp(copy));
+  }
+});
+
 test('defines a native eight-step quick tour that can switch tabs without mutating data', async () => {
   const html = await (await render()).text();
 
