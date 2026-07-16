@@ -1,8 +1,79 @@
+import { NCCU_PERIODS } from './nccu-periods.mjs';
+
 export class NccuLookupError extends Error {
   constructor(message = '政大課程資料暫時無法查詢。') {
     super(message);
     this.name = 'NccuLookupError';
   }
+}
+
+export function meetingsFromNccuText(scheduleText) {
+  const dayNumbers = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 7 };
+  const meetings = [];
+  for (const match of String(scheduleText || '').matchAll(/([一二三四五六日])([ABCD12345678EFGH]+)/g)) {
+    const slots = [...match[2]]
+      .map((code) => NCCU_PERIODS.find((period) => period.code === code))
+      .filter(Boolean);
+    if (!slots.length) continue;
+    meetings.push({
+      day: dayNumbers[match[1]],
+      start: Math.min(...slots.map((slot) => slot.start)),
+      end: Math.max(...slots.map((slot) => slot.end)),
+      label: `${match[1]}${match[2]}`,
+    });
+  }
+  return meetings;
+}
+
+export function eligibilityRuleFromOfficialRestriction(course) {
+  const restriction = String(course.restrictionText || '').trim();
+  if (!restriction || !/(僅限|(^|[；。])限|須|需|先修|雙主修|輔系|不得|優先)/.test(restriction)) return [];
+  const audience = restriction.match(/^僅限(.+?)學生修讀[。.]?$/)?.[1];
+  const prerequisiteLanguage = restriction.match(/先修習[^。；]{0,30}(日文|英文|德文|法文)/)?.[1];
+  const conditionLabel = prerequisiteLanguage && restriction.includes('或')
+    ? `我符合本課程任一項${prerequisiteLanguage}先修資格`
+    : audience
+      ? `我是${audience.replace('及雙主修', '或雙主修')}學生`
+      : `我符合：${restriction.replace(/[。.]$/, '')}`;
+  return [{
+    conditionId: `official-restriction:${course.courseCode}`,
+    conditionLabel,
+    conditionDescription: `政大官方備註：${restriction}`,
+    enforcement: 'required',
+    rationale: restriction,
+  }];
+}
+
+export function nccuCourseToCandidate(course) {
+  const meetings = meetingsFromNccuText(course.scheduleText);
+  const eligibilityRules = eligibilityRuleFromOfficialRestriction(course);
+  return {
+    id: `ai-${course.courseCode}`,
+    title: course.title,
+    credits: course.credits,
+    sectionCode: course.courseCode,
+    teacher: course.teacher,
+    available: true,
+    required: false,
+    schedule: meetings[0] || null,
+    meetings,
+    asyncAllowed: false,
+    source: 'nccu-verified-import',
+    sourceUrl: course.sourceUrl || '',
+    conditions: [
+      '由政大 115-1 公開課程資料匯入',
+      ...(course.restrictionText ? [course.restrictionText] : []),
+    ],
+    eligibilityRules,
+    sections: [`${course.courseCode}｜${course.scheduleText || '時間未定'}`],
+  };
+}
+
+export function candidateIncludesCourseCode(courseStore, courseCode) {
+  const normalized = String(courseCode || '').trim();
+  return Boolean(normalized) && courseStore.some(
+    (course) => String(course.sectionCode || '').trim() === normalized,
+  );
 }
 
 export function buildNccuCourseUrl({ term, keyword }) {
