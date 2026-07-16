@@ -83,9 +83,12 @@ test('maps invalid and restricted Gemini keys to distinct safe errors', async ()
 });
 
 test('maps aborted Gemini requests to a safe timeout', async () => {
-  const fetchImpl = async (_url, { signal }) => new Promise((resolve, reject) => {
-    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-  });
+  const fetchImpl = async (_url, { signal }) => {
+    assert.equal(signal instanceof AbortSignal, true);
+    const error = new Error('The operation timed out.');
+    error.name = 'TimeoutError';
+    throw error;
+  };
   await assert.rejects(requestGeminiJson({
     apiKey: 'test-key', model: GEMINI_RECOMMENDATION_MODEL,
     messages: [], fetchImpl, timeoutMs: 1,

@@ -104,9 +104,12 @@ test('reports repeated Groq JSON generation failures accurately', async () => {
 });
 
 test('maps aborted Groq requests to a timeout', async () => {
-  const fetchImpl = async (_url, { signal }) => new Promise((resolve, reject) => {
-    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-  });
+  const fetchImpl = async (_url, { signal }) => {
+    assert.equal(signal instanceof AbortSignal, true);
+    const error = new Error('The operation timed out.');
+    error.name = 'TimeoutError';
+    throw error;
+  };
   await assert.rejects(
     requestGroqJson({ apiKey: 'test-only', fetchImpl, timeoutMs: 1, messages: [] }),
     { status: 504, code: 'AI_TIMEOUT' },
