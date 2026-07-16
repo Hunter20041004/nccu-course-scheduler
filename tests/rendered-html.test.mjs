@@ -198,6 +198,18 @@ test('offers safe syllabus actions only for course candidates', async () => {
   assert.match(html, /class="catalog-syllabus"[^>]*disabled[^>]*>無課綱<\/button>/);
 });
 
+test('renders complete course details as an inline panel', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /let expandedCourseId = null/);
+  assert.match(html, /class="catalog-details-trigger"[^>]*aria-expanded=/);
+  assert.match(html, /class="course-details-panel"/);
+  for (const label of ['課程名稱', '課號', '授課教師', '學分', '上課時間', '修課資格', '資料來源']) {
+    assert.match(html, new RegExp(label));
+  }
+  assert.match(html, /開啟官方課綱/);
+});
+
 test('lets an expanded attendance control increase its candidate row height', async () => {
   const html = await (await render()).text();
 
