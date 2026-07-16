@@ -85,6 +85,17 @@ export function sanitizeOfficialEligibilityRules(course = {}) {
     : { ...course, eligibilityRules };
 }
 
+export function trustedOfficialSyllabusUrl(course = {}) {
+  try {
+    const url = new URL(String(course.sourceUrl || ''));
+    const officialHost = url.hostname === 'nccu.edu.tw'
+      || url.hostname.endsWith('.nccu.edu.tw');
+    return url.protocol === 'https:' && officialHost ? url.href : '';
+  } catch {
+    return '';
+  }
+}
+
 export function candidateIncludesCourseCode(courseStore, courseCode) {
   const normalized = String(courseCode || '').trim();
   return Boolean(normalized) && courseStore.some(

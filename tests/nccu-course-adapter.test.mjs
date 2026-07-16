@@ -7,6 +7,7 @@ import {
   nccuCourseToCandidate,
   sanitizeOfficialEligibilityRules,
   searchNccuCourses,
+  trustedOfficialSyllabusUrl,
 } from '../src/nccu-course-adapter.mjs';
 
 test('builds the NCCU 115-1 keyword endpoint', () => {
@@ -81,4 +82,12 @@ test('removes only informational official eligibility rules', () => {
   });
 
   assert.deepEqual(course.eligibilityRules, [customRule]);
+});
+
+test('allows only secure NCCU syllabus links', () => {
+  assert.equal(trustedOfficialSyllabusUrl({
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=010056&gop=00&s=1.html',
+  }), 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=010056&gop=00&s=1.html');
+  assert.equal(trustedOfficialSyllabusUrl({ sourceUrl: 'javascript:alert(1)' }), '');
+  assert.equal(trustedOfficialSyllabusUrl({ sourceUrl: 'https://example.com/syllabus' }), '');
 });
