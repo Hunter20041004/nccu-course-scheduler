@@ -635,6 +635,12 @@ function renderCatalog() {
     return true;
   });
   byId('catalog-count').textContent = `${visible.length} / ${courseStore.length}`;
+  if (!visible.length) {
+    catalogList.innerHTML = courseStore.length
+      ? '<div class="catalog-empty"><strong>沒有符合目前篩選的課程</strong><p>調整搜尋文字或篩選條件後再試一次。</p></div>'
+      : '<div class="catalog-empty"><strong>建立你的候選課程</strong><p>前往「匯入／新增」，從政大課程庫、AI 截圖或手動輸入加入第一門課。</p><button class="button button-primary" type="button" data-open-add-panel>前往匯入／新增</button></div>';
+    return;
+  }
   catalogList.innerHTML = visible.map((course) => {
     const eligibility = evaluateEligibility(course, profile);
     const selectedNow = selected.some((item) => item.id === course.id);
@@ -890,9 +896,14 @@ catalogList.addEventListener('click', (event) => {
     selected = result.selected;
     lockedCourseIds = result.lockedCourseIds;
     delete courseOptions[course.id];
-    byId('catalog-status').textContent = `已刪除「${course.title}」；按「恢復建議方案」可找回官方課程。`;
+    byId('catalog-status').textContent = `已刪除「${course.title}」。`;
     persistState();
     renderAll();
+    return;
+  }
+  const openAddButton = event.target.closest('[data-open-add-panel]');
+  if (openAddButton) {
+    setWorkspaceTab('add');
     return;
   }
   const button = event.target.closest('[data-course-id]');
@@ -943,16 +954,14 @@ function removeFromSchedule(event) {
 
 byId('catalog-search').addEventListener('input', renderCatalog);
 byId('catalog-filter').addEventListener('change', renderCatalog);
-byId('reset-plan').addEventListener('click', () => {
-  courseStore = restoreOfficialCatalog(courses);
-  selected = applyPreset(courseStore, 'concentrated');
-  profile = { ...defaultProfile };
-  courseOptions = {};
-  lockedCourseIds = [];
-  internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
-  byId('catalog-status').textContent = '已恢復全部官方候選課程與建議方案。';
-  syncProfileForm();
-  syncInternshipForm();
+byId('clear-candidates').addEventListener('click', () => {
+  if (!courseStore.length) {
+    byId('catalog-status').textContent = '候選課程目前已經是空的。';
+    return;
+  }
+  if (!window.confirm('確定清空全部候選課程嗎？已排入課表與鎖定的課程也會移除。')) return;
+  ({ courseStore, selected, lockedCourseIds, courseOptions } = clearCandidateCatalog());
+  byId('catalog-status').textContent = '已清空候選課程；你的選課條件與實習設定仍保留。';
   persistState();
   renderAll();
 });

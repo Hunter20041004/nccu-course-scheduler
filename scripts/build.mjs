@@ -46,7 +46,7 @@ const script = [
   ]),
   wrapModule(plannerCore, '__plannerCore', [
     'evaluateEligibility', 'findConflicts', 'calculateInternshipAvailability', 'toggleCourse',
-    'clearPlannerSelection', 'toggleCourseLock', 'lockCandidateCourse',
+    'clearPlannerSelection', 'clearCandidateCatalog', 'toggleCourseLock', 'lockCandidateCourse',
     'toggleSelectableCourse', 'applyPreset', 'resolveCourseOption', 'applyCourseOption',
     'restoreOfficialCatalog', 'deleteCandidateCourse', 'buildCandidateCatalog',
     'validateManualCourse', 'createManualCourse',

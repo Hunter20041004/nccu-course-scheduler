@@ -158,6 +158,15 @@ test('clears selected items, locks, and course options in one action', () => {
   });
 });
 
+test('clears candidates and all course-linked planner state', () => {
+  assert.deepEqual(core.clearCandidateCatalog(), {
+    courseStore: [],
+    selected: [],
+    lockedCourseIds: [],
+    courseOptions: {},
+  });
+});
+
 test('removes an unlocked required course from the selection', () => {
   const required = { id: 'agentic', title: 'Agentic AI', required: true };
   assert.deepEqual(core.toggleCourse([required], required, []), []);
