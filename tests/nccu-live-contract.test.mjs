@@ -18,3 +18,14 @@ test('live NCCU 115-1 search returns a course that can become a scheduler candid
   assert.equal(candidate.sectionCode, '703055001');
   assert.ok(candidate.meetings.length > 0);
 });
+
+test('live NCCU expanded-minor note stays informational', { timeout: 20_000 }, async () => {
+  const rows = await searchNccuCourses({ term: '115-1', keyword: '010056001' });
+  const candidate = nccuCourseToCandidate(
+    rows.find((row) => row.courseCode === '010056001'),
+  );
+
+  assert.equal(candidate.schedule.label, '四34');
+  assert.deepEqual(candidate.eligibilityRules, []);
+  assert.ok(candidate.conditions.includes('日文系擴大輔系課程'));
+});
