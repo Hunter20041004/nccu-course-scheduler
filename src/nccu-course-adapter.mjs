@@ -70,6 +70,21 @@ export function nccuCourseToCandidate(course) {
   };
 }
 
+export function sanitizeOfficialEligibilityRules(course = {}) {
+  const currentRules = course.eligibilityRules || [];
+  const eligibilityRules = currentRules.filter((rule) => {
+    if (!String(rule.conditionId || '').startsWith('official-restriction:')) return true;
+    if (!rule.rationale) return true;
+    return eligibilityRuleFromOfficialRestriction({
+      courseCode: course.sectionCode || course.id,
+      restrictionText: rule.rationale,
+    }).length > 0;
+  });
+  return eligibilityRules.length === currentRules.length
+    ? course
+    : { ...course, eligibilityRules };
+}
+
 export function candidateIncludesCourseCode(courseStore, courseCode) {
   const normalized = String(courseCode || '').trim();
   return Boolean(normalized) && courseStore.some(

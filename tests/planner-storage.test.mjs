@@ -13,6 +13,26 @@ test('starts new visitors empty but rebuilds the legacy catalog for saved users'
   );
 });
 
+test('repairs informational official rules while restoring saved courses', () => {
+  const saved = {
+    addedCourses: [{
+      id: 'ai-010056001',
+      sectionCode: '010056001',
+      conditions: ['日文系擴大輔系課程'],
+      eligibilityRules: [{
+        conditionId: 'official-restriction:010056001',
+        enforcement: 'required',
+        rationale: '日文系擴大輔系課程',
+      }],
+    }],
+    deletedCourseIds: [],
+  };
+
+  const [restored] = createStartupCatalog(saved, []);
+  assert.deepEqual(restored.eligibilityRules, []);
+  assert.deepEqual(restored.conditions, ['日文系擴大輔系課程']);
+});
+
 test('migrates a complete version-three state to generalized condition ids without data loss', () => {
   const state = {
     selectedIds: ['agentic-ai'],
