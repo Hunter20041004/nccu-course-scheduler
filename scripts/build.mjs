@@ -52,7 +52,7 @@ const script = [
     'validateManualCourse', 'createManualCourse',
   ]),
   wrapModule(plannerStorage, '__plannerStorage', [
-    'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState',
+    'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState', 'createStartupCatalog',
   ]),
   wrapModule(apiKeySession, '__apiKeySession', ['createApiKeySession', 'validateAndStoreApiKey']),
   wrapModule(aiPlanner, '__aiPlanner', [

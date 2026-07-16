@@ -1,6 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parsePlannerState, serializePlannerState } from '../src/planner-storage.mjs';
+import { createStartupCatalog, parsePlannerState, serializePlannerState } from '../src/planner-storage.mjs';
+
+test('starts new visitors empty but rebuilds the legacy catalog for saved users', () => {
+  const official = [{ id: 'hci', title: '人機互動' }];
+  const manual = { id: 'manual-1', title: '社團', source: 'manual' };
+
+  assert.deepEqual(createStartupCatalog(null, official), []);
+  assert.deepEqual(
+    createStartupCatalog({ addedCourses: [manual], deletedCourseIds: [] }, official),
+    [official[0], manual],
+  );
+});
 
 test('migrates a complete version-three state to generalized condition ids without data loss', () => {
   const state = {

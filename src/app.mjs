@@ -12,8 +12,8 @@ const defaultProfile = {
 };
 
 let profile = { ...defaultProfile };
-let courseStore = [...courses];
-let selected = applyPreset(courseStore, 'concentrated');
+let courseStore = [];
+let selected = [];
 let courseOptions = {};
 let lockedCourseIds = [];
 let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
@@ -169,11 +169,7 @@ function restoreState() {
     const saved = parsePlannerState(localStorage.getItem(STORAGE_KEY), null);
     if (!saved) return;
     profile = { ...defaultProfile, ...saved.profile };
-    courseStore = buildCandidateCatalog(
-      courses,
-      saved.addedCourses || saved.manualCourses,
-      saved.deletedCourseIds,
-    );
+    courseStore = createStartupCatalog(saved, courses);
     pendingCourses = Array.isArray(saved.pendingCourses) ? saved.pendingCourses : [];
     customConditions = Array.isArray(saved.customConditions) ? saved.customConditions : [];
     const attendance = saved.attendance || {};
@@ -192,7 +188,8 @@ function restoreState() {
       }));
     lockedCourseIds = lockedCourseIds.filter((id) => selected.some((course) => course.id === id));
   } catch {
-    selected = applyPreset(courseStore, 'concentrated');
+    courseStore = [];
+    selected = [];
   }
 }
 
