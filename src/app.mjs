@@ -976,6 +976,69 @@ byId('clear-schedule').addEventListener('click', () => {
 });
 byId('export-wallpaper').addEventListener('click', exportScheduleWallpaper);
 
+let nccuSearchResults = [];
+
+function renderNccuSearchResults() {
+  const results = byId('nccu-course-results');
+  results.innerHTML = nccuSearchResults.map((course) => {
+    const added = candidateIncludesCourseCode(courseStore, course.courseCode);
+    const outlineUrl = String(course.sourceUrl || '').startsWith('https://')
+      ? `<a href="${escapeHtml(course.sourceUrl)}" target="_blank" rel="noreferrer">查看官方課綱</a>`
+      : '';
+    return `<article class="nccu-course-result">
+      <div class="nccu-course-result-main">
+        <strong>${escapeHtml(course.title)}</strong>
+        <small>${escapeHtml(course.courseCode)} · ${escapeHtml(course.teacher || '教師未定')} · ${course.credits} 學分 · ${escapeHtml(course.scheduleText || '時間未定')}</small>
+        ${course.restrictionText ? `<p>限制：${escapeHtml(course.restrictionText)}</p>` : '<p>官方資料未列額外修課限制。</p>'}
+        ${outlineUrl}
+      </div>
+      <button class="button ${added ? 'button-quiet' : 'button-primary'}" type="button" data-add-nccu-course="${escapeHtml(course.courseCode)}" ${added ? 'disabled' : ''}>${added ? '已加入' : '加入候選'}</button>
+    </article>`;
+  }).join('');
+}
+
+byId('nccu-course-search-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const query = byId('nccu-course-query').value.trim();
+  const status = byId('nccu-course-search-status');
+  const submit = event.currentTarget.querySelector('button[type="submit"]');
+  if (!query) {
+    status.textContent = '請輸入課名、教師或九碼課號。';
+    byId('nccu-course-query').focus();
+    return;
+  }
+  submit.disabled = true;
+  event.currentTarget.setAttribute('aria-busy', 'true');
+  status.textContent = '正在查詢政大 115-1 課程庫…';
+  try {
+    nccuSearchResults = await searchNccuCourses({ term: '115-1', keyword: query });
+    status.textContent = nccuSearchResults.length
+      ? `找到 ${nccuSearchResults.length} 門課。`
+      : '找不到符合的課程，請改用較短的課名或教師姓名。';
+    renderNccuSearchResults();
+  } catch {
+    status.textContent = '政大課程資料暫時無法查詢，請稍後重試。';
+  } finally {
+    submit.disabled = false;
+    event.currentTarget.removeAttribute('aria-busy');
+  }
+});
+
+byId('nccu-course-results').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-add-nccu-course]');
+  if (!button) return;
+  const officialCourse = nccuSearchResults.find(
+    (course) => course.courseCode === button.dataset.addNccuCourse,
+  );
+  if (!officialCourse || candidateIncludesCourseCode(courseStore, officialCourse.courseCode)) return;
+  const candidate = nccuCourseToCandidate(officialCourse);
+  courseStore = [...courseStore, candidate];
+  persistState();
+  renderAll();
+  renderNccuSearchResults();
+  byId('nccu-course-search-status').textContent = `已將「${candidate.title}」加入候選課程。`;
+});
+
 let manualSequence = 1 + courseStore.filter((course) => course.source === 'manual').length;
 byId('manual-form').innerHTML = `<form id="manual-course-form" class="manual-course-form" novalidate>
   <label>類型<select id="manual-item-type" name="itemType"><option value="course">課程</option><option value="club">社團</option><option value="organization">課外組織</option><option value="personal">個人行程</option></select></label>

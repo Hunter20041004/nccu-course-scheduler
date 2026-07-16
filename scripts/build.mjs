@@ -55,6 +55,11 @@ const script = [
     'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState', 'createStartupCatalog',
   ]),
   wrapModule(apiKeySession, '__apiKeySession', ['createApiKeySession', 'validateAndStoreApiKey']),
+  wrapModule(nccuCourseAdapter, '__nccuCourseAdapter', [
+    'buildNccuCourseUrl', 'normalizeNccuRows', 'searchNccuCourses',
+    'meetingsFromNccuText', 'eligibilityRuleFromOfficialRestriction',
+    'nccuCourseToCandidate', 'candidateIncludesCourseCode',
+  ]),
   wrapModule(aiPlanner, '__aiPlanner', [
     'validateScreenshotFile', 'mergeImportedCourses', 'applyRecommendedPlan',
   ]),

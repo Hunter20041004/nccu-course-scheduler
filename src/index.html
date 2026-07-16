@@ -125,6 +125,17 @@
 
         <section id="workspace-panel-add" class="workspace-tab-panel add-more" role="tabpanel" data-workspace-panel="add" hidden>
           <div class="add-grid">
+            <section class="nccu-search-section">
+              <p class="eyebrow">OFFICIAL · NCCU 115-1</p>
+              <h2>政大 115-1 課程庫</h2>
+              <p class="section-helper">直接搜尋課名、教師或九碼課號，不需要 API Key。</p>
+              <form id="nccu-course-search-form" class="nccu-search-form" role="search">
+                <label for="nccu-course-query">搜尋官方課程</label>
+                <div class="nccu-search-control"><input id="nccu-course-query" type="search" autocomplete="off" placeholder="例如：人機互動"><button class="button button-primary" type="submit">搜尋</button></div>
+                <p id="nccu-course-search-status" class="form-status" aria-live="polite"></p>
+              </form>
+              <div id="nccu-course-results" class="nccu-course-results" aria-live="polite"></div>
+            </section>
             <section><h2>新增課程或行程</h2><div id="manual-form"></div></section>
             <section><h2>備選清單截圖</h2><div id="screenshot-handoff"></div></section>
           </div>

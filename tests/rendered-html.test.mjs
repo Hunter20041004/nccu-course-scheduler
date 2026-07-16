@@ -248,6 +248,17 @@ test('includes manual course creation and private screenshot import', async () =
   assert.match(html, /mergeImportedCourses/);
 });
 
+test('searches and imports official NCCU 115-1 courses without an AI key', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="nccu-course-search-form"/);
+  assert.match(html, /id="nccu-course-query"/);
+  assert.match(html, /id="nccu-course-results"/);
+  assert.match(html, /searchNccuCourses\(\{ term: '115-1', keyword: query \}\)/);
+  assert.match(html, /data-add-nccu-course/);
+  assert.match(html, /nccuCourseToCandidate/);
+});
+
 test('uploads a screenshot to the private import API and renders review groups', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="import-screenshot"/);
