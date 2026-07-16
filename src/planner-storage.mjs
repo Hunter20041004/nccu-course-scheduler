@@ -1,4 +1,5 @@
 import { profileConditionIds } from './eligibility-conditions.mjs';
+import { sanitizeOfficialEligibilityRules } from './nccu-course-adapter.mjs';
 import { buildCandidateCatalog } from './planner-core.mjs';
 
 export const STORAGE_KEY = 'nccu-course-planner:v3';
@@ -9,7 +10,7 @@ export function createStartupCatalog(savedState, officialCourses) {
     officialCourses,
     savedState.addedCourses || savedState.manualCourses,
     savedState.deletedCourseIds,
-  );
+  ).map(sanitizeOfficialEligibilityRules);
 }
 
 export function serializePlannerState(state) {

@@ -5,6 +5,7 @@ import {
   candidateIncludesCourseCode,
   eligibilityRuleFromOfficialRestriction,
   nccuCourseToCandidate,
+  sanitizeOfficialEligibilityRules,
   searchNccuCourses,
 } from '../src/nccu-course-adapter.mjs';
 
@@ -61,4 +62,23 @@ test('keeps expanded-minor course notes informational', () => {
     courseCode: '010056001',
     restrictionText: '日文系擴大輔系課程',
   }), []);
+});
+
+test('removes only informational official eligibility rules', () => {
+  const customRule = {
+    conditionId: 'custom:portfolio',
+    enforcement: 'required',
+    rationale: '自訂條件',
+  };
+  const course = sanitizeOfficialEligibilityRules({
+    id: 'ai-010056001',
+    sectionCode: '010056001',
+    eligibilityRules: [{
+      conditionId: 'official-restriction:010056001',
+      enforcement: 'required',
+      rationale: '日文系擴大輔系課程',
+    }, customRule],
+  });
+
+  assert.deepEqual(course.eligibilityRules, [customRule]);
 });
