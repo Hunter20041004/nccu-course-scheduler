@@ -23,6 +23,7 @@ let recommendedPlans = [];
 let previewedPlanId = null;
 let customConditions = [];
 let quickTourIndex = 0;
+let expandedCourseId = null;
 
 const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表', body: '左側是政大官方節次課表，會顯示週一到週日、實習保留與衝堂。' },
@@ -660,15 +661,49 @@ function renderCatalog() {
       : '';
     const conditions = course.conditions || [];
     const sections = course.sections || [];
-    const details = `<details class="course-details">
-          <summary aria-label="查看 ${escapeHtml(course.title)} 的限制與班別">詳細</summary>
-          <div class="course-details-card">
-            ${eligibility.status !== 'eligible' ? `<strong>資格說明</strong><ul class="course-conditions">${eligibility.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>` : ''}
-            ${conditions.length ? `<strong>選課條件</strong><ul class="course-conditions">${conditions.map((condition) => `<li>${escapeHtml(condition)}</li>`).join('')}</ul>` : ''}
-            ${sections.length ? `<strong>官方班別</strong><ul class="course-sections">${sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : ''}
-            ${!conditions.length && !sections.length ? '<p>目前沒有額外限制。</p>' : ''}
-          </div>
-        </details>`;
+    const expanded = expandedCourseId === course.id;
+    const detailTrigger = `<button class="catalog-details-trigger" type="button" data-details-course="${escapeHtml(course.id)}" aria-expanded="${expanded}" aria-controls="course-details-${escapeHtml(course.id)}" aria-label="查看 ${escapeHtml(course.title)} 的完整資料">詳細</button>`;
+    const sourceLabel = course.source === 'nccu-verified-import'
+      ? '政大 115-1 課程庫'
+      : course.source === 'manual'
+        ? '手動新增'
+        : course.source || '內建課程資料';
+    const deliveryLabel = selectedCourse?.attendance === 'async'
+      ? '非同步'
+      : course.asyncAllowed ? '可切換實體／同步／非同步' : '實體／固定同步';
+    const detailPanel = expanded ? `<section class="course-details-panel" id="course-details-${escapeHtml(course.id)}" aria-label="${escapeHtml(course.title)} 完整資料">
+      <header class="course-details-heading">
+        <div><p>COURSE DETAILS</p><h3>${escapeHtml(course.title)}</h3></div>
+        <span>${escapeHtml(eligibilityLabel(eligibility.status))}</span>
+      </header>
+      <dl class="course-details-facts">
+        <div><dt>課程名稱</dt><dd>${escapeHtml(course.title || '未提供')}</dd></div>
+        <div><dt>課號</dt><dd>${escapeHtml(course.sectionCode || '未提供')}</dd></div>
+        <div><dt>授課教師</dt><dd>${escapeHtml(course.teacher || '未提供')}</dd></div>
+        <div><dt>學分</dt><dd>${Number(course.credits) || 0} 學分</dd></div>
+        <div><dt>上課時間</dt><dd>${escapeHtml(scheduleSummary)}</dd></div>
+        <div><dt>上課形式</dt><dd>${escapeHtml(deliveryLabel)}</dd></div>
+        <div><dt>修課資格</dt><dd>${escapeHtml(eligibilityLabel(eligibility.status))}</dd></div>
+        <div><dt>資料來源</dt><dd>${escapeHtml(sourceLabel)}</dd></div>
+      </dl>
+      <div class="course-details-sections">
+        <section>
+          <h4>資格說明</h4>
+          ${eligibility.reasons.length ? `<ul class="course-conditions">${eligibility.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>` : '<p>目前條件符合。</p>'}
+        </section>
+        <section>
+          <h4>選課條件與官方備註</h4>
+          ${conditions.length ? `<ul class="course-conditions">${conditions.map((condition) => `<li>${escapeHtml(condition)}</li>`).join('')}</ul>` : '<p>目前沒有額外限制。</p>'}
+        </section>
+        <section>
+          <h4>官方班別與時段</h4>
+          ${sections.length ? `<ul class="course-sections">${sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : `<p>${escapeHtml(scheduleSummary)}</p>`}
+        </section>
+      </div>
+      <footer class="course-details-footer">
+        ${syllabusUrl ? `<a href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">開啟官方課綱</a>` : '<span>目前沒有可用的官方課綱</span>'}
+      </footer>
+    </section>` : '';
     const selectedVariant = selectedCourse?.variants?.find(({ id }) => id === selectedCourse.selectedVariantId);
     const optionControls = selectedNow && course.variants?.length
       ? `<div class="course-option-controls">
@@ -689,11 +724,12 @@ function renderCatalog() {
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
       </button>
       <div class="course-actions">
-        ${details}
+        ${detailTrigger}
         ${syllabusAction}
         <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}" aria-label="${locked ? '解鎖' : '鎖定'} ${escapeHtml(course.title)}">${locked ? '解鎖' : '鎖定'}</button>
         <button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" aria-label="刪除候選課程 ${escapeHtml(course.title)}">刪除</button>
       </div>
+      ${detailPanel}
       ${optionControls}
       ${attendance}
     </article>`;
