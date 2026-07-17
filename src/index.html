@@ -56,11 +56,12 @@
     </div>
 
     <div id="planner-workbench" class="planner-layout" data-compact-view="schedule">
-      <section class="panel schedule-panel" data-testid="schedule-panel" aria-labelledby="schedule-title">
-        <div class="section-heading"><div><p class="eyebrow">LEFT · MY WEEK</p><h2 id="schedule-title">課表</h2></div><div class="schedule-actions"><button id="export-wallpaper" class="button button-primary" type="button">匯出手機桌布</button><span class="status-pill">實習時間達標</span></div></div>
+      <section class="panel schedule-panel" data-testid="schedule-panel" data-schedule-view="grid" aria-labelledby="schedule-title">
+        <div class="section-heading"><div><p class="eyebrow">LEFT · MY WEEK</p><h2 id="schedule-title">課表</h2></div><div class="schedule-actions"><div id="schedule-view-switch" class="schedule-view-switch" aria-label="課表顯示方式"><button type="button" data-schedule-view="agenda" aria-pressed="false">行程</button><button type="button" data-schedule-view="grid" aria-pressed="true">方格</button></div><button id="export-wallpaper" class="button button-primary" type="button">匯出手機桌布</button><span class="status-pill">實習時間達標</span></div></div>
         <div class="schedule-scroll" aria-label="政大官方節次課表">
           <div id="schedule-grid" class="nccu-grid" role="table" aria-live="polite"></div>
         </div>
+        <div id="schedule-agenda" class="schedule-agenda" aria-live="polite"></div>
         <section class="async-section"><h3>非同步工作區</h3><div id="async-lane"></div></section>
         <section class="warning-section"><h3>排課提醒</h3><div id="warning-list" aria-live="polite"></div></section>
       </section>

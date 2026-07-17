@@ -398,11 +398,39 @@ function renderSchedule() {
     .map((window) => internshipBlock(window, conflictedWindows.has(window))).join('');
   byId('schedule-grid').innerHTML = headers + periodRows + internshipBlocks + courseBlocks;
 
+  const agenda = buildScheduleAgenda(selected);
+  byId('schedule-agenda').innerHTML = agenda.days.length
+    ? agenda.days.map(({ day, items }) => `<section class="agenda-day">
+        <h3><span>${escapeHtml(dayLabels[day])}</span><small>${items.length} 個時段</small></h3>
+        <div class="agenda-day-items">${items.map((item) => {
+          const locked = lockedCourseIds.includes(item.courseId);
+          return `<button type="button" data-remove-course="${escapeHtml(item.courseId)}" ${locked ? 'disabled' : ''} aria-label="${locked ? '已鎖定' : '移除'} ${escapeHtml(item.title)}">
+            <time>${escapeHtml(formatMinutes(item.start))}<small>${escapeHtml(formatMinutes(item.end))}</small></time>
+            <span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.sectionCode || item.label || '固定時段')}${locked ? ' · 已鎖定' : ' · 點擊移除'}</small></span>
+          </button>`;
+        }).join('')}</div>
+      </section>`).join('')
+    : '<div class="agenda-empty"><strong>這週還沒有固定時段</strong><p>從右側候選課程加入課表後，會依星期與時間排列在這裡。</p></div>';
+
   const asynchronous = selected.filter((course) => course.attendance === 'async' || !meetingsForCourse(course).length);
   byId('async-lane').innerHTML = asynchronous.length
     ? `<div class="async-list">${asynchronous.map((course) => `<button type="button" data-remove-course="${escapeHtml(course.id)}">${escapeHtml(course.title)} · ${course.attendance === 'async' ? '非同步' : '時間未定'}</button>`).join('')}</div>`
     : '<p class="empty">目前沒有非同步或時間未定課程</p>';
 }
+
+const compactScheduleMedia = window.matchMedia('(max-width: 640px)');
+function setScheduleView(view) {
+  const panel = document.querySelector('.schedule-panel');
+  panel.dataset.scheduleView = view;
+  byId('schedule-view-switch').querySelectorAll('[data-schedule-view]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.scheduleView === view));
+  });
+}
+setScheduleView(compactScheduleMedia.matches ? 'agenda' : 'grid');
+byId('schedule-view-switch').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-schedule-view]');
+  if (button) setScheduleView(button.dataset.scheduleView);
+});
 
 function collectScheduleReminders() {
   const items = findConflicts(selected).map((conflict) => conflict.message);
@@ -1160,6 +1188,7 @@ catalogList.addEventListener('change', (event) => {
 });
 
 byId('schedule-grid').addEventListener('click', removeFromSchedule);
+byId('schedule-agenda').addEventListener('click', removeFromSchedule);
 byId('async-lane').addEventListener('click', removeFromSchedule);
 function removeFromSchedule(event) {
   const button = event.target.closest('[data-remove-course]');

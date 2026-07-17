@@ -719,6 +719,19 @@ test('contains the wide NCCU timetable inside the mobile schedule panel', async 
   assert.match(html, /\.planner-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
 });
 
+test('defaults compact screens to a readable agenda while preserving the official grid', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="schedule-view-switch"/);
+  assert.match(html, /data-schedule-view="agenda"/);
+  assert.match(html, /data-schedule-view="grid"/);
+  assert.match(html, /id="schedule-agenda"[^>]*aria-live="polite"/);
+  assert.match(html, /buildScheduleAgenda\(selected\)/);
+  assert.match(html, /matchMedia\('\(max-width: 640px\)'\)/);
+  assert.match(html, /\.schedule-panel\[data-schedule-view="agenda"\] \.schedule-scroll/);
+  assert.match(html, /\.schedule-panel\[data-schedule-view="grid"\] \.schedule-agenda/);
+});
+
 test('keeps compact course detail disclosure targets at least 44 pixels tall', async () => {
   const html = await (await render()).text();
 

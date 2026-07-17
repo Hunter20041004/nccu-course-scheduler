@@ -4,7 +4,7 @@ const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const [
   template, styles, nccuPeriods, internshipPlanner, courseData, eligibilityConditions,
-  nccuCourseNotes, plannerCore, planValidator, plannerStorage, plannerTransfer, plannerUndo, apiKeySession, app,
+  nccuCourseNotes, plannerCore, planValidator, plannerStorage, plannerTransfer, plannerUndo, scheduleAgenda, apiKeySession, app,
   aiContracts, geminiClient, nccuCourseAdapter, aiService, worker, aiPlanner,
 ] = await Promise.all([
   read('src/index.html'),
@@ -19,6 +19,7 @@ const [
   read('src/planner-storage.mjs'),
   read('src/planner-transfer.mjs'),
   read('src/planner-undo.mjs'),
+  read('src/schedule-agenda.mjs'),
   read('src/api-key-session.mjs'),
   read('src/app.mjs'),
   read('src/ai-contracts.mjs'),
@@ -70,6 +71,7 @@ const script = [
     'exportPlannerTransfer', 'previewPlannerTransfer', 'applyPlannerTransfer',
   ]),
   wrapModule(plannerUndo, '__plannerUndo', ['createPlannerUndo']),
+  wrapModule(scheduleAgenda, '__scheduleAgenda', ['buildScheduleAgenda']),
   wrapModule(apiKeySession, '__apiKeySession', ['createApiKeySession', 'validateAndStoreApiKey']),
   wrapModule(aiPlanner, '__aiPlanner', [
     'validateScreenshotFile', 'mergeImportedCourses', 'applyRecommendedPlan',
