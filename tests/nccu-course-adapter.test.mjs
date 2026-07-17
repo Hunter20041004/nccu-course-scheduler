@@ -49,6 +49,8 @@ test('converts official periods and restrictions into a schedulable conditional 
     [{ day: 4, label: '四78' }],
   );
   assert.equal(candidate.eligibilityRules[0].conditionId, 'official-restriction:509041001');
+  assert.equal(candidate.eligibilityRules[0].conditionLabel, '我是歐文系或雙主修學生');
+  assert.equal(candidate.eligibilityRules[0].source, 'nccu-official');
 });
 
 test('detects an existing NCCU section code regardless of import source', () => {
@@ -63,6 +65,21 @@ test('keeps expanded-minor course notes informational', () => {
     courseCode: '010056001',
     restrictionText: '日文系擴大輔系課程',
   }), []);
+});
+
+test('maps official notes into typed candidate metadata', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '703055001',
+    title: '人機互動',
+    teacher: '廖文宏',
+    credits: 3,
+    scheduleText: '四234',
+    restrictionText: '英語授課；傳播類課程',
+  });
+
+  assert.deepEqual(candidate.eligibilityRules, []);
+  assert.deepEqual(candidate.deliveryNotes, ['英語授課']);
+  assert.deepEqual(candidate.programTags, ['傳播類課程']);
 });
 
 test('removes only informational official eligibility rules', () => {
@@ -82,6 +99,23 @@ test('removes only informational official eligibility rules', () => {
   });
 
   assert.deepEqual(course.eligibilityRules, [customRule]);
+});
+
+test('removes a legacy giant TAICA checkbox while preserving typed notes', () => {
+  const rationale = '【臺灣大專院校人工智慧學程聯盟課程】1.TAICA主導課程。2.遠距上課每週四13:10-16:00，使用NTUCOOL平台。3.12/26共同展示交流期末成果。4.選課前務必詳閱教學大綱，需於本校選課、不可跨校選課。';
+  const course = sanitizeOfficialEligibilityRules({
+    id: 'ai-070426001',
+    sectionCode: '070426001',
+    eligibilityRules: [{
+      conditionId: 'official-restriction:070426001',
+      enforcement: 'required',
+      rationale,
+    }],
+  });
+
+  assert.deepEqual(course.eligibilityRules, []);
+  assert.ok(course.deliveryNotes.some((note) => note.includes('NTUCOOL')));
+  assert.deepEqual(course.examEvents, [{ date: '12/26', label: '共同展示交流期末成果' }]);
 });
 
 test('allows only secure NCCU syllabus links', () => {
