@@ -1,5 +1,6 @@
 const byId = (id) => document.getElementById(id);
 const FIRST_USE_TUTORIAL_SEEN_KEY = 'sunbreak:first-use-tutorial-seen:v1';
+const SCHEDULE_VIEW_KEY = 'sunbreak:schedule-view:v1';
 const FULL_LIVE_DEMO_URL = 'https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site';
 const isStaticFallbackHost = location.hostname.endsWith('github.io');
 const apiKeySession = createApiKeySession();
@@ -30,12 +31,12 @@ let expandedCourseId = null;
 const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表總覽', body: '左側使用政大官方節次，會顯示週一到週日、實習保留、課程衝堂、非同步工作區與排課提醒。' },
   { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '每列會顯示課名、教師、課號、學分、時間與資格狀態；點課程主區塊可加入或移出左側課表。' },
-  { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」展開完整詳細資料，按「課綱」前往官方內容；任何課都可以鎖定或刪除。' },
+  { target: 'catalog-list', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」展開完整詳細資料並切換實體／同步／非同步；課綱、鎖定與刪除集中在「•••」更多選單。' },
   { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '逐項標記符合、不符合或待確認的系所、雙主修、學程、年級與先修條件，並查看每個條件會影響哪些課。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
   { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、學期目標、最低學分、實習天數與課程偏好，產生三個可預覽的無衝堂方案；使用時才需要 API Key。' },
   { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可搜尋政大 115-1 課程庫、使用 AI 截圖辨識或手動新增課程，也能加入社團、課外組織與個人行程。' },
-  { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '確認學分、資格、實體／同步／非同步、衝堂與排課提醒，再按「匯出手機桌布」保存課表。' },
+  { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '手機可切換「行程／方格」；確認學分、資格、出席方式、衝堂與提醒後，再匯出手機桌布。' },
 ];
 
 function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
@@ -51,6 +52,21 @@ function requireApiKeyForAi(status) {
   openApiKeyDialog();
   return null;
 }
+function renderDeploymentCopy() {
+  const aiNote = byId('deployment-ai-note');
+  const tutorialNote = byId('tutorial-deployment-note');
+  const apiKeyNote = byId('api-key-deployment-note');
+  if (isStaticFallbackHost) {
+    aiNote.textContent = 'GitHub Pages 分享版可測試一般排課與桌布匯出；AI 匯入與推薦請改用完整 Live Demo。';
+    tutorialNote.innerHTML = '<strong>Key 安全：</strong>靜態分享版不會接收 Key。一般排課可直接使用；需要 AI 時，請先匯出排課資料，再前往完整版匯入。';
+    apiKeyNote.textContent = '目前是靜態分享版，不會接收或驗證 API Key。';
+  } else {
+    aiNote.textContent = '完整版：AI 會使用你在本分頁設定的 Gemini Key；現有表單與課表在重試時都會保留。';
+    tutorialNote.innerHTML = '<strong>Key 安全：</strong>Key 只保留在目前分頁記憶體，不會寫入伺服器、資料庫、網址或瀏覽器長期儲存；關閉或重新整理分頁即清除。';
+    apiKeyNote.textContent = '此完整版可以驗證 Key；Key 仍只保留於目前分頁記憶體。';
+  }
+}
+renderDeploymentCopy();
 function openFirstUseWelcome() {
   const dialog = byId('first-use-dialog');
   if (!dialog.open) dialog.showModal();
@@ -320,19 +336,32 @@ function eligibilityLabel(status) {
   }[status];
 }
 
+function errorFromPayload(payload, fallbackMessage) {
+  const error = new Error(payload?.error?.message || fallbackMessage);
+  error.retryable = Boolean(payload?.error?.retryable);
+  error.requestId = payload?.error?.requestId || '';
+  return error;
+}
+
+function showAiError(status, retryButton, error) {
+  const requestReference = error.requestId ? `（編號：${error.requestId}）` : '';
+  status.textContent = `${error.message || 'AI 服務暫時無法使用。'}${requestReference}`;
+  retryButton.hidden = !error.retryable;
+}
+
 function renderStats() {
   const credits = selected.reduce((total, course) => total + Number(course.credits || 0), 0);
   const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
   const progressPercent = internshipSettings.targetDays === 0
     ? 100
-    : Math.min(100, Math.round((internshipPlan.availableDays / internshipSettings.targetDays) * 100));
+    : Math.min(100, Math.round((internshipPlan.confirmedDays / internshipSettings.targetDays) * 100));
   const internshipProgress = byId('internship-progress');
   const conflicts = findConflicts(selected);
   const eligibilityWarnings = selected.filter((course) => evaluateEligibility(course, profile).status !== 'eligible');
   const specialEvents = selected.reduce((total, course) => total + (course.events || []).length, 0);
   const optionWarnings = selected.filter((course) => course.optionStatus === 'pending' || course.optionStatus === 'flexible').length;
   byId('credit-value').textContent = `${credits} 學分`;
-  byId('internship-value').textContent = `${internshipPlan.tentative ? '暫估 ' : ''}${internshipPlan.availableDays} / ${internshipSettings.targetDays} 天`;
+  byId('internship-value').textContent = `已確認 ${internshipPlan.confirmedDays} 天＋待確認 ${internshipPlan.pendingDays} 天`;
   byId('warning-value').textContent = String(conflicts.length + eligibilityWarnings.length + specialEvents + optionWarnings + internshipPlan.conflicts.length);
   internshipProgress.style.setProperty('--internship-progress', `${progressPercent}%`);
   internshipProgress.setAttribute('aria-valuenow', String(progressPercent));
@@ -419,17 +448,24 @@ function renderSchedule() {
 }
 
 const compactScheduleMedia = window.matchMedia('(max-width: 640px)');
-function setScheduleView(view) {
+function setScheduleView(view, { persist = false } = {}) {
   const panel = document.querySelector('.schedule-panel');
   panel.dataset.scheduleView = view;
   byId('schedule-view-switch').querySelectorAll('[data-schedule-view]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.scheduleView === view));
   });
+  if (persist) {
+    try { localStorage.setItem(SCHEDULE_VIEW_KEY, view); } catch {}
+  }
 }
-setScheduleView(compactScheduleMedia.matches ? 'agenda' : 'grid');
+let savedScheduleView;
+try { savedScheduleView = localStorage.getItem(SCHEDULE_VIEW_KEY); } catch {}
+setScheduleView(['agenda', 'grid'].includes(savedScheduleView)
+  ? savedScheduleView
+  : compactScheduleMedia.matches ? 'agenda' : 'grid');
 byId('schedule-view-switch').addEventListener('click', (event) => {
   const button = event.target.closest('[data-schedule-view]');
-  if (button) setScheduleView(button.dataset.scheduleView);
+  if (button) setScheduleView(button.dataset.scheduleView, { persist: true });
 });
 
 function collectScheduleReminders() {
@@ -1226,6 +1262,13 @@ byId('clear-schedule').addEventListener('click', () => {
 byId('export-wallpaper').addEventListener('click', exportScheduleWallpaper);
 
 let nccuSearchResults = [];
+let lastSuccessfulNccuQueryAt = null;
+
+function renderNccuDataFreshness() {
+  byId('nccu-data-freshness').textContent = lastSuccessfulNccuQueryAt
+    ? `資料學期 115-1 · 最後成功查詢 ${lastSuccessfulNccuQueryAt.toLocaleString('zh-TW', { hour12: false })}`
+    : '資料學期 115-1 · 尚未成功查詢';
+}
 
 function renderNccuSearchResults() {
   const results = byId('nccu-course-results');
@@ -1262,6 +1305,8 @@ byId('nccu-course-search-form').addEventListener('submit', async (event) => {
   status.textContent = '正在查詢政大 115-1 課程庫…';
   try {
     nccuSearchResults = await searchNccuCourses({ term: '115-1', keyword: query });
+    lastSuccessfulNccuQueryAt = new Date();
+    renderNccuDataFreshness();
     status.textContent = nccuSearchResults.length
       ? `找到 ${nccuSearchResults.length} 門課。`
       : '找不到符合的課程，請改用較短的課名或教師姓名。';
@@ -1423,7 +1468,7 @@ function renderRecommendedPlans() {
       <div class="route-index"><span>路線 ${String(index + 1).padStart(2, '0')}</span><b>${escapeHtml(plan.attendance || '彈性安排')}</b></div>
       <h3>${escapeHtml(plan.title)}</h3>
       <p class="route-strategy">${escapeHtml(plan.reason)}</p>
-      <dl class="route-metrics"><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.availableDays} 天</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
+      <dl class="route-metrics"><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.confirmedDays} 天${preview.internshipPlan.pendingDays ? `＋${preview.internshipPlan.pendingDays} 待確認` : ''}</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
       ${renderRouteWeekPreview(preview.planCourses)}
       <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li><span>${escapeHtml(course.title)}</span><span class="route-course-flags">${plan.asyncCourseIds?.includes(course.id) ? '<b>非同步</b>' : ''}${lockedCourseIds.includes(course.id) ? '<b>鎖定保留</b>' : ''}</span></li>`).join('')}</ul>
       ${plan.tradeoffs?.length ? `<p class="ai-plan-tradeoffs">取捨：${escapeHtml(plan.tradeoffs.join('、'))}</p>` : ''}
@@ -1441,8 +1486,10 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
   const form = event.currentTarget;
   const submit = form.querySelector('button[type="submit"]');
   const status = byId('ai-advisor-status');
+  const retryButton = byId('retry-ai-advisor');
   const apiKey = requireApiKeyForAi(status);
   if (!apiKey) return;
+  retryButton.hidden = true;
   submit.disabled = true;
   form.setAttribute('aria-busy', 'true');
   status.textContent = '正在分析你的目標與候選課程…';
@@ -1457,34 +1504,42 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
         semesterGoals: byId('ai-goals').value,
         preferences: byId('ai-preferences').value,
         internshipSettings,
-        courses: courseStore.map((course) => ({
-          id: course.id,
-          title: course.title,
-          credits: course.credits,
-          teacher: course.teacher,
-          schedule: course.schedule,
-          meetings: course.meetings,
-          events: course.events,
-          asyncAllowed: course.asyncAllowed,
-          conditions: course.conditions,
-          eligibility: evaluateEligibility(course, profile).status,
-        })),
+        courses: courseStore.map((course) => {
+          const effectiveCourse = selected.find((item) => item.id === course.id) || course;
+          return {
+            id: effectiveCourse.id,
+            title: effectiveCourse.title,
+            credits: effectiveCourse.credits,
+            teacher: effectiveCourse.teacher,
+            schedule: effectiveCourse.schedule,
+            meetings: effectiveCourse.meetings,
+            events: effectiveCourse.events,
+            attendance: effectiveCourse.attendance,
+            asyncAllowed: effectiveCourse.asyncAllowed,
+            conditions: effectiveCourse.conditions,
+            eligibility: evaluateEligibility(effectiveCourse, profile).status,
+          };
+        }),
         selectedCourseIds: selected.map((course) => course.id),
         lockedCourseIds,
       }),
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload?.error?.message || '無法產生推薦，請稍後重試。');
+    if (!response.ok) throw errorFromPayload(payload, '無法產生推薦，請稍後重試。');
     recommendedPlans = payload.plans || [];
     recommendationShortfall = payload.shortfallReason || '';
     status.textContent = payload.summary || (recommendedPlans.length ? '已產生可安全套用的推薦方案。' : recommendationShortfall);
     renderRecommendedPlans();
   } catch (error) {
-    status.textContent = error.message || '無法產生推薦，請稍後重試。';
+    showAiError(status, retryButton, error);
   } finally {
     submit.disabled = false;
     form.removeAttribute('aria-busy');
   }
+});
+
+byId('retry-ai-advisor').addEventListener('click', () => {
+  byId('ai-advisor-form').requestSubmit();
 });
 
 byId('ai-plan-results').addEventListener('click', (event) => {
@@ -1516,6 +1571,7 @@ byId('screenshot-handoff').innerHTML = `<div class="screenshot-handoff">
   <p class="privacy-note">截圖會以你的 Key 傳送給 Gemini 3.1 Flash-Lite，網站不會長期保存原始圖片。辨識後仍會核對政大 115-1 公開課程資料。</p>
   <button id="import-screenshot" class="button button-primary" type="button">開始辨識並匯入</button>
   <p id="screenshot-status" class="form-status" aria-live="polite"></p>
+  <button id="retry-screenshot-import" class="button button-quiet" type="button" hidden>重試辨識</button>
   <div class="ai-import-layout">
     <section><h3>已匯入</h3><div id="imported-courses" class="import-result-list"></div></section>
     <section><h3>待確認</h3><div id="pending-courses" class="import-result-list"></div></section>
@@ -1535,6 +1591,10 @@ byId('screenshot-input').addEventListener('change', (event) => {
   preview.src = screenshotUrl;
   preview.hidden = false;
   byId('screenshot-status').textContent = '截圖已就緒，尚未傳送。';
+});
+
+byId('retry-screenshot-import').addEventListener('click', () => {
+  byId('import-screenshot').click();
 });
 
 function readFileAsDataUrl(file) {
@@ -1573,8 +1633,10 @@ byId('pending-courses').addEventListener('click', (event) => {
 
 byId('import-screenshot').addEventListener('click', async () => {
   const status = byId('screenshot-status');
+  const retryButton = byId('retry-screenshot-import');
   const apiKey = requireApiKeyForAi(status);
   if (!apiKey) return;
+  retryButton.hidden = true;
   const [file] = byId('screenshot-input').files;
   if (!file) {
     status.textContent = '請先選擇一張課程備選清單截圖。';
@@ -1599,7 +1661,7 @@ byId('import-screenshot').addEventListener('click', async () => {
       body: JSON.stringify({ apiKey, imageDataUrl, term: '115-1' }),
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload?.error?.message || '辨識失敗，請稍後重試。');
+    if (!response.ok) throw errorFromPayload(payload, '辨識失敗，請稍後重試。');
     const merged = mergeImportedCourses(courseStore, payload.importedCourses || []);
     courseStore = merged.courseStore;
     lastImportedCourses = (payload.importedCourses || []).filter((course) => !merged.duplicateIds.includes(course.id));
@@ -1610,7 +1672,7 @@ byId('import-screenshot').addEventListener('click', async () => {
     renderAll();
     renderImportResults();
   } catch (error) {
-    status.textContent = error.message || '辨識失敗，請稍後重試。';
+    showAiError(status, retryButton, error);
   } finally {
     button.disabled = false;
     button.removeAttribute('aria-busy');

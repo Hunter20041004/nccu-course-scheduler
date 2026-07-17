@@ -163,3 +163,35 @@ test('rejects a route that cannot preserve the requested internship days', () =>
   assert.equal(result.valid, false);
   assert.deepEqual(result.violations.map(({ code }) => code), ['minimum-internship-days']);
 });
+
+test('reports zero confirmed internship days when a physical course time is unresolved', () => {
+  const result = validatePlan({
+    plan: { courseIds: ['flexible'], asyncCourseIds: [] },
+    courses: [{ id: 'flexible', title: '另約討論', credits: 3 }],
+    profile,
+    internshipSettings: {
+      targetDays: 2.5, start: '09:00', end: '18:00', mode: 'auto', fixedDays: {},
+    },
+    minimumInternshipDays: 2.5,
+  });
+
+  assert.equal(result.internship.availableDays, 5);
+  assert.equal(result.internship.confirmedDays, 0);
+  assert.match(result.violations[0].message, /只能確認 0 天實習/);
+});
+
+test('preserves asynchronous attendance for an already locked selected course', () => {
+  const shared = { day: 2, start: 610, end: 720 };
+  const result = validatePlan({
+    plan: { courseIds: ['physical'], asyncCourseIds: [] },
+    courses: [
+      { id: 'locked-async', title: '鎖定非同步課', credits: 3, asyncAllowed: true, attendance: 'async', schedule: shared },
+      { id: 'physical', title: '實體課', credits: 3, schedule: shared },
+    ],
+    lockedCourseIds: ['locked-async'],
+    profile,
+  });
+
+  assert.equal(result.valid, true);
+  assert.deepEqual(result.asyncCourseIds, ['locked-async']);
+});

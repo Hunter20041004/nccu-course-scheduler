@@ -49,6 +49,16 @@ test('static fallback warns that AI features require the full live demo', () => 
   assert.match(html, /isStaticFallbackHost/);
 });
 
+test('shows deployment-aware guidance without sending full-site users back to the full site', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="deployment-ai-note"/);
+  assert.match(html, /id="tutorial-deployment-note"/);
+  assert.match(html, /function renderDeploymentCopy\(\)/);
+  assert.match(html, /if \(isStaticFallbackHost\)/);
+  assert.match(html, /完整版：AI 會使用你在本分頁設定的 Gemini Key/);
+});
+
 test('renders secure Gemini API key setup without first-load auto prompt', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="api-key-status-button"/);
@@ -170,7 +180,7 @@ test('defines a native eight-step quick tour that can switch tabs without mutati
   assert.match(html, /id="quick-tour-next"/);
   assert.match(html, /id="quick-tour-end"/);
   assert.match(html, /const quickTourSteps = \[/);
-  for (const target of ['schedule-panel', 'workspace-panel-catalog', 'course-actions', 'workspace-panel-conditions', 'workspace-panel-internship', 'workspace-panel-ai', 'workspace-panel-add', 'schedule-grid']) {
+  for (const target of ['schedule-panel', 'workspace-panel-catalog', 'catalog-list', 'workspace-panel-conditions', 'workspace-panel-internship', 'workspace-panel-ai', 'workspace-panel-add', 'schedule-grid']) {
     assert.match(html, new RegExp(`target: '${target}'`));
   }
   assert.match(html, /setWorkspaceTab\(step\.tab\)/);
@@ -369,6 +379,16 @@ test('searches and imports official NCCU 115-1 courses without an AI key', async
   assert.match(html, /nccuCourseToCandidate/);
 });
 
+test('shows the official term and last successful NCCU query without hiding it after an error', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="nccu-data-freshness"[^>]*>資料學期 115-1 · 尚未成功查詢/);
+  assert.match(html, /let lastSuccessfulNccuQueryAt = null/);
+  assert.match(html, /lastSuccessfulNccuQueryAt = new Date\(\)/);
+  assert.match(html, /function renderNccuDataFreshness\(\)/);
+  assert.match(html, /最後成功查詢/);
+});
+
 test('keeps the NCCU search form reference valid after the async request', async () => {
   const html = await (await render()).text();
 
@@ -444,8 +464,17 @@ test('sends current courses locks and internship settings to the advisor API', a
   assert.match(html, /fetch\('\/api\/ai\/recommend-plans'/);
   assert.match(html, /internshipSettings,/);
   assert.match(html, /lockedCourseIds,/);
-  assert.match(html, /events:\s*course\.events/);
-  assert.match(html, /eligibility:\s*evaluateEligibility\(course, profile\)\.status/);
+  assert.match(html, /events:\s*effectiveCourse\.events/);
+  assert.match(html, /eligibility:\s*evaluateEligibility\(effectiveCourse, profile\)\.status/);
+});
+
+test('sends the resolved selected section and attendance to deterministic AI validation', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const effectiveCourse = selected\.find\(\(item\) => item\.id === course\.id\) \|\| course/);
+  assert.match(html, /schedule: effectiveCourse\.schedule/);
+  assert.match(html, /meetings: effectiveCourse\.meetings/);
+  assert.match(html, /attendance: effectiveCourse\.attendance/);
 });
 
 test('renders exactly three actionable recommendation cards', async () => {
@@ -487,6 +516,17 @@ test('explains when deterministic validation returns fewer than three AI routes'
   assert.match(html, /let recommendationShortfall = ''/);
   assert.match(html, /payload\.shortfallReason/);
   assert.match(html, /class="route-shortfall"/);
+});
+
+test('offers retryable AI errors without clearing the student inputs or planner state', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="retry-ai-advisor"[^>]*hidden/);
+  assert.match(html, /id="retry-screenshot-import"[^>]*hidden/);
+  assert.match(html, /error\.retryable = Boolean\(payload\?\.error\?\.retryable\)/);
+  assert.match(html, /requestId/);
+  assert.match(html, /byId\('ai-advisor-form'\)\.requestSubmit\(\)/);
+  assert.match(html, /byId\('import-screenshot'\)\.click\(\)/);
 });
 
 test('clears the current timetable while preserving the candidate catalog', async () => {
@@ -687,6 +727,14 @@ test('updates the Sunbreak internship progress line from the current target', as
   assert.match(html, /internshipProgress\.setAttribute\('aria-valuenow', String\(progressPercent\)\)/);
 });
 
+test('distinguishes confirmed internship time from time pending unresolved courses', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /已確認 \$\{internshipPlan\.confirmedDays\} 天/);
+  assert.match(html, /待確認 \$\{internshipPlan\.pendingDays\} 天/);
+  assert.match(html, /internshipPlan\.confirmedDays \/ internshipSettings\.targetDays/);
+});
+
 test('reveals a newly added course in the official timetable', async () => {
   const html = await (await render()).text();
   assert.match(html, /data-grid-course="\$\{escapeHtml\(course\.id\)\}"/);
@@ -730,6 +778,8 @@ test('defaults compact screens to a readable agenda while preserving the officia
   assert.match(html, /matchMedia\('\(max-width: 640px\)'\)/);
   assert.match(html, /\.schedule-panel\[data-schedule-view="agenda"\] \.schedule-scroll/);
   assert.match(html, /\.schedule-panel\[data-schedule-view="grid"\] \.schedule-agenda/);
+  assert.match(html, /sunbreak:schedule-view:v1/);
+  assert.match(html, /localStorage\.setItem\(SCHEDULE_VIEW_KEY, view\)/);
 });
 
 test('keeps compact course detail disclosure targets at least 44 pixels tall', async () => {
