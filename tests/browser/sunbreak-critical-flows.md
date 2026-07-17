@@ -26,7 +26,7 @@ Verified on 2026-07-16 against `http://localhost:4173/` and a fresh origin at `h
 
 ## Deterministic and boundary evidence
 
-- `npm test`: 166 unit tests and 75 rendered-page tests passed.
+- `npm test`: 167 unit tests and 75 rendered-page tests passed.
 - `npm run lint`: passed.
 - `npm run test:contract:nccu`: three live NCCU 115-1 contract tests passed.
 - AI service tests cover missing/invalid keys, timeouts, retryable upstream errors, request IDs, hallucinated course IDs, conflicts, locked courses, asynchronous attendance, minimum credits, language-course requirements, and internship minimums.
