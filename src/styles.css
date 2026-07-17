@@ -43,7 +43,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .header-metrics div { display: flex; gap: 9px; align-items: baseline; min-width: 0; padding: 10px 14px; }
 .header-metrics div + div { border-left: 1px solid var(--line); }
 .header-metrics small { color: var(--muted); font-size: .72rem; white-space: nowrap; }
-.header-metrics strong { font-size: 1rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.header-metrics strong { display: flex; min-width: 0; flex-wrap: wrap; gap: 1px 8px; font-size: 1rem; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.header-metrics strong > span { white-space: nowrap; }
 .header-actions { display: flex; gap: 8px; }
 .header-more-menu { position: relative; }
 .header-more-menu > summary { display: grid; place-items: center; list-style: none; user-select: none; }
@@ -334,6 +335,10 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .secret-field button, .dialog-close { min-width: 44px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
 .dialog-close { position: absolute; top: 14px; right: 14px; }
 .api-key-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 1199px) {
+  .header-metrics div { display: grid; align-content: center; gap: 2px; }
+}
 
 @media (max-width: 1023px) {
   .site-header { grid-template-columns: minmax(190px, .8fr) minmax(330px, 1.3fr); }
