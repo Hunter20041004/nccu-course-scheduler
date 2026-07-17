@@ -147,7 +147,7 @@
     <section class="first-use-card">
       <p class="eyebrow">FIRST RUN · GUIDE</p>
       <h2 id="first-use-title">第一次使用 Sunbreak</h2>
-      <p>你的候選清單與課表會從空白開始。先用 1 到 2 分鐘看快速導覽，或直接搜尋政大課程；只有 AI 功能需要你自己的 Gemini API Key。</p>
+      <p>第一次排課可以照四步完成：搜尋或匯入課程、加入候選清單、檢查時間與修課條件、加入課表並處理衝堂。一般排課不需要 API Key；只有 AI 截圖辨識與推薦需要你自己的 Gemini API Key。</p>
       <div class="first-use-actions">
         <button id="start-quick-tour" class="button button-primary" type="button">開始快速導覽</button>
         <button id="skip-quick-tour" class="button button-quiet" type="button">直接開始使用</button>
@@ -163,59 +163,102 @@
         <button id="tutorial-center-close" class="dialog-close" type="button" aria-label="關閉使用教學">×</button>
       </header>
       <nav class="tutorial-center-nav" aria-label="教學章節">
-        <a href="#guide-first-run">第一次使用</a>
-        <a href="#guide-api-key">取得 Gemini API Key</a>
-        <a href="#guide-import">匯入候選課程</a>
-        <a href="#guide-conditions">管理選課條件</a>
-        <a href="#guide-schedule">排課操作</a>
-        <a href="#guide-internship">實習與個人行程</a>
-        <a href="#guide-ai">AI 推薦方案</a>
-        <a href="#guide-faq">常見問題</a>
+        <a href="#guide-first-run">開始排課</a>
+        <a href="#guide-import">加入候選</a>
+        <a href="#guide-details">課程資料</a>
+        <a href="#guide-conditions">修課條件</a>
+        <a href="#guide-schedule">管理課表</a>
+        <a href="#guide-attendance">上課形式</a>
+        <a href="#guide-internship">實習與行程</a>
+        <a href="#guide-ai">AI 推薦</a>
+        <a href="#guide-export-faq">匯出與排錯</a>
       </nav>
       <div class="tutorial-center-body">
         <section id="guide-first-run">
-          <h3>第一次使用</h3>
-          <p>新訪客的候選課程與課表會從空白開始，不會看到其他人的內容。同一個網址與同一個瀏覽器會保留你的排課資料；換裝置、換瀏覽器或清除網站資料則會重新開始。不設定 API Key 也能搜尋官方課程、排課、管理條件與設定實習。快速導覽只會切換畫面與指示位置，不會改你的課表。</p>
+          <h3>第一次開始排課</h3>
+          <ol class="guide-steps">
+            <li>先到「匯入／新增」搜尋或匯入你想考慮的課。</li>
+            <li>回到「候選課程」檢查時間、資格與課綱，再點課程加入左側課表。</li>
+            <li>設定自己的修課條件與實習時間，處理所有衝堂與提醒。</li>
+            <li>需要更多協助時，再使用 AI 產生三個推薦方案或匯出手機桌布。</li>
+          </ol>
+          <p class="guide-note"><strong>資料保存：</strong>新訪客的候選課程與課表會從空白開始，不會看到其他人的內容。同一個網址與同一個瀏覽器會保留你的排課資料；換裝置、換瀏覽器、清除網站資料，或改用另一個正式站網址，都會重新開始。一般排課不需要 API Key，快速導覽也只會切換畫面與指示位置，不會改你的課表。</p>
           <button id="restart-quick-tour" class="button button-secondary" type="button">重新開始快速導覽</button>
         </section>
-        <section id="guide-api-key">
-          <h3>取得 Gemini API Key</h3>
-          <ol>
-            <li>前往 Google AI Studio。</li>
-            <li>登入 Google 帳號；學校帳號受限時請改用個人帳號。</li>
-            <li>建立 API Key。</li>
-            <li>複製 Key 後回到網站貼上。</li>
-          </ol>
-          <p>API Key 等同使用者自己的額度，請不要傳給別人。Key 不會存到伺服器、資料庫或網址；關閉或重新整理分頁即清除。GitHub Pages 分享版可測試一般排課與桌布匯出；AI 匯入與推薦請改用完整 Live Demo。</p>
-        </section>
         <section id="guide-import">
-          <h3>匯入候選課程</h3>
-          <ol>
-            <li><strong>政大 115-1 課程庫：</strong>輸入課名、教師或九碼課號直接搜尋，再按「加入候選」；不需要 API Key。</li>
-            <li><strong>AI 截圖辨識：</strong>上傳政大課程追蹤清單截圖，系統會辨識並核對公開課程資料；需要自己的 Gemini API Key。</li>
-            <li><strong>手動新增：</strong>自行輸入課程、社團、課外組織、打工或私人行程。</li>
+          <h3>用三種方式加入候選課程</h3>
+          <ol class="guide-steps">
+            <li><strong>政大 115-1 課程庫：</strong>在「匯入／新增」輸入課名、教師或九碼課號，按「搜尋」後選擇「加入候選」。這個方式不需要 API Key。</li>
+            <li><strong>AI 截圖辨識：</strong>上傳政大課程追蹤清單截圖，系統會辨識課名與課號，再核對政大公開資料。這個方式需要自己的 Gemini API Key。</li>
+            <li><strong>手動新增：</strong>自行輸入課程名稱、學分、星期與時間，也能新增社團、課外組織或個人行程。</li>
           </ol>
-          <p>沒有開的課不會自動匯入；資料不足或資格不明的課程會標為待確認，請再查看詳細資訊。</p>
+          <p>沒有開的課不會自動匯入。辨識結果找不到唯一的 115-1 課程，或公開資料不足時，會列在「待確認」，請先核對再決定是否保留。</p>
+        </section>
+        <section id="guide-details">
+          <h3>查看課程時間、完整詳細資料與官方課綱</h3>
+          <ol class="guide-steps">
+            <li>候選課程列會直接顯示課程時間與政大節次代號，例如「週四 34」。</li>
+            <li>按「詳細」會在該課程下方展開完整詳細資料；同時間只會展開一門，避免畫面互相遮住。</li>
+            <li>完整資料包含課名、課號、授課教師、學分、上課時間、上課形式、修課資格、資料來源、官方備註與班別時段。</li>
+            <li>按「課綱」或詳細區底部的「開啟官方課綱」，可前往政大官方課綱。若公開資料沒有安全連結，系統會明確標示無法開啟。</li>
+          </ol>
         </section>
         <section id="guide-conditions">
-          <h3>管理選課條件</h3>
-          <p>有系所、雙主修、學程、年級或身分限制的課會出現在選課條件。條件不符合時請看詳細。</p>
+          <h3>設定與理解修課條件</h3>
+          <ol class="guide-steps">
+            <li>到「選課條件」勾選你符合的系所、雙主修、學程、年級、先修課或其他身分。</li>
+            <li>匯入有新限制的課程時，系統會建立對應的可勾選條件，並列出為什麼需要及影響哪些課。</li>
+            <li>「日文系擴大輔系課程」這類課程分類只是資訊，不代表只有該身分才能修；真正限制會使用「僅限」、「限修」或其他明確資格文字。</li>
+            <li>候選課程顯示「條件不符合，請看詳細。」時，按「詳細」閱讀缺少的條件，再回來更新個人資格。</li>
+          </ol>
+          <p class="guide-note"><strong>注意：</strong>勾選條件只代表你自行確認符合，不會替代政大選課系統的正式審核。</p>
         </section>
         <section id="guide-schedule">
-          <h3>排課操作</h3>
-          <p>點候選課程可加入課表；詳細、鎖定、刪除可管理每門課。任何課程都能鎖定，鎖定課會在 AI 方案中保留。</p>
+          <h3>加入、鎖定、刪除與清空</h3>
+          <ol class="guide-steps">
+            <li>點候選課程的主要區塊，可將課程加入左側課表；再點一次可移出。資格不符合或時段尚未選定時，請先處理提示。</li>
+            <li>按「鎖定」可鎖定任何課程，不限必修。鎖定課會留在目前課表，也會在 AI 方案中保留。</li>
+            <li>按「刪除」會移除該候選課程，也會一併移除它在課表中的區塊與鎖定狀態。</li>
+            <li>「清空目前課表」只清除已排課程，候選清單仍在；「清空候選課程」會清除整份候選清單與相關排課狀態。</li>
+          </ol>
+        </section>
+        <section id="guide-attendance">
+          <h3>實體／同步／非同步與衝堂</h3>
+          <ol class="guide-steps">
+            <li>標示可遠距的課程可切換「實體／同步／非同步」，請依你實際打算採用的上課方式選擇。</li>
+            <li>選擇非同步後，不會占用每週固定課表時段；但同步活動、考試或一次性活動仍可能產生衝堂。</li>
+            <li>有多位老師、班別或兩種官方討論安排的課程，加入後必須先選擇其中一種安排，系統不會把互斥時段同時排入。</li>
+            <li>出現衝堂提醒時，請更換官方時段、改用課程允許的非同步形式，或移除其中一門。含衝堂的 AI 方案不會顯示。</li>
+          </ol>
         </section>
         <section id="guide-internship">
-          <h3>實習與個人行程</h3>
-          <p>可設定實習天數、固定時段、彈性時段，也可新增社團、課外組織、打工或自修來檢查衝堂。</p>
+          <h3>安排實習、社團與個人行程</h3>
+          <ol class="guide-steps">
+            <li>到「實習設定」輸入目標天數與每天希望保留的開始、結束時間。</li>
+            <li>選擇自動模式時，系統會從無衝堂時段找可實習日；選擇固定模式時，可指定每週的固定實習時段。</li>
+            <li>實習區塊會畫在課表上，與課程重疊時會出現排課提醒；半天與整天會依實際可用時數計算。</li>
+            <li>到「匯入／新增」可加入社團、課外組織、打工、自修或其他個人行程，這些行程也會參與衝堂檢查。</li>
+          </ol>
         </section>
         <section id="guide-ai">
-          <h3>AI 推薦方案</h3>
-          <p>寫清楚最低學分、想留幾天實習、主題偏好、語文課偏好和不想考試等條件。有衝堂的方案不應顯示；非同步課可以補學分但仍需符合資格。</p>
+          <h3>取得 API Key 並使用 AI 推薦</h3>
+          <ol class="guide-steps">
+            <li>前往 Google AI Studio，使用 Google 帳號建立 Gemini API Key；學校帳號受限時請改用個人帳號。</li>
+            <li>回到網站按「API Key 未設定」，貼上 Key 並驗證。API Key 等同使用者自己的額度，請不要傳給別人。</li>
+            <li>在「AI 推薦」填寫自我介紹、學期目標與排課偏好，明確寫出最低學分、實習天數、想修的領域、語文偏好或不想考試等需求。</li>
+            <li>系統會提供三個推薦方案。先按「預覽」檢查課程、學分、實習與提醒，再按「套用此方案」。鎖定課會保留，非同步課可補學分，但仍須符合資格。</li>
+          </ol>
+          <p class="guide-note"><strong>Key 安全：</strong>Key 只保留在目前分頁記憶體，不會寫入伺服器、資料庫、網址或瀏覽器長期儲存；關閉或重新整理分頁即清除。GitHub Pages 分享版可使用一般排課與桌布匯出，AI 功能請使用完整 Live Demo。</p>
         </section>
-        <section id="guide-faq">
-          <h3>常見問題</h3>
-          <p>如果 AI 說 API Key 沒設定，代表目前分頁還沒貼 Key。若截圖匯入後有待確認，請自行核對政大課程資料。想重跑方案時，回到 AI 推薦重新送出需求即可。</p>
+        <section id="guide-export-faq">
+          <h3>匯出手機桌布與常見問題</h3>
+          <ol class="guide-steps">
+            <li>排完後按課表上方的「匯出手機桌布」，下載包含課表、非同步與時間未定課程及排課提醒的直式圖片。</li>
+            <li><strong>AI 顯示未設定：</strong>目前分頁沒有有效 Key，請重新貼上；重新整理後也必須重新設定。</li>
+            <li><strong>課程待確認：</strong>代表無法從公開資料找到唯一結果或資料不足，請用課號與官方課綱核對。</li>
+            <li><strong>換手機沒有資料：</strong>資料只存在原本瀏覽器與網址，不會跨裝置或跨網站同步。</li>
+            <li><strong>清除錯誤內容：</strong>使用「清空目前課表」保留候選課，或使用「清空候選課程」重新建立清單。</li>
+          </ol>
         </section>
       </div>
     </section>
