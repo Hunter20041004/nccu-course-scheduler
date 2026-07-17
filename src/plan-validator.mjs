@@ -1,7 +1,7 @@
 import { evaluateEligibility, findConflicts } from './planner-core.mjs';
 import { calculateInternshipPlan } from './internship-planner.mjs';
 
-const unique = (values) => [...new Set((values || []).filter(Boolean))];
+const uniquePlanIds = (values) => [...new Set((values || []).filter(Boolean))];
 
 export function validatePlan({
   plan = {},
@@ -13,16 +13,16 @@ export function validatePlan({
   minimumInternshipDays = 0,
 } = {}) {
   const byId = new Map(courses.map((course) => [course.id, course]));
-  const courseIds = unique([...(lockedCourseIds || []), ...(plan.courseIds || [])])
+  const courseIds = uniquePlanIds([...(lockedCourseIds || []), ...(plan.courseIds || [])])
     .filter((id) => byId.has(id));
-  const asyncCourseIds = unique(plan.asyncCourseIds || []).filter((id) => courseIds.includes(id));
+  const asyncCourseIds = uniquePlanIds(plan.asyncCourseIds || []).filter((id) => courseIds.includes(id));
   const selected = courseIds.map((id) => ({
     ...byId.get(id),
     attendance: asyncCourseIds.includes(id) ? 'async' : 'physical',
   }));
   const credits = selected.reduce((total, course) => total + Number(course.credits || 0), 0);
   const internship = internshipSettings ? calculateInternshipPlan(selected, internshipSettings) : null;
-  const missingLockedCourseIds = unique(lockedCourseIds).filter((id) => !byId.has(id));
+  const missingLockedCourseIds = uniquePlanIds(lockedCourseIds).filter((id) => !byId.has(id));
   const violations = missingLockedCourseIds.map((id) => ({
     code: 'missing-locked-course',
     message: `鎖定課程 ${id} 已不在候選課程中，無法產生完整方案。`,

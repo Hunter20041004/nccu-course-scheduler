@@ -469,6 +469,14 @@ test('does not render locally conflicting AI routes', async () => {
   assert.doesNotMatch(html, /方案有衝堂/);
 });
 
+test('explains when deterministic validation returns fewer than three AI routes', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /let recommendationShortfall = ''/);
+  assert.match(html, /payload\.shortfallReason/);
+  assert.match(html, /class="route-shortfall"/);
+});
+
 test('clears the current timetable while preserving the candidate catalog', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="clear-schedule"/);

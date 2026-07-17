@@ -212,7 +212,7 @@ test('does not resend the full recommendation payload when the JSON shape is inv
   assert.equal(calls, 1);
 });
 
-test('repairs a conflicting AI route locally without spending a second Groq request', async () => {
+test('drops a conflicting AI route without spending a second model request', async () => {
   let calls = 0;
   const plan = (id, courseIds, reason = id, tradeoffs = []) => ({
     id, title: id, reason, courseIds, attendance: '實體', tradeoffs,
@@ -239,9 +239,29 @@ test('repairs a conflicting AI route locally without spending a second Groq requ
 
   assert.equal(calls, 1);
   assert.equal(result.summary, '第一次');
-  assert.deepEqual(result.plans[0].courseIds, ['a']);
-  assert.doesNotMatch(result.plans[0].reason, /課程 B/);
-  assert.deepEqual(result.plans[0].tradeoffs, ['已移除衝堂課程：課程 B']);
+  assert.deepEqual(result.plans.map(({ id }) => id), ['balance', 'explore']);
+  assert.deepEqual(result.plans[0].courseIds, ['a', 'c']);
+  assert.match(result.shortfallReason, /1 個方案因衝堂未顯示/);
+});
+
+test('returns no route cards when every AI route conflicts', async () => {
+  const conflicting = JSON.stringify({ summary: '模型方案', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a', 'b'], attendance: '實體', tradeoffs: [] },
+    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['a', 'c'], attendance: '實體', tradeoffs: [] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['b', 'c'], attendance: '實體', tradeoffs: [] },
+  ] });
+  const courses = [
+    { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 550, end: 720 } },
+    { id: 'b', title: '課程 B', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 610, end: 780 } },
+    { id: 'c', title: '課程 C', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 650, end: 820 } },
+  ];
+
+  const result = await recommendCoursePlans({
+    courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+  }, { apiKey: 'test-only', aiRequest: async () => conflicting });
+
+  assert.deepEqual(result.plans, []);
+  assert.match(result.shortfallReason, /3 個方案.*衝堂/);
 });
 
 test('accepts an overlapping route only when an async-capable course is explicitly asynchronous', async () => {
