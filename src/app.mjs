@@ -198,13 +198,20 @@ function restoreState() {
 
 function persistState() {
   try {
+    localStorage.setItem(STORAGE_KEY, serializePlannerState(plannerStateSnapshot()));
+  } catch {
+    // The planner still works when browser storage is unavailable.
+  }
+}
+
+function plannerStateSnapshot() {
     const officialIds = new Set(courses.map((course) => course.id));
     const addedCourses = courseStore.filter((course) => !officialIds.has(course.id));
     const retainedIds = new Set(courseStore.map((course) => course.id));
     const deletedCourseIds = courses
       .filter((course) => !retainedIds.has(course.id))
       .map((course) => course.id);
-    localStorage.setItem(STORAGE_KEY, serializePlannerState({
+    return {
       selectedIds: selected.map((course) => course.id),
       attendance: Object.fromEntries(selected.map((course) => [course.id, course.attendance])),
       courseOptions,
@@ -215,11 +222,61 @@ function persistState() {
       pendingCourses,
       customConditions,
       deletedCourseIds,
-    }));
-  } catch {
-    // The planner still works when browser storage is unavailable.
-  }
+    };
 }
+
+byId('export-and-open-full').hidden = !isStaticFallbackHost;
+
+function downloadPlannerTransfer() {
+  const blob = new Blob([exportPlannerTransfer(plannerStateSnapshot())], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `sunbreak-planner-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  byId('planner-transfer-status').textContent = '已下載排課資料；檔案不含 API Key、AI 自我介紹或截圖。';
+}
+
+byId('export-planner-data').addEventListener('click', downloadPlannerTransfer);
+byId('export-and-open-full').addEventListener('click', downloadPlannerTransfer);
+byId('import-planner-data').addEventListener('change', async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+  const status = byId('planner-transfer-status');
+  const raw = await file.text();
+  const preview = previewPlannerTransfer(raw, plannerStateSnapshot());
+  if (!preview.valid) {
+    status.textContent = preview.error.message;
+    event.target.value = '';
+    return;
+  }
+  const { summary } = preview;
+  const message = `將匯入 ${summary.addedCourses} 門新課、更新 ${summary.replacedCourses} 門，並略過 ${summary.skippedCourses} 筆重複資料。這會取代目前排課，是否繼續？`;
+  if (!window.confirm(message)) {
+    status.textContent = '已取消匯入，現在的排課沒有變更。';
+    event.target.value = '';
+    return;
+  }
+  const applied = applyPlannerTransfer(preview, plannerStateSnapshot());
+  localStorage.setItem(STORAGE_KEY, serializePlannerState(applied));
+  profile = { ...defaultProfile };
+  courseStore = [];
+  selected = [];
+  courseOptions = {};
+  lockedCourseIds = [];
+  internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
+  pendingCourses = [];
+  customConditions = [];
+  restoreState();
+  syncProfileForm();
+  syncInternshipForm();
+  renderAll();
+  renderImportResults();
+  status.textContent = `匯入完成；目前課表有 ${selected.length} 個項目。`;
+  event.target.value = '';
+  byId('header-more-menu').open = false;
+});
 
 function eligibilityLabel(status) {
   return {
