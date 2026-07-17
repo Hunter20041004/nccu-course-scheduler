@@ -14,7 +14,25 @@ export function createStartupCatalog(savedState, officialCourses) {
 }
 
 export function serializePlannerState(state) {
-  return JSON.stringify({ version: 4, state });
+  return JSON.stringify({ version: 5, state: migratePlannerState(state) });
+}
+
+export function migratePlannerState(state) {
+  if (!state || typeof state !== 'object') return state;
+  const courseOptions = Object.fromEntries(Object.entries(state.courseOptions || {}).map(([courseId, option]) => {
+    if (!option?.variantId) return [courseId, option];
+    const arrangementId = option.arrangementId
+      || (option.variantId === '783006001' && option.advisorId ? option.advisorId : null);
+    return [courseId, {
+      sectionId: option.variantId,
+      advisorId: arrangementId ? null : (option.advisorId || null),
+      arrangementId,
+    }];
+  }));
+  return {
+    ...state,
+    ...(state.courseOptions ? { courseOptions } : {}),
+  };
 }
 
 export function parsePlannerState(raw, fallback) {
@@ -25,16 +43,18 @@ export function parsePlannerState(raw, fallback) {
       const hasLegacyConditions = legacyProfile?.conditionIds?.length
         || legacyProfile?.programs?.length
         || legacyProfile?.prerequisites?.length;
-      return {
+      return migratePlannerState({
         ...parsed.state,
         ...(legacyProfile ? {
           profile: hasLegacyConditions
             ? { ...legacyProfile, conditionIds: profileConditionIds(legacyProfile) }
             : legacyProfile,
         } : {}),
-      };
+      });
     }
-    return parsed?.version === 4 && parsed.state ? parsed.state : fallback;
+    return [4, 5].includes(parsed?.version) && parsed.state
+      ? migratePlannerState(parsed.state)
+      : fallback;
   } catch {
     return fallback;
   }
