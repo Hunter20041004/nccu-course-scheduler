@@ -599,6 +599,16 @@ test('labels syllabus-defined project arrangements instead of treating every opt
   assert.match(html, /variant\.selectionLabel \|\| '指導老師'/);
 });
 
+test('selects atomic NCCU sections and their arrangements in separate controls', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-course-section/);
+  assert.match(html, /data-course-arrangement/);
+  assert.match(html, /selectedSectionId/);
+  assert.match(html, /section\.arrangements/);
+  assert.match(html, /section\.advisorOptions/);
+});
+
 test('offers automatic and fixed internship controls and paints reservations on the grid', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="internship-form"/);

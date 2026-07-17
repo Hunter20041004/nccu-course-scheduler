@@ -662,6 +662,9 @@ function renderCatalog() {
       : '';
     const conditions = course.conditions || [];
     const sections = course.sections || [];
+    const sectionLabels = sections.map((section) => typeof section === 'string'
+      ? section
+      : `${section.sectionCode || section.id}｜${section.teacher || '教師待確認'}｜${section.schedule?.label || '依選定安排'}`);
     const expanded = expandedCourseId === course.id;
     const detailTrigger = `<button class="catalog-details-trigger" type="button" data-details-course="${escapeHtml(course.id)}" aria-expanded="${expanded}" aria-controls="course-details-${escapeHtml(course.id)}" aria-label="查看 ${escapeHtml(course.title)} 的完整資料">詳細</button>`;
     const sourceLabel = course.source === 'nccu-verified-import'
@@ -698,15 +701,32 @@ function renderCatalog() {
         </section>
         <section>
           <h4>官方班別與時段</h4>
-          ${sections.length ? `<ul class="course-sections">${sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : `<p>${escapeHtml(scheduleSummary)}</p>`}
+          ${sectionLabels.length ? `<ul class="course-sections">${sectionLabels.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : `<p>${escapeHtml(scheduleSummary)}</p>`}
         </section>
       </div>
       <footer class="course-details-footer">
         ${syllabusUrl ? `<a href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">開啟官方課綱</a>` : '<span>目前沒有可用的官方課綱</span>'}
       </footer>
     </section>` : '';
+    const atomicSections = sections.filter((section) => section && typeof section === 'object');
+    const selectedSection = atomicSections.find(({ id }) => id === selectedCourse?.selectedSectionId);
+    const sectionChoices = selectedSection?.arrangements || selectedSection?.advisorOptions || [];
+    const choiceKind = selectedSection?.arrangements?.length ? 'arrangement' : 'advisor';
     const selectedVariant = selectedCourse?.variants?.find(({ id }) => id === selectedCourse.selectedVariantId);
-    const optionControls = selectedNow && course.variants?.length
+    const atomicOptionControls = selectedNow && atomicSections.length
+      ? `<div class="course-option-controls">
+          <label>正式課號<select data-course-section="${escapeHtml(course.id)}">
+            <option value="">請選擇</option>
+            ${atomicSections.map((section) => `<option value="${escapeHtml(section.id)}" ${selectedCourse?.selectedSectionId === section.id ? 'selected' : ''}>${escapeHtml(section.sectionCode || section.id)} · ${escapeHtml(section.teacher || '教師待確認')}</option>`).join('')}
+          </select></label>
+          ${sectionChoices.length ? `<label>${escapeHtml(selectedSection.selectionLabel || (choiceKind === 'arrangement' ? '時間安排' : '指導老師與時段'))}<select data-course-${choiceKind}="${escapeHtml(course.id)}">
+            <option value="">請選擇</option>
+            ${sectionChoices.map((choice) => `<option value="${escapeHtml(choice.id)}" ${(choiceKind === 'arrangement' ? selectedCourse.selectedArrangementId : selectedCourse.selectedAdvisorId) === choice.id ? 'selected' : ''}>${escapeHtml(choice.optionLabel || `${choice.teacher || '彈性安排'} · ${choice.schedule?.label || '時間待確認'}`)}</option>`).join('')}
+          </select></label>` : ''}
+          <p>${escapeHtml(selectedCourse?.optionMessage || '選定後會把整個班別的課號、教師與時段一起放進左側課表。')}</p>
+        </div>`
+      : '';
+    const legacyOptionControls = selectedNow && !atomicSections.length && course.variants?.length
       ? `<div class="course-option-controls">
           <label>正式課號<select data-course-variant="${escapeHtml(course.id)}">
             <option value="">請選擇</option>
@@ -719,6 +739,7 @@ function renderCatalog() {
           <p>${escapeHtml(selectedCourse?.optionMessage || '選定後會把對應時段放進左側課表。')}</p>
         </div>`
       : '';
+    const optionControls = atomicOptionControls || legacyOptionControls;
     return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
       <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small><small class="catalog-time">${escapeHtml(scheduleSummary)}</small></span>
@@ -984,13 +1005,23 @@ catalogList.addEventListener('click', (event) => {
 });
 
 catalogList.addEventListener('change', (event) => {
-  const optionSelect = event.target.closest('[data-course-variant], [data-course-advisor]');
+  const optionSelect = event.target.closest('[data-course-section], [data-course-arrangement], [data-course-variant], [data-course-advisor]');
   if (optionSelect) {
-    const courseId = optionSelect.dataset.courseVariant || optionSelect.dataset.courseAdvisor;
+    const courseId = optionSelect.dataset.courseSection
+      || optionSelect.dataset.courseArrangement
+      || optionSelect.dataset.courseVariant
+      || optionSelect.dataset.courseAdvisor;
     const current = courseOptions[courseId] || {};
-    const selection = optionSelect.dataset.courseVariant
-      ? { variantId: optionSelect.value, advisorId: null }
-      : { ...current, advisorId: optionSelect.value };
+    let selection;
+    if (optionSelect.dataset.courseSection) {
+      selection = { sectionId: optionSelect.value, advisorId: null, arrangementId: null };
+    } else if (optionSelect.dataset.courseArrangement) {
+      selection = { ...current, arrangementId: optionSelect.value, advisorId: null };
+    } else if (optionSelect.dataset.courseVariant) {
+      selection = { variantId: optionSelect.value, advisorId: null };
+    } else {
+      selection = { ...current, advisorId: optionSelect.value, arrangementId: null };
+    }
     courseOptions[courseId] = selection;
     selected = applyCourseOption(selected, courseId, selection);
     persistState();
