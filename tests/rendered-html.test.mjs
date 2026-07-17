@@ -551,6 +551,14 @@ test('exports and previews portable planner data from the header More menu', asy
   assert.match(html, /id="export-and-open-full"/);
 });
 
+test('closes the header More menu after any menu action on compact screens', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /byId\('header-more-menu'\)\.addEventListener\('click', \(event\) => \{/);
+  assert.match(html, /event\.target\.closest\('\[role="menuitem"\]'\)/);
+  assert.match(html, /byId\('header-more-menu'\)\.open = false/);
+});
+
 test('offers a fifteen-second undo after destructive planner changes', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="planner-undo-toast"[^>]*role="status"/);
