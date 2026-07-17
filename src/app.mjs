@@ -225,6 +225,51 @@ function plannerStateSnapshot() {
     };
 }
 
+function replacePlannerState(snapshot) {
+  localStorage.setItem(STORAGE_KEY, serializePlannerState(snapshot));
+  profile = { ...defaultProfile };
+  courseStore = [];
+  selected = [];
+  courseOptions = {};
+  lockedCourseIds = [];
+  internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
+  pendingCourses = [];
+  customConditions = [];
+  restoreState();
+  syncProfileForm();
+  syncInternshipForm();
+  renderAll();
+  renderImportResults();
+}
+
+const undo = createPlannerUndo({ ttlMs: 15_000 });
+let undoHideTimer;
+
+function hidePlannerUndo() {
+  byId('planner-undo-toast').hidden = true;
+  clearTimeout(undoHideTimer);
+}
+
+function capturePlannerUndo(label) {
+  undo.capture(plannerStateSnapshot(), label);
+  byId('planner-undo-message').textContent = `${label}。可在 15 秒內復原。`;
+  byId('planner-undo-toast').hidden = false;
+  clearTimeout(undoHideTimer);
+  undoHideTimer = setTimeout(hidePlannerUndo, 15_000);
+}
+
+byId('restore-planner-change').addEventListener('click', () => {
+  const snapshot = undo.restore();
+  if (!snapshot) {
+    byId('planner-status').textContent = '復原期限已過，無法回復上一個狀態。';
+    hidePlannerUndo();
+    return;
+  }
+  replacePlannerState(snapshot);
+  byId('planner-status').textContent = '已復原上一個排課變更。';
+  hidePlannerUndo();
+});
+
 byId('export-and-open-full').hidden = !isStaticFallbackHost;
 
 function downloadPlannerTransfer() {
@@ -258,21 +303,9 @@ byId('import-planner-data').addEventListener('change', async (event) => {
     event.target.value = '';
     return;
   }
+  capturePlannerUndo('已匯入另一份排課資料');
   const applied = applyPlannerTransfer(preview, plannerStateSnapshot());
-  localStorage.setItem(STORAGE_KEY, serializePlannerState(applied));
-  profile = { ...defaultProfile };
-  courseStore = [];
-  selected = [];
-  courseOptions = {};
-  lockedCourseIds = [];
-  internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
-  pendingCourses = [];
-  customConditions = [];
-  restoreState();
-  syncProfileForm();
-  syncInternshipForm();
-  renderAll();
-  renderImportResults();
+  replacePlannerState(applied);
   status.textContent = `匯入完成；目前課表有 ${selected.length} 個項目。`;
   event.target.value = '';
   byId('header-more-menu').open = false;
@@ -930,6 +963,7 @@ byId('condition-list').addEventListener('click', (event) => {
   if (!button) return;
   const condition = customConditions.find((item) => item.id === button.dataset.deleteCondition);
   if (!condition || !window.confirm(`確定刪除自訂條件「${condition.label}」嗎？`)) return;
+  capturePlannerUndo(`已刪除條件「${condition.label}」`);
   customConditions = customConditions.filter((item) => item.id !== condition.id);
   profile.conditionIds = profileConditionIds(profile).filter((id) => id !== condition.id);
   profile.rejectedConditionIds = (profile.rejectedConditionIds || []).filter((id) => id !== condition.id);
@@ -1035,6 +1069,7 @@ catalogList.addEventListener('click', (event) => {
       ? `這是你標記為一定要修的課程。仍要刪除「${course.title}」嗎？`
       : `要從候選課程刪除「${course.title}」嗎？`;
     if (!window.confirm(warning)) return;
+    capturePlannerUndo(`已刪除「${course.title}」`);
     const result = deleteCandidateCourse(courseStore, selected, lockedCourseIds, course.id);
     courseStore = result.courseStore;
     selected = result.selected;
@@ -1114,12 +1149,14 @@ byId('clear-candidates').addEventListener('click', () => {
     return;
   }
   if (!window.confirm('確定清空全部候選課程嗎？已排入課表與鎖定的課程也會移除。')) return;
+  capturePlannerUndo('已清空全部候選課程');
   ({ courseStore, selected, lockedCourseIds, courseOptions } = clearCandidateCatalog());
   byId('catalog-status').textContent = '已清空候選課程；你的選課條件與實習設定仍保留。';
   persistState();
   renderAll();
 });
 byId('clear-schedule').addEventListener('click', () => {
+  capturePlannerUndo('已清空目前課表');
   const cleared = clearPlannerSelection();
   selected = cleared.selected;
   lockedCourseIds = cleared.lockedCourseIds;
@@ -1408,6 +1445,7 @@ byId('ai-plan-results').addEventListener('click', (event) => {
     return;
   }
   if (preview.warningCount && !window.confirm(`此方案有 ${preview.warningCount} 個待處理提醒，仍要套用嗎？`)) return;
+  capturePlannerUndo(`已套用「${plan.title}」`);
   selected = preview.planCourses;
   persistState();
   renderAll();

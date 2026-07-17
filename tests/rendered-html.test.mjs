@@ -499,6 +499,17 @@ test('exports and previews portable planner data from the header More menu', asy
   assert.match(html, /id="export-and-open-full"/);
 });
 
+test('offers a fifteen-second undo after destructive planner changes', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="planner-undo-toast"[^>]*role="status"/);
+  assert.match(html, /id="restore-planner-change"/);
+  assert.match(html, /createPlannerUndo\(\{ ttlMs: 15_000 \}\)/);
+  assert.match(html, /capturePlannerUndo\('已清空目前課表'\)/);
+  assert.match(html, /capturePlannerUndo\(`已刪除「\$\{course\.title\}」`\)/);
+  assert.match(html, /capturePlannerUndo\(`已套用「\$\{plan\.title\}」`\)/);
+  assert.match(html, /undo\.restore\(\)/);
+});
+
 test('exports the current timetable as a phone wallpaper PNG', async () => {
   const html = await (await render()).text();
 
