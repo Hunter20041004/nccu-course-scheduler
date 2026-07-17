@@ -1,6 +1,7 @@
 import { profileConditionIds } from './eligibility-conditions.mjs';
 import { sanitizeOfficialEligibilityRules } from './nccu-course-adapter.mjs';
 import { buildCandidateCatalog } from './planner-core.mjs';
+import { officialSyllabusState } from './syllabus-state.mjs';
 
 export const STORAGE_KEY = 'nccu-course-planner:v3';
 
@@ -14,11 +15,22 @@ export function createStartupCatalog(savedState, officialCourses) {
 }
 
 export function serializePlannerState(state) {
-  return JSON.stringify({ version: 5, state: migratePlannerState(state) });
+  return JSON.stringify({ version: 6, state: migratePlannerState(state) });
 }
 
 export function migratePlannerState(state) {
   if (!state || typeof state !== 'object') return state;
+  const addedCourses = (state.addedCourses || []).map((course) => {
+    if (course.source !== 'nccu-verified-import' || course.syllabus) return course;
+    return {
+      ...course,
+      syllabus: officialSyllabusState({
+        sourceUrl: course.sourceUrl,
+        lookupStatus: course.sourceUrl ? 'success' : 'legacy',
+        checkedAt: null,
+      }),
+    };
+  });
   const courseOptions = Object.fromEntries(Object.entries(state.courseOptions || {}).map(([courseId, option]) => {
     if (!option?.variantId) return [courseId, option];
     const arrangementId = option.arrangementId
@@ -31,6 +43,7 @@ export function migratePlannerState(state) {
   }));
   return {
     ...state,
+    ...(Object.hasOwn(state, 'addedCourses') ? { addedCourses } : {}),
     ...(state.courseOptions ? { courseOptions } : {}),
   };
 }
@@ -52,7 +65,7 @@ export function parsePlannerState(raw, fallback) {
         } : {}),
       });
     }
-    return [4, 5].includes(parsed?.version) && parsed.state
+    return [4, 5, 6].includes(parsed?.version) && parsed.state
       ? migratePlannerState(parsed.state)
       : fallback;
   } catch {
