@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStartupCatalog, parsePlannerState, serializePlannerState } from '../src/planner-storage.mjs';
+import {
+  createStartupCatalog,
+  migratePlannerState,
+  parsePlannerState,
+  serializePlannerState,
+} from '../src/planner-storage.mjs';
 
 test('starts new visitors empty but rebuilds the legacy catalog for saved users', () => {
   const official = [{ id: 'hci', title: '人機互動' }];
@@ -55,6 +60,13 @@ test('migrates a complete version-three state to generalized condition ids witho
     parsePlannerState(JSON.stringify({ version: 3, state }), null),
     {
       ...state,
+      courseOptions: {
+        'ai-practical-project': {
+          sectionId: '070395001',
+          advisorId: null,
+          arrangementId: null,
+        },
+      },
       profile: {
         ...state.profile,
         conditionIds: ['program:innovation', 'prerequisite:statistics'],
@@ -73,14 +85,49 @@ test('round-trips versioned planner state', () => {
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
 });
 
-test('uses storage version four for imported and pending courses', () => {
+test('uses storage version five for trusted course and eligibility data', () => {
   const state = {
     selectedIds: [],
     addedCourses: [{ id: 'ai-123' }],
     pendingCourses: [{ title: '待確認課' }],
   };
-  assert.equal(JSON.parse(serializePlannerState(state)).version, 4);
+  assert.equal(JSON.parse(serializePlannerState(state)).version, 5);
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
+});
+
+test('migrates legacy AI project variant choices into atomic section choices', () => {
+  const state = {
+    selectedIds: ['ai-practical-project'],
+    lockedCourseIds: ['ai-practical-project'],
+    courseOptions: {
+      'ai-practical-project': {
+        variantId: '783006001',
+        advisorId: 'wei-flexible',
+      },
+    },
+  };
+
+  const migrated = parsePlannerState(JSON.stringify({ version: 4, state }), null);
+
+  assert.deepEqual(migrated.courseOptions['ai-practical-project'], {
+    sectionId: '783006001',
+    advisorId: null,
+    arrangementId: 'wei-flexible',
+  });
+  assert.deepEqual(migrated.selectedIds, ['ai-practical-project']);
+  assert.deepEqual(migrated.lockedCourseIds, ['ai-practical-project']);
+});
+
+test('planner migration is idempotent', () => {
+  const legacy = {
+    selectedIds: ['ai-practical-project'],
+    courseOptions: {
+      'ai-practical-project': { variantId: '783006001', advisorId: 'wei-tuesday-34c' },
+    },
+  };
+
+  const migrated = migratePlannerState(legacy);
+  assert.deepEqual(migratePlannerState(migrated), migrated);
 });
 
 test('returns the fallback for corrupt or incompatible storage', () => {
