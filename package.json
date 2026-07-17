@@ -8,11 +8,11 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "build": "node scripts/build.mjs",
-    "test:unit": "node --test tests/course-data.test.mjs tests/eligibility-conditions.test.mjs tests/planner-core.test.mjs tests/planner-storage.test.mjs tests/api-key-session.test.mjs tests/gemini-client.test.mjs tests/bundle-syntax.test.mjs tests/nccu-periods.test.mjs tests/internship-planner.test.mjs tests/ai-contracts.test.mjs tests/groq-client.test.mjs tests/nccu-course-notes.test.mjs tests/nccu-course-adapter.test.mjs tests/ai-service.test.mjs tests/worker.test.mjs tests/ai-planner.test.mjs tests/portfolio-release.test.mjs",
+    "test:unit": "node --test tests/course-data.test.mjs tests/eligibility-conditions.test.mjs tests/planner-core.test.mjs tests/plan-validator.test.mjs tests/planner-storage.test.mjs tests/api-key-session.test.mjs tests/gemini-client.test.mjs tests/bundle-syntax.test.mjs tests/nccu-periods.test.mjs tests/internship-planner.test.mjs tests/ai-contracts.test.mjs tests/groq-client.test.mjs tests/nccu-course-notes.test.mjs tests/nccu-course-adapter.test.mjs tests/ai-service.test.mjs tests/worker.test.mjs tests/ai-planner.test.mjs tests/portfolio-release.test.mjs",
     "test:contract:nccu": "node --test tests/nccu-live-contract.test.mjs",
     "test:contract:groq": "node --test tests/groq-live-contract.test.mjs",
     "test": "npm run test:unit && npm run build && node --test tests/rendered-html.test.mjs",
-    "lint": "node --check src/app.mjs && node --check src/planner-core.mjs && node --check src/planner-storage.mjs && node --check src/api-key-session.mjs && node --check src/ai-contracts.mjs && node --check src/groq-client.mjs && node --check src/gemini-client.mjs && node --check src/nccu-course-notes.mjs && node --check src/nccu-course-adapter.mjs && node --check src/ai-service.mjs && node --check src/worker.mjs && node --check src/ai-planner.mjs && node --check scripts/build.mjs && node --check scripts/dev.mjs",
+    "lint": "node --check src/app.mjs && node --check src/planner-core.mjs && node --check src/plan-validator.mjs && node --check src/planner-storage.mjs && node --check src/api-key-session.mjs && node --check src/ai-contracts.mjs && node --check src/groq-client.mjs && node --check src/gemini-client.mjs && node --check src/nccu-course-notes.mjs && node --check src/nccu-course-adapter.mjs && node --check src/ai-service.mjs && node --check src/worker.mjs && node --check src/ai-planner.mjs && node --check scripts/build.mjs && node --check scripts/dev.mjs",
     "verify": "npm test && npm run lint && npm run test:contract:nccu"
   },
   "dependencies": {},
