@@ -301,6 +301,9 @@ function downloadPlannerTransfer() {
 
 byId('export-planner-data').addEventListener('click', downloadPlannerTransfer);
 byId('export-and-open-full').addEventListener('click', downloadPlannerTransfer);
+byId('header-more-menu').addEventListener('click', (event) => {
+  if (event.target.closest('[role="menuitem"]')) byId('header-more-menu').open = false;
+});
 byId('import-planner-data').addEventListener('change', async (event) => {
   const [file] = event.target.files;
   if (!file) return;
