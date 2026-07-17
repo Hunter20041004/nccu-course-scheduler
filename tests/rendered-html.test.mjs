@@ -486,6 +486,19 @@ test('clears the current timetable while preserving the candidate catalog', asyn
   assert.match(html, /persistState\(\);\s*renderAll\(\)/);
 });
 
+test('exports and previews portable planner data from the header More menu', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="header-more-menu"/);
+  assert.match(html, /id="export-planner-data"/);
+  assert.match(html, /id="import-planner-data"/);
+  assert.match(html, /id="planner-transfer-status"[^>]*aria-live="polite"/);
+  assert.match(html, /exportPlannerTransfer\(plannerStateSnapshot\(\)\)/);
+  assert.match(html, /previewPlannerTransfer\(raw, plannerStateSnapshot\(\)\)/);
+  assert.match(html, /URL\.revokeObjectURL/);
+  assert.match(html, /id="export-and-open-full"/);
+});
+
 test('exports the current timetable as a phone wallpaper PNG', async () => {
   const html = await (await render()).text();
 
