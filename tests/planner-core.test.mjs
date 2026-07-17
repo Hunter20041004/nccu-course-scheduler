@@ -37,21 +37,21 @@ test('marks a program-only junior course eligible for a matching year-three stud
   );
 });
 
-test('marks a graduate course that opens to juniors as conditional for an undergraduate', () => {
+test('marks a graduate course that opens to juniors for review', () => {
   assert.deepEqual(
     core.evaluateEligibility({ level: 'graduate', openToUndergradYear: 3 }, profile),
-    { status: 'conditional', reasons: ['碩士班課程，課綱開放大三以上，需確認學分認列'] },
+    { status: 'review', reasons: ['碩士班課程，課綱開放大三以上，需確認學分認列'] },
   );
 });
 
-test('marks a graduate course requiring undergraduate review as conditional', () => {
+test('marks a graduate course requiring undergraduate review for review', () => {
   assert.deepEqual(
     core.evaluateEligibility({ level: 'graduate', undergradReview: true }, profile),
-    { status: 'conditional', reasons: ['碩士班課程，學士生須確認選課資格與學分認列'] },
+    { status: 'review', reasons: ['碩士班課程，學士生須確認選課資格與學分認列'] },
   );
 });
 
-test('marks a missing review condition conditional with its rationale', () => {
+test('marks a missing review condition for review with its rationale', () => {
   assert.deepEqual(
     core.evaluateEligibility({
       eligibilityRules: [{
@@ -61,8 +61,44 @@ test('marks a missing review condition conditional with its rationale', () => {
       }],
     }, { ...profile, conditionIds: [] }),
     {
-      status: 'conditional',
+      status: 'review',
       reasons: ['建議具備 Python 基礎，未具備者須先與教師確認。'],
+    },
+  );
+});
+
+test('marks an unanswered required official condition for review', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({
+      eligibilityRules: [{
+        conditionId: 'official-restriction:509041001',
+        enforcement: 'required',
+        rationale: '僅限歐文系及雙主修學生修讀',
+      }],
+    }, { ...profile, conditionIds: [], rejectedConditionIds: [] }),
+    {
+      status: 'review',
+      reasons: ['僅限歐文系及雙主修學生修讀'],
+    },
+  );
+});
+
+test('blocks a required official condition the student rejected', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({
+      eligibilityRules: [{
+        conditionId: 'official-restriction:509041001',
+        enforcement: 'required',
+        rationale: '僅限歐文系及雙主修學生修讀',
+      }],
+    }, {
+      ...profile,
+      conditionIds: [],
+      rejectedConditionIds: ['official-restriction:509041001'],
+    }),
+    {
+      status: 'blocked',
+      reasons: ['僅限歐文系及雙主修學生修讀'],
     },
   );
 });

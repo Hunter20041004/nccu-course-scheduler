@@ -112,9 +112,11 @@ test('turns an official enrollment restriction into a required selectable condit
   assert.deepEqual(result.importedCourses[0].eligibilityRules, [{
     conditionId: 'official-restriction:509041001',
     conditionLabel: '我是歐文系或雙主修學生',
-    conditionDescription: '政大官方備註：僅限歐文系及雙主修學生修讀。',
+    conditionDescription: '政大官方限制：僅限歐文系及雙主修學生修讀',
     enforcement: 'required',
-    rationale: '僅限歐文系及雙主修學生修讀。',
+    rationale: '僅限歐文系及雙主修學生修讀',
+    source: 'nccu-official',
+    confidence: 'high',
   }]);
 });
 
@@ -150,9 +152,11 @@ test('summarizes alternative language prerequisites as one selectable condition'
   assert.deepEqual(result.importedCourses[0].eligibilityRules[0], {
     conditionId: 'official-restriction:651171001',
     conditionLabel: '我符合本課程任一項日文先修資格',
-    conditionDescription: `政大官方備註：${restrictionText}`,
+    conditionDescription: `政大官方限制：${restrictionText.replace(/。$/, '')}`,
     enforcement: 'required',
-    rationale: restrictionText,
+    rationale: restrictionText.replace(/。$/, ''),
+    source: 'nccu-official',
+    confidence: 'high',
   });
 });
 

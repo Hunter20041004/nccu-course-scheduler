@@ -18,7 +18,7 @@ test('normalizes legacy program and prerequisite facts into condition ids', () =
   ]);
 });
 
-test('explains the course impact of an unchecked required condition', () => {
+test('keeps an unanswered required condition in an explicit unknown state', () => {
   const courses = [{
     id: 'analytics',
     title: '商業分析',
@@ -33,15 +33,33 @@ test('explains the course impact of an unchecked required condition', () => {
     description: '部分量化課程將統計學 3 學分列為先修門檻。',
     source: 'course',
     selected: false,
+    state: 'unknown',
     summary: '影響 1 門候選課',
     affectedCourses: [{
       courseId: 'analytics',
       title: '商業分析',
       enforcement: 'required',
       rationale: '須先具備 statistics。',
-      consequence: '沒有時無法直接加入',
+      consequence: '尚未回答，加入前需確認資格',
     }],
   }]);
+});
+
+test('explains the blocking effect of an explicitly rejected required condition', () => {
+  const courses = [{
+    id: 'analytics',
+    title: '商業分析',
+    prerequisites: ['statistics'],
+  }];
+  const definitions = buildConditionDefinitions(courses);
+  const [impact] = buildConditionImpacts(courses, definitions, {
+    conditionIds: [],
+    rejectedConditionIds: ['prerequisite:statistics'],
+  });
+
+  assert.equal(impact.state, 'rejected');
+  assert.equal(impact.selected, false);
+  assert.equal(impact.affectedCourses[0].consequence, '不符合時無法直接加入');
 });
 
 test('normalizes legacy course programs and prerequisites into required rules', () => {

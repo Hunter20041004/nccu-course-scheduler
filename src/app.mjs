@@ -9,6 +9,7 @@ const defaultProfile = {
   programs: [],
   prerequisites: [],
   conditionIds: ['program:innovation'],
+  rejectedConditionIds: [],
 };
 
 let profile = { ...defaultProfile };
@@ -29,7 +30,7 @@ const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表總覽', body: '左側使用政大官方節次，會顯示週一到週日、實習保留、課程衝堂、非同步工作區與排課提醒。' },
   { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '每列會顯示課名、教師、課號、學分、時間與資格狀態；點課程主區塊可加入或移出左側課表。' },
   { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」展開完整詳細資料，按「課綱」前往官方內容；任何課都可以鎖定或刪除。' },
-  { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '勾選你符合的系所、雙主修、學程、年級或先修條件，並查看每個條件為什麼需要及影響哪些課。' },
+  { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '逐項標記符合、不符合或待確認的系所、雙主修、學程、年級與先修條件，並查看每個條件會影響哪些課。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
   { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、學期目標、最低學分、實習天數與課程偏好，產生三個可預覽的無衝堂方案；使用時才需要 API Key。' },
   { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可搜尋政大 115-1 課程庫、使用 AI 截圖辨識或手動新增課程，也能加入社團、課外組織與個人行程。' },
@@ -222,7 +223,7 @@ function persistState() {
 function eligibilityLabel(status) {
   return {
     eligible: '條件符合',
-    conditional: '資格需確認',
+    review: '資格待確認，請看詳細。',
     blocked: '條件不符合，請看詳細。',
     unavailable: '本學期未開課',
   }[status];
@@ -632,7 +633,7 @@ function renderCatalog() {
     if (query && !haystack.includes(query)) return false;
     if (filter === 'selected' && !selectedNow) return false;
     if (filter === 'remote' && !course.asyncAllowed) return false;
-    if (filter === 'conditional' && eligibility.status !== 'conditional') return false;
+    if (filter === 'review' && eligibility.status !== 'review') return false;
     return true;
   });
   byId('catalog-count').textContent = `${visible.length} / ${courseStore.length}`;
@@ -806,10 +807,14 @@ function renderConditions() {
   const definitions = buildConditionDefinitions(courseStore, customConditions);
   const impacts = buildConditionImpacts(courseStore, definitions, profile);
   byId('condition-list').innerHTML = impacts.map((impact) => `
-    <article class="condition-item ${impact.selected ? 'is-selected' : ''}">
+    <article class="condition-item is-${impact.state}">
       <label class="condition-toggle">
-        <input type="checkbox" data-profile-condition="${escapeHtml(impact.id)}" ${impact.selected ? 'checked' : ''}>
         <span><strong>${escapeHtml(impact.label)}</strong><small>${escapeHtml(impact.summary)}</small></span>
+        <select data-profile-condition-state="${escapeHtml(impact.id)}" aria-label="${escapeHtml(impact.label)}的符合狀態">
+          <option value="unknown" ${impact.state === 'unknown' ? 'selected' : ''}>待確認</option>
+          <option value="accepted" ${impact.state === 'accepted' ? 'selected' : ''}>符合</option>
+          <option value="rejected" ${impact.state === 'rejected' ? 'selected' : ''}>不符合</option>
+        </select>
       </label>
       <details class="condition-impact">
         <summary>為什麼需要這個條件？</summary>
@@ -824,12 +829,17 @@ function renderConditions() {
 }
 
 byId('condition-list').addEventListener('change', (event) => {
-  const input = event.target.closest('[data-profile-condition]');
+  const input = event.target.closest('[data-profile-condition-state]');
   if (!input) return;
   const selectedIds = new Set(profileConditionIds(profile));
-  if (input.checked) selectedIds.add(input.dataset.profileCondition);
-  else selectedIds.delete(input.dataset.profileCondition);
+  const rejectedIds = new Set(profile.rejectedConditionIds || []);
+  const conditionId = input.dataset.profileConditionState;
+  selectedIds.delete(conditionId);
+  rejectedIds.delete(conditionId);
+  if (input.value === 'accepted') selectedIds.add(conditionId);
+  if (input.value === 'rejected') rejectedIds.add(conditionId);
   profile.conditionIds = [...selectedIds];
+  profile.rejectedConditionIds = [...rejectedIds];
   profile.programs = [];
   profile.prerequisites = [];
   persistState();
@@ -843,6 +853,7 @@ byId('condition-list').addEventListener('click', (event) => {
   if (!condition || !window.confirm(`確定刪除自訂條件「${condition.label}」嗎？`)) return;
   customConditions = customConditions.filter((item) => item.id !== condition.id);
   profile.conditionIds = profileConditionIds(profile).filter((id) => id !== condition.id);
+  profile.rejectedConditionIds = (profile.rejectedConditionIds || []).filter((id) => id !== condition.id);
   persistState();
   renderAll();
 });
@@ -872,6 +883,7 @@ byId('custom-condition-form').addEventListener('submit', (event) => {
   customConditions.push(condition);
   const selectedIds = profileConditionIds(profile).filter((id) => id !== condition.id);
   profile.conditionIds = [...selectedIds, condition.id];
+  profile.rejectedConditionIds = (profile.rejectedConditionIds || []).filter((id) => id !== condition.id);
   event.currentTarget.reset();
   status.textContent = `已新增「${condition.label}」並標記為符合。`;
   persistState();

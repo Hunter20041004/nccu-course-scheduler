@@ -195,9 +195,10 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .profile-helper { grid-column: 1 / -1; margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.5; }
 .condition-list { display: grid; gap: 7px; margin: 12px 0; }
 .condition-item { border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); }
-.condition-item.is-selected { border-color: #9FADEB; background: var(--blue-soft); }
-.condition-toggle { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; padding: 10px; color: var(--ink); }
-.condition-toggle input { width: 18px; height: 18px; min-height: 18px; margin-top: 1px; accent-color: var(--blue); }
+.condition-item.is-accepted { border-color: #9FADEB; background: var(--blue-soft); }
+.condition-item.is-rejected { border-color: #D7A19D; background: var(--danger-soft); }
+.condition-toggle { display: grid; grid-template-columns: minmax(0, 1fr) 108px; gap: 10px; align-items: center; padding: 10px; color: var(--ink); }
+.condition-toggle select { min-height: 38px; padding: 6px 28px 6px 9px; border-color: var(--line-strong); background-color: var(--surface); font-size: .72rem; }
 .condition-toggle span { display: grid; gap: 3px; }
 .condition-toggle small { color: var(--muted); font-weight: 500; line-height: 1.4; }
 .condition-impact { border-top: 1px solid var(--line); padding: 0 10px; color: var(--muted); font-size: .72rem; }

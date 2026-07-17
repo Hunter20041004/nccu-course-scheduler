@@ -536,6 +536,12 @@ test('renders course-driven eligibility conditions with reasons and affected cou
   assert.match(html, /buildConditionImpacts\(courseStore, definitions, profile\)/);
   assert.match(html, /impact\.summary/);
   assert.match(html, /impact\.affectedCourses/);
+  assert.match(html, /data-profile-condition-state/);
+  assert.match(html, /option value="unknown"[^>]*>待確認<\/option>/);
+  assert.match(html, /option value="accepted"[^>]*>符合<\/option>/);
+  assert.match(html, /option value="rejected"[^>]*>不符合<\/option>/);
+  assert.match(html, /profile\.rejectedConditionIds/);
+  assert.doesNotMatch(html, /type="checkbox" data-profile-condition/);
   assert.doesNotMatch(html, /id="profile-innovation"/);
   assert.doesNotMatch(html, /id="profile-statistics"/);
 });
@@ -638,8 +644,10 @@ test('reveals a newly added course in the official timetable', async () => {
 
 test('uses plain-language eligibility labels in compact course rows', async () => {
   const html = await (await render()).text();
+  assert.match(html, /review: '資格待確認，請看詳細。'/);
   assert.match(html, /blocked: '條件不符合，請看詳細。'/);
   assert.match(html, /unavailable: '本學期未開課'/);
+  assert.match(html, /option value="review">資格待確認/);
   assert.doesNotMatch(html, /blocked: '條件不符合'/);
 });
 

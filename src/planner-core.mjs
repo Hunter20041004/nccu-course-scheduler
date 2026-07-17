@@ -5,6 +5,7 @@ export function evaluateEligibility(section, profile) {
   const reasons = [];
   const reviewReasons = [];
   const selectedConditionIds = new Set(profileConditionIds(profile));
+  const rejectedConditionIds = new Set(profile.rejectedConditionIds || []);
   if (section.available === false) {
     return { status: 'unavailable', reasons: ['115-1 查無開課資料'] };
   }
@@ -14,7 +15,7 @@ export function evaluateEligibility(section, profile) {
     && section.undergradReview
   ) {
     return {
-      status: 'conditional',
+      status: 'review',
       reasons: ['碩士班課程，學士生須確認選課資格與學分認列'],
     };
   }
@@ -25,7 +26,7 @@ export function evaluateEligibility(section, profile) {
     && profile.year >= section.openToUndergradYear
   ) {
     return {
-      status: 'conditional',
+      status: 'review',
       reasons: ['碩士班課程，課綱開放大三以上，需確認學分認列'],
     };
   }
@@ -49,11 +50,14 @@ export function evaluateEligibility(section, profile) {
   });
   (section.eligibilityRules || []).forEach((rule) => {
     if (selectedConditionIds.has(rule.conditionId)) return;
-    if (rule.enforcement === 'review') reviewReasons.push(rule.rationale);
-    else reasons.push(rule.rationale);
+    if (rule.enforcement === 'required' && rejectedConditionIds.has(rule.conditionId)) {
+      reasons.push(rule.rationale);
+      return;
+    }
+    reviewReasons.push(rule.rationale);
   });
   if (!reasons.length && reviewReasons.length) {
-    return { status: 'conditional', reasons: reviewReasons };
+    return { status: 'review', reasons: reviewReasons };
   }
   return { status: reasons.length ? 'blocked' : 'eligible', reasons };
 }
