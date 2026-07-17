@@ -252,13 +252,15 @@ test('shows the NCCU schedule summary inside every candidate row', async () => {
   assert.match(html, /class="catalog-time"/);
 });
 
-test('offers safe syllabus actions only for course candidates', async () => {
+test('renders available, not-uploaded, and unverified syllabus actions', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /trustedOfficialSyllabusUrl\(course\)/);
+  assert.match(html, /function syllabusAction\(course\)/);
   assert.match(html, /course\.source !== 'manual' \|\| course\.itemType === 'course'/);
   assert.match(html, /class="catalog-syllabus"[^>]*target="_blank" rel="noopener noreferrer"[^>]*>查看課綱<\/a>/);
-  assert.match(html, /class="catalog-syllabus"[^>]*disabled[^>]*>目前無課綱<\/button>/);
+  assert.match(html, /老師尚未上傳課綱/);
+  assert.match(html, /課綱狀態暫時無法確認/);
+  assert.match(html, /重新查詢官方資料/);
 });
 
 test('renders complete course details as an inline panel', async () => {
@@ -377,6 +379,15 @@ test('searches and imports official NCCU 115-1 courses without an AI key', async
   assert.match(html, /searchNccuCourses\(\{ term: '115-1', keyword: query \}\)/);
   assert.match(html, /data-add-nccu-course/);
   assert.match(html, /nccuCourseToCandidate/);
+});
+
+test('lets an existing official candidate refresh instead of disabling the result', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-refresh-nccu-course/);
+  assert.match(html, /reconcileOfficialCandidate\(existingCourse, candidate\)/);
+  assert.match(html, /selected = selected\.map/);
+  assert.match(html, /更新官方資料/);
 });
 
 test('shows the official term and last successful NCCU query without hiding it after an error', async () => {

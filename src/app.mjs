@@ -781,6 +781,30 @@ function exportScheduleWallpaper() {
   byId('planner-status').textContent = '手機桌布已匯出。';
 }
 
+function syllabusStateForCourse(course) {
+  if (course.syllabus) return course.syllabus;
+  const legacyUrl = trustedOfficialSyllabusUrl(course);
+  return officialSyllabusState({
+    sourceUrl: legacyUrl,
+    lookupStatus: legacyUrl ? 'success' : 'legacy',
+    checkedAt: null,
+  });
+}
+
+function syllabusAction(course) {
+  if (course.source === 'manual') {
+    return '<button class="catalog-syllabus" type="button" role="menuitem" disabled>手動課程沒有連結官方課綱</button>';
+  }
+  const syllabus = syllabusStateForCourse(course);
+  if (syllabus.status === 'available') {
+    return `<a class="catalog-syllabus" href="${escapeHtml(syllabus.url)}" target="_blank" rel="noopener noreferrer" role="menuitem">查看課綱</a>`;
+  }
+  if (syllabus.status === 'not_uploaded') {
+    return '<button class="catalog-syllabus" type="button" role="menuitem" disabled>老師尚未上傳課綱</button>';
+  }
+  return `<button class="catalog-syllabus" type="button" role="menuitem" data-refresh-nccu-course="${escapeHtml(course.sectionCode || '')}">課綱狀態暫時無法確認 · 重新查詢官方資料</button>`;
+}
+
 function renderCatalog() {
   const catalogList = byId('catalog-list');
   const query = byId('catalog-search').value.trim().toLowerCase();
@@ -807,13 +831,10 @@ function renderCatalog() {
     const selectedNow = selected.some((item) => item.id === course.id);
     const selectedCourse = selected.find((item) => item.id === course.id);
     const scheduleSummary = candidateScheduleSummary(selectedCourse || course, dayLabels);
-    const syllabusUrl = trustedOfficialSyllabusUrl(course);
+    const syllabus = syllabusStateForCourse(course);
+    const syllabusUrl = syllabus.status === 'available' ? syllabus.url : '';
     const showsSyllabus = course.source !== 'manual' || course.itemType === 'course';
-    const syllabusAction = !showsSyllabus
-      ? ''
-      : syllabusUrl
-        ? `<a class="catalog-syllabus" href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer" role="menuitem">查看課綱</a>`
-        : '<button class="catalog-syllabus" type="button" role="menuitem" disabled>目前無課綱</button>';
+    const syllabusMenuAction = showsSyllabus ? syllabusAction(course) : '';
     const locked = lockedCourseIds.includes(course.id);
     const blocked = eligibility.status === 'blocked' || eligibility.status === 'unavailable';
     const attendance = selectedNow && course.asyncAllowed
@@ -864,7 +885,13 @@ function renderCatalog() {
         </section>
       </div>
       <footer class="course-details-footer">
-        ${syllabusUrl ? `<a href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">開啟官方課綱</a>` : '<span>目前沒有可用的官方課綱</span>'}
+        ${syllabusUrl
+          ? `<a href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">開啟官方課綱</a>`
+          : syllabus.status === 'not_uploaded'
+            ? '<span>老師尚未上傳課綱</span>'
+            : course.source === 'manual'
+              ? '<span>手動課程沒有連結官方課綱</span>'
+              : `<button class="course-details-refresh" type="button" data-refresh-nccu-course="${escapeHtml(course.sectionCode || '')}">課綱狀態暫時無法確認 · 重新查詢官方資料</button>`}
       </footer>
     </section>` : '';
     const atomicSections = sections.filter((section) => section && typeof section === 'object');
@@ -909,7 +936,7 @@ function renderCatalog() {
         <details class="catalog-more">
           <summary class="catalog-more-trigger" aria-label="更多操作 ${escapeHtml(course.title)}" aria-haspopup="menu">•••</summary>
           <div class="catalog-more-menu" role="menu" data-close-catalog-menus>
-            ${syllabusAction}
+            ${syllabusMenuAction}
             <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" role="menuitem" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}">${locked ? '解除鎖定' : '鎖定課程'}</button>
             <button class="catalog-delete" type="button" role="menuitem" data-delete-course="${escapeHtml(course.id)}">刪除候選課程</button>
           </div>
@@ -1133,7 +1160,7 @@ catalogList.addEventListener('keydown', (event) => {
   }
 });
 
-catalogList.addEventListener('click', (event) => {
+catalogList.addEventListener('click', async (event) => {
   const moreTrigger = event.target.closest('.catalog-more-trigger');
   if (moreTrigger) {
     closeCatalogMenus(moreTrigger.closest('.catalog-more'));
@@ -1145,6 +1172,21 @@ catalogList.addEventListener('click', (event) => {
       ? null
       : detailButton.dataset.detailsCourse;
     renderCatalog();
+    return;
+  }
+  const refreshButton = event.target.closest('[data-refresh-nccu-course]');
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    const previousText = refreshButton.textContent;
+    refreshButton.textContent = '更新中…';
+    try {
+      const candidate = await refreshOfficialCandidateByCode(refreshButton.dataset.refreshNccuCourse);
+      byId('catalog-status').textContent = `已更新「${candidate.title}」的官方資料。`;
+    } catch {
+      refreshButton.disabled = false;
+      refreshButton.textContent = previousText;
+      byId('catalog-status').textContent = '官方資料暫時無法更新，已保留目前資料。請稍後再試。';
+    }
     return;
   }
   const lockButton = event.target.closest('[data-lock-course]');
@@ -1277,10 +1319,13 @@ function renderNccuDataFreshness() {
 function renderNccuSearchResults() {
   const results = byId('nccu-course-results');
   results.innerHTML = nccuSearchResults.map((course) => {
-    const added = candidateIncludesCourseCode(courseStore, course.courseCode);
-    const outlineUrl = String(course.sourceUrl || '').startsWith('https://')
-      ? `<a href="${escapeHtml(course.sourceUrl)}" target="_blank" rel="noreferrer">查看官方課綱</a>`
+    const existing = courseStore.find((candidate) => candidate.sectionCode === course.courseCode);
+    const outlineUrl = trustedOfficialSyllabusUrl(course)
+      ? `<a href="${escapeHtml(trustedOfficialSyllabusUrl(course))}" target="_blank" rel="noopener noreferrer">查看官方課綱</a>`
       : '';
+    const action = existing
+      ? `<button class="button button-quiet" type="button" data-refresh-nccu-course="${escapeHtml(course.courseCode)}">更新官方資料</button>`
+      : `<button class="button button-primary" type="button" data-add-nccu-course="${escapeHtml(course.courseCode)}">加入候選</button>`;
     return `<article class="nccu-course-result">
       <div class="nccu-course-result-main">
         <strong>${escapeHtml(course.title)}</strong>
@@ -1288,9 +1333,32 @@ function renderNccuSearchResults() {
         ${course.restrictionText ? `<p>限制：${escapeHtml(course.restrictionText)}</p>` : '<p>官方資料未列額外修課限制。</p>'}
         ${outlineUrl}
       </div>
-      <button class="button ${added ? 'button-quiet' : 'button-primary'}" type="button" data-add-nccu-course="${escapeHtml(course.courseCode)}" ${added ? 'disabled' : ''}>${added ? '已加入' : '加入候選'}</button>
+      ${action}
     </article>`;
   }).join('');
+}
+
+async function refreshOfficialCandidateByCode(courseCode) {
+  const officialCourse = nccuSearchResults.find((course) => course.courseCode === courseCode)
+    || (await searchNccuCourses({ term: '115-1', keyword: courseCode }))
+      .find((course) => course.courseCode === courseCode);
+  const existingIndex = courseStore.findIndex((course) => course.sectionCode === officialCourse?.courseCode);
+  if (!officialCourse || existingIndex < 0) throw new Error('official-course-not-found');
+
+  const existingCourse = courseStore[existingIndex];
+  const candidate = nccuCourseToCandidate(officialCourse, { checkedAt: new Date().toISOString() });
+  courseStore = courseStore.map((course, index) => (
+    index === existingIndex ? reconcileOfficialCandidate(existingCourse, candidate) : course
+  ));
+  selected = selected.map((course) => (
+    course.id === existingCourse.id ? reconcileOfficialCandidate(course, candidate) : course
+  ));
+  lastSuccessfulNccuQueryAt = new Date();
+  persistState();
+  renderAll();
+  renderNccuSearchResults();
+  renderNccuDataFreshness();
+  return candidate;
 }
 
 byId('nccu-course-search-form').addEventListener('submit', async (event) => {
@@ -1323,7 +1391,21 @@ byId('nccu-course-search-form').addEventListener('submit', async (event) => {
   }
 });
 
-byId('nccu-course-results').addEventListener('click', (event) => {
+byId('nccu-course-results').addEventListener('click', async (event) => {
+  const refreshButton = event.target.closest('[data-refresh-nccu-course]');
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    refreshButton.textContent = '更新中…';
+    try {
+      const candidate = await refreshOfficialCandidateByCode(refreshButton.dataset.refreshNccuCourse);
+      byId('nccu-course-search-status').textContent = `已更新「${candidate.title}」的官方資料。`;
+    } catch {
+      refreshButton.disabled = false;
+      refreshButton.textContent = '重新更新';
+      byId('nccu-course-search-status').textContent = '官方資料暫時無法更新，已保留目前資料。請稍後再試。';
+    }
+    return;
+  }
   const button = event.target.closest('[data-add-nccu-course]');
   if (!button) return;
   const officialCourse = nccuSearchResults.find(

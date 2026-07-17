@@ -180,8 +180,8 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .catalog-more > summary::-webkit-details-marker { display: none; }
 .catalog-more-trigger { font-size: .9rem; letter-spacing: .05em; }
 .catalog-more-trigger:hover, .catalog-more[open] .catalog-more-trigger { background: var(--canvas); color: var(--ink); }
-.catalog-more-menu { position: absolute; z-index: 25; top: 42px; right: 0; display: grid; width: 164px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: 0 14px 36px rgb(33 31 38 / 18%); }
-.catalog-more-menu > a, .catalog-more-menu > button { display: flex; width: 100%; min-height: 44px; align-items: center; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); padding: 0 12px; text-align: left; text-decoration: none; font-size: .7rem; font-weight: 800; cursor: pointer; }
+.catalog-more-menu { position: absolute; z-index: 25; top: 42px; right: 0; display: grid; width: min(260px, calc(100vw - 24px)); overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: 0 14px 36px rgb(33 31 38 / 18%); }
+.catalog-more-menu > a, .catalog-more-menu > button { display: flex; width: 100%; min-height: 44px; align-items: center; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); padding: 9px 12px; text-align: left; text-decoration: none; font-size: .7rem; font-weight: 800; line-height: 1.4; cursor: pointer; }
 .catalog-more-menu > :last-child { border-bottom: 0; }
 .catalog-more-menu > a:hover, .catalog-more-menu > button:hover:not(:disabled) { background: var(--canvas); }
 .catalog-more-menu .catalog-syllabus { color: var(--blue); }
@@ -203,6 +203,8 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .course-conditions, .course-sections { margin: 0; padding-left: 18px; color: var(--muted); font-size: .7rem; line-height: 1.55; }
 .course-conditions li + li, .course-sections li + li { margin-top: 4px; }
 .course-details-footer { padding-top: 2px; }
+.course-details-refresh { min-height: 44px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--blue); padding: 8px 12px; text-align: left; font-size: .7rem; font-weight: 800; line-height: 1.4; cursor: pointer; }
+.course-details-refresh:hover { border-color: var(--blue); background: var(--blue-soft); }
 .course-details-footer a, .course-details-footer span { display: inline-flex; min-height: 36px; align-items: center; border-radius: 6px; font-size: .68rem; font-weight: 850; }
 .course-details-footer a { border: 1px solid var(--blue); color: var(--blue); padding: 0 10px; text-decoration: none; }
 .course-details-footer a:hover { background: var(--blue-soft); }
