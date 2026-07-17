@@ -744,8 +744,8 @@ function renderCatalog() {
     const syllabusAction = !showsSyllabus
       ? ''
       : syllabusUrl
-        ? `<a class="catalog-syllabus" href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">課綱</a>`
-        : '<button class="catalog-syllabus" type="button" disabled>無課綱</button>';
+        ? `<a class="catalog-syllabus" href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer" role="menuitem">查看課綱</a>`
+        : '<button class="catalog-syllabus" type="button" role="menuitem" disabled>目前無課綱</button>';
     const locked = lockedCourseIds.includes(course.id);
     const blocked = eligibility.status === 'blocked' || eligibility.status === 'unavailable';
     const attendance = selectedNow && course.asyncAllowed
@@ -838,9 +838,14 @@ function renderCatalog() {
       </button>
       <div class="course-actions">
         ${detailTrigger}
-        ${syllabusAction}
-        <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}" aria-label="${locked ? '解鎖' : '鎖定'} ${escapeHtml(course.title)}">${locked ? '解鎖' : '鎖定'}</button>
-        <button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" aria-label="刪除候選課程 ${escapeHtml(course.title)}">刪除</button>
+        <details class="catalog-more">
+          <summary class="catalog-more-trigger" aria-label="更多操作 ${escapeHtml(course.title)}" aria-haspopup="menu">•••</summary>
+          <div class="catalog-more-menu" role="menu" data-close-catalog-menus>
+            ${syllabusAction}
+            <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" role="menuitem" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}">${locked ? '解除鎖定' : '鎖定課程'}</button>
+            <button class="catalog-delete" type="button" role="menuitem" data-delete-course="${escapeHtml(course.id)}">刪除候選課程</button>
+          </div>
+        </details>
       </div>
       ${detailPanel}
       ${optionControls}
@@ -1041,7 +1046,31 @@ byId('internship-form').addEventListener('change', () => {
 });
 
 const catalogList = byId('catalog-list');
+function closeCatalogMenus(except = null) {
+  catalogList.querySelectorAll('.catalog-more[open]').forEach((menu) => {
+    if (menu !== except) menu.open = false;
+  });
+}
+
+document.addEventListener('pointerdown', (event) => {
+  if (!event.target.closest('.catalog-more')) closeCatalogMenus();
+});
+
+catalogList.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    const menu = event.target.closest('.catalog-more[open]');
+    if (!menu) return;
+    menu.open = false;
+    menu.querySelector('.catalog-more-trigger')?.focus();
+  }
+});
+
 catalogList.addEventListener('click', (event) => {
+  const moreTrigger = event.target.closest('.catalog-more-trigger');
+  if (moreTrigger) {
+    closeCatalogMenus(moreTrigger.closest('.catalog-more'));
+    return;
+  }
   const detailButton = event.target.closest('[data-details-course]');
   if (detailButton) {
     expandedCourseId = expandedCourseId === detailButton.dataset.detailsCourse

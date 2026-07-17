@@ -61,7 +61,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 main { padding-bottom: 28px; }
 .planner-status { margin: 0; }
 .button { min-height: 44px; border: 1px solid transparent; border-radius: var(--radius-control); padding: 0 14px; cursor: pointer; font-size: .8rem; font-weight: 800; transition: transform 120ms var(--ease-out), background-color 160ms ease, border-color 160ms ease; }
-.button:active, .catalog-select:active, .catalog-details-trigger:active, .catalog-delete:active, .catalog-lock:active, .async-list button:active { transform: scale(.98); }
+.button:active, .catalog-select:active, .catalog-details-trigger:active, .catalog-more-trigger:active, .async-list button:active { transform: scale(.98); }
 .button-primary { border-color: var(--blue); background: var(--blue); color: #fff; }
 .button-primary:hover { background: #1736bc; }
 .button-secondary { border-color: var(--ink); background: var(--ink); color: #fff; }
@@ -149,12 +149,20 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .catalog-main .catalog-time { color: var(--violet); font-weight: 800; opacity: 1; }
 .catalog-meta { flex: 0 0 auto; text-align: right; }
 .catalog-meta b { font-size: .68rem; }
-.course-actions { display: grid; grid-template-columns: repeat(4, 44px); gap: 0; align-items: start; }
-.catalog-details-trigger, .catalog-syllabus, .catalog-delete, .catalog-lock { display: grid; width: 44px; min-height: 44px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: .66rem; font-weight: 850; cursor: pointer; text-decoration: none; }
+.course-actions { position: relative; display: grid; grid-template-columns: repeat(2, 44px); gap: 0; align-items: start; }
+.catalog-details-trigger, .catalog-more-trigger { display: grid; width: 44px; min-height: 44px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: .66rem; font-weight: 850; cursor: pointer; text-decoration: none; }
 .catalog-details-trigger:hover, .catalog-details-trigger[aria-expanded="true"] { background: var(--blue-soft); color: var(--blue); }
-.catalog-syllabus { color: var(--blue); }
-.catalog-syllabus:hover:not(:disabled) { background: var(--blue-soft); }
-.catalog-syllabus:disabled { color: var(--muted); cursor: not-allowed; opacity: .42; }
+.catalog-more { position: relative; }
+.catalog-more > summary { list-style: none; }
+.catalog-more > summary::-webkit-details-marker { display: none; }
+.catalog-more-trigger { font-size: .9rem; letter-spacing: .05em; }
+.catalog-more-trigger:hover, .catalog-more[open] .catalog-more-trigger { background: var(--canvas); color: var(--ink); }
+.catalog-more-menu { position: absolute; z-index: 25; top: 42px; right: 0; display: grid; width: 164px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); box-shadow: 0 14px 36px rgb(33 31 38 / 18%); }
+.catalog-more-menu > a, .catalog-more-menu > button { display: flex; width: 100%; min-height: 44px; align-items: center; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); padding: 0 12px; text-align: left; text-decoration: none; font-size: .7rem; font-weight: 800; cursor: pointer; }
+.catalog-more-menu > :last-child { border-bottom: 0; }
+.catalog-more-menu > a:hover, .catalog-more-menu > button:hover:not(:disabled) { background: var(--canvas); }
+.catalog-more-menu .catalog-syllabus { color: var(--blue); }
+.catalog-more-menu .catalog-syllabus:disabled { color: var(--muted); cursor: not-allowed; opacity: .5; }
 .course-details-panel { position: relative; grid-column: 1 / -1; display: grid; min-width: 0; gap: 12px; margin: 0 7px 10px; padding: 14px; overflow-wrap: anywhere; border: 1px solid #C8BCE0; border-left: 3px solid var(--violet); border-radius: var(--radius-control); background: linear-gradient(145deg, var(--surface), var(--violet-soft)); color: var(--ink); }
 .course-details-heading { display: flex; min-width: 0; justify-content: space-between; gap: 12px; align-items: start; }
 .course-details-heading div { min-width: 0; }
@@ -176,9 +184,9 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .course-details-footer a { border: 1px solid var(--blue); color: var(--blue); padding: 0 10px; text-decoration: none; }
 .course-details-footer a:hover { background: var(--blue-soft); }
 .course-details-footer span { color: var(--muted); }
-.catalog-delete { color: var(--danger); }
-.catalog-delete:hover:not(:disabled) { background: var(--danger-soft); }
-.catalog-lock:hover:not(:disabled), .catalog-lock.is-active { background: var(--violet-soft); color: var(--violet); }
+.catalog-more-menu .catalog-delete { color: var(--danger); }
+.catalog-more-menu .catalog-delete:hover:not(:disabled) { background: var(--danger-soft); }
+.catalog-more-menu .catalog-lock.is-active { color: var(--violet); }
 .catalog-lock:disabled { cursor: not-allowed; opacity: .42; }
 .catalog-status { margin: 0; }
 .attendance-control, .course-option-controls { grid-column: 1 / -1; }
@@ -330,8 +338,8 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
   .nccu-course-result button { width: 100%; }
   .profile-helper, .internship-fixed-days, .internship-status, .form-wide, .course-option-controls p { grid-column: 1; }
   .section-heading h2 { font-size: 1.2rem; }
-  .course-actions { grid-template-columns: repeat(4, 44px); }
-  .catalog-details-trigger, .catalog-syllabus, .catalog-delete, .catalog-lock { width: 44px; }
+  .course-actions { grid-template-columns: repeat(2, 44px); }
+  .catalog-details-trigger, .catalog-more-trigger { width: 44px; }
   .course-details-panel { margin-inline: 3px; padding: 12px; }
   .first-use-actions { display: grid; }
   .first-use-actions .button { width: 100%; }

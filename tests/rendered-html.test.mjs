@@ -247,8 +247,8 @@ test('offers safe syllabus actions only for course candidates', async () => {
 
   assert.match(html, /trustedOfficialSyllabusUrl\(course\)/);
   assert.match(html, /course\.source !== 'manual' \|\| course\.itemType === 'course'/);
-  assert.match(html, /class="catalog-syllabus"[^>]*target="_blank" rel="noopener noreferrer"[^>]*>課綱<\/a>/);
-  assert.match(html, /class="catalog-syllabus"[^>]*disabled[^>]*>無課綱<\/button>/);
+  assert.match(html, /class="catalog-syllabus"[^>]*target="_blank" rel="noopener noreferrer"[^>]*>查看課綱<\/a>/);
+  assert.match(html, /class="catalog-syllabus"[^>]*disabled[^>]*>目前無課綱<\/button>/);
 });
 
 test('renders complete course details as an inline panel', async () => {
@@ -304,6 +304,18 @@ test('renders detail lock and delete controls for every candidate type', async (
   assert.match(html, /data-lock-course=/);
   assert.match(html, /data-delete-course=/);
   assert.doesNotMatch(html, /course\.required\s*\?\s*`<button class="catalog-lock/);
+});
+
+test('keeps details visible and moves secondary candidate actions into one accessible menu', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /class="catalog-details-trigger"/);
+  assert.match(html, /class="catalog-more"/);
+  assert.match(html, /class="catalog-more-trigger"[^>]*aria-label="更多操作/);
+  assert.match(html, /class="catalog-more-menu" role="menu"/);
+  assert.match(html, /data-close-catalog-menus/);
+  assert.match(html, /event\.key === 'Escape'/);
+  assert.match(html, /document\.addEventListener\('pointerdown'/);
 });
 
 test('locks unselected courses and confirms deletion of core candidates', async () => {
