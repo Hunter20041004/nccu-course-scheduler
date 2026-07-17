@@ -41,7 +41,7 @@ test('converts official periods and restrictions into a schedulable conditional 
     restrictionText: '僅限歐文系及雙主修學生修讀。',
     available: true,
     sourceUrl: 'https://newdoc.nccu.edu.tw/example.html',
-  });
+  }, { checkedAt: '2026-07-17T18:00:00.000Z' });
 
   assert.equal(candidate.sectionCode, '509041001');
   assert.deepEqual(
@@ -51,6 +51,11 @@ test('converts official periods and restrictions into a schedulable conditional 
   assert.equal(candidate.eligibilityRules[0].conditionId, 'official-restriction:509041001');
   assert.equal(candidate.eligibilityRules[0].conditionLabel, '我是歐文系或雙主修學生');
   assert.equal(candidate.eligibilityRules[0].source, 'nccu-official');
+  assert.deepEqual(candidate.syllabus, {
+    status: 'available',
+    url: 'https://newdoc.nccu.edu.tw/example.html',
+    checkedAt: '2026-07-17T18:00:00.000Z',
+  });
 });
 
 test('detects an existing NCCU section code regardless of import source', () => {
