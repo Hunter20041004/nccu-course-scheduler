@@ -738,9 +738,19 @@ test('updates the Sunbreak internship progress line from the current target', as
 test('distinguishes confirmed internship time from time pending unresolved courses', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /已確認 \$\{internshipPlan\.confirmedDays\} 天/);
-  assert.match(html, /待確認 \$\{internshipPlan\.pendingDays\} 天/);
+  assert.match(html, /id="internship-confirmed-value"/);
+  assert.match(html, /id="internship-pending-value"/);
+  assert.match(html, /byId\('internship-confirmed-value'\)\.textContent = String\(internshipPlan\.confirmedDays\)/);
+  assert.match(html, /byId\('internship-pending-value'\)\.textContent = String\(internshipPlan\.pendingDays\)/);
+  assert.match(html, /\.header-metrics strong\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap;/s);
+  assert.match(html, /\.header-metrics strong > span\s*\{[^}]*white-space:\s*nowrap;/s);
   assert.match(html, /internshipPlan\.confirmedDays \/ internshipSettings\.targetDays/);
+});
+
+test('stacks header metric labels before the compact desktop layout can overflow', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /@media \(max-width:\s*1199px\)\s*\{[\s\S]*?\.header-metrics div\s*\{[^}]*display:\s*grid;[^}]*gap:\s*2px;/);
 });
 
 test('reveals a newly added course in the official timetable', async () => {

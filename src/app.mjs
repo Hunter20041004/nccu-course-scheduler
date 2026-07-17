@@ -364,7 +364,8 @@ function renderStats() {
   const specialEvents = selected.reduce((total, course) => total + (course.events || []).length, 0);
   const optionWarnings = selected.filter((course) => course.optionStatus === 'pending' || course.optionStatus === 'flexible').length;
   byId('credit-value').textContent = `${credits} 學分`;
-  byId('internship-value').textContent = `已確認 ${internshipPlan.confirmedDays} 天＋待確認 ${internshipPlan.pendingDays} 天`;
+  byId('internship-confirmed-value').textContent = String(internshipPlan.confirmedDays);
+  byId('internship-pending-value').textContent = String(internshipPlan.pendingDays);
   byId('warning-value').textContent = String(conflicts.length + eligibilityWarnings.length + specialEvents + optionWarnings + internshipPlan.conflicts.length);
   internshipProgress.style.setProperty('--internship-progress', `${progressPercent}%`);
   internshipProgress.setAttribute('aria-valuenow', String(progressPercent));

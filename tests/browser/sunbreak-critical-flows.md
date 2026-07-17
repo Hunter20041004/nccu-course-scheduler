@@ -1,11 +1,11 @@
 # Sunbreak Critical Flow Verification
 
-Verified on 2026-07-16 against `http://localhost:4173/` and a fresh origin at `http://127.0.0.1:4175/` from branch `feature/sunbreak-redesign`.
+Verified on 2026-07-17 against `http://127.0.0.1:4173/` from branch `feature/sunbreak-redesign`.
 
 ## Browser surfaces
 
 - The user's Chrome through the bundled Chrome extension.
-- Default desktop viewport and an explicit 390×844 mobile viewport.
+- Explicit 320, 375, 390, 640, 768, 1024, and 1440px responsive widths, including a 390×844 mobile viewport.
 - A fresh origin for first-run behavior and a separate persisted origin for return-user behavior.
 
 ## Passed flows
@@ -22,11 +22,13 @@ Verified on 2026-07-16 against `http://localhost:4173/` and a fresh origin at `h
 - Header More actions close their popover after use, so the menu no longer leaves a blank overlay on mobile.
 - API setup explains BYOK, links to Google AI Studio, and states that the key is cleared on refresh or tab close.
 - Phone-wallpaper export reports successful completion with a selected course.
+- The header summary keeps confirmed and pending internship time readable without crossing into the warning cell at every tested width.
+- The complete tutorial center opens with all nine chapters and closes normally.
 - Chrome console: 0 errors and 0 warnings throughout the final pass.
 
 ## Deterministic and boundary evidence
 
-- `npm test`: 167 unit tests and 75 rendered-page tests passed.
+- `npm test`: 167 unit tests and 76 rendered-page tests passed.
 - `npm run lint`: passed.
 - `npm run test:contract:nccu`: three live NCCU 115-1 contract tests passed.
 - AI service tests cover missing/invalid keys, timeouts, retryable upstream errors, request IDs, hallucinated course IDs, conflicts, locked courses, asynchronous attendance, minimum credits, language-course requirements, and internship minimums.
@@ -35,4 +37,4 @@ Verified on 2026-07-16 against `http://localhost:4173/` and a fresh origin at `h
 
 ## Browser-discovered repair
 
-The compact viewport exposed a header More menu that stayed open after clearing the timetable and obscured the tool panel. The root cause was inconsistent menu lifecycle handling: file import closed the native `<details>` menu, but destructive and export actions did not. A failing rendered-page regression test was added first, then every menu action was made to close the shared header menu. The same Chrome scenario now shows no overlay.
+The compact viewport exposed two header-summary overflows. The internship value had grown from a short day count into one unbreakable confirmed-plus-pending sentence, and 1024px still used the desktop inline label/value layout. Two failing rendered-page regression tests were added first. The value now wraps as two semantic phrases, and metric labels stack before the compact desktop width can overflow. Chrome geometry checks confirm no metric or body-level horizontal overflow at all seven tested widths.
