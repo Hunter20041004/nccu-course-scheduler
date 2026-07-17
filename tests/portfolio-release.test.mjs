@@ -10,7 +10,7 @@ test('README presents the course scheduler as a portfolio project', () => {
   for (const required of [
     '[![CI](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml)',
     '**[Share-safe Demo](https://hunter20041004.github.io/nccu-course-scheduler/)**',
-    '**[Live Demo](https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site)**',
+    '**[Live Demo](https://nccu-course-planner-1151.huntertseng.chatgpt.site)**',
     'GitHub Pages 靜態版適合傳給朋友測試一般排課流程',
     '## Executive Summary',
     '## 作品集重點',
@@ -22,6 +22,16 @@ test('README presents the course scheduler as a portfolio project', () => {
   ]) {
     assert.match(readme, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+});
+
+test('points the live-demo copy at the deployable Sites project', () => {
+  const hosting = JSON.parse(readText('.openai/hosting.json'));
+  const html = readText('src/index.html');
+  const app = readText('src/app.mjs');
+
+  assert.equal(hosting.project_id, 'appgprj_6a5587c540b0819191572c9cb320c553');
+  assert.match(html, /https:\/\/nccu-course-planner-1151\.huntertseng\.chatgpt\.site/);
+  assert.match(app, /https:\/\/nccu-course-planner-1151\.huntertseng\.chatgpt\.site/);
 });
 
 test('portfolio release includes CI and a narrow MIT license', () => {
