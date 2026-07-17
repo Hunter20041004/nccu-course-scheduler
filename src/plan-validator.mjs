@@ -15,7 +15,10 @@ export function validatePlan({
   const byId = new Map(courses.map((course) => [course.id, course]));
   const courseIds = uniquePlanIds([...(lockedCourseIds || []), ...(plan.courseIds || [])])
     .filter((id) => byId.has(id));
-  const asyncCourseIds = uniquePlanIds(plan.asyncCourseIds || []).filter((id) => courseIds.includes(id));
+  const preservedLockedAsyncIds = uniquePlanIds(lockedCourseIds)
+    .filter((id) => byId.get(id)?.attendance === 'async');
+  const asyncCourseIds = uniquePlanIds([...(plan.asyncCourseIds || []), ...preservedLockedAsyncIds])
+    .filter((id) => courseIds.includes(id));
   const selected = courseIds.map((id) => ({
     ...byId.get(id),
     attendance: asyncCourseIds.includes(id) ? 'async' : 'physical',
@@ -44,10 +47,10 @@ export function validatePlan({
       courseIds,
     });
   }
-  if (minimumInternshipDays > 0 && (!internship || internship.availableDays < minimumInternshipDays || internship.tentative)) {
+  if (minimumInternshipDays > 0 && (!internship || internship.confirmedDays < minimumInternshipDays)) {
     violations.push({
       code: 'minimum-internship-days',
-      message: `方案只能確認 ${internship?.availableDays || 0} 天實習，未達最低 ${minimumInternshipDays} 天。`,
+      message: `方案只能確認 ${internship?.confirmedDays || 0} 天實習，未達最低 ${minimumInternshipDays} 天。`,
       courseIds,
     });
   }

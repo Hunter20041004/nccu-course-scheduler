@@ -66,6 +66,19 @@ function automaticCandidates(selected, settings) {
   return { availableDays, candidates: [...full, ...half] };
 }
 
+function internshipCertainty(selected, availableDays) {
+  const tentative = selected.some((course) => (
+    course.attendance !== 'async'
+    && !course.schedule
+    && !course.meetings?.length
+  ));
+  return {
+    tentative,
+    confirmedDays: tentative ? 0 : availableDays,
+    pendingDays: tentative ? availableDays : 0,
+  };
+}
+
 export function calculateInternshipPlan(selected, settings = DEFAULT_INTERNSHIP_SETTINGS) {
   if (settings.mode === 'fixed') {
     const displayWindows = Object.entries(settings.fixedDays || {})
@@ -76,18 +89,14 @@ export function calculateInternshipPlan(selected, settings = DEFAULT_INTERNSHIP_
     const availableDays = displayWindows.reduce((total, window) => (
       total + (conflictingWindows.has(window) ? 0 : window.value)
     ), 0);
-    const tentative = selected.some((course) => (
-      course.attendance !== 'async'
-      && !course.schedule
-      && !course.meetings?.length
-    ));
+    const certainty = internshipCertainty(selected, availableDays);
     return {
       availableDays,
       suggestedWindows: [],
       displayWindows,
       conflicts,
-      tentative,
-      meetsTarget: availableDays >= settings.targetDays && !tentative,
+      ...certainty,
+      meetsTarget: certainty.confirmedDays >= settings.targetDays,
     };
   }
   const { availableDays, candidates } = automaticCandidates(selected, settings);
@@ -97,17 +106,13 @@ export function calculateInternshipPlan(selected, settings = DEFAULT_INTERNSHIP_
     planned += window.value;
     return true;
   });
-  const tentative = selected.some((course) => (
-    course.attendance !== 'async'
-    && !course.schedule
-    && !course.meetings?.length
-  ));
+  const certainty = internshipCertainty(selected, availableDays);
   return {
     availableDays,
     suggestedWindows,
     displayWindows: suggestedWindows,
     conflicts: [],
-    tentative,
-    meetsTarget: availableDays >= settings.targetDays && !tentative,
+    ...certainty,
+    meetsTarget: certainty.confirmedDays >= settings.targetDays,
   };
 }

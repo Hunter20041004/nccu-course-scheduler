@@ -88,7 +88,7 @@
         <section id="workspace-panel-ai" class="workspace-tab-panel ai-advisor" role="tabpanel" data-workspace-panel="ai" hidden>
           <h2>AI 排課顧問</h2>
           <p>依你的經歷、目標與實習安排產生三個推薦方案。</p>
-          <p class="privacy-note">GitHub Pages 分享版可測試一般排課與桌布匯出；AI 匯入與推薦請改用完整 Live Demo。</p>
+          <p id="deployment-ai-note" class="privacy-note"></p>
           <form id="ai-advisor-form" class="ai-advisor-form">
             <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
             <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
@@ -97,6 +97,7 @@
             <p class="privacy-note">個人敘述會以你的 Key 傳送給 Gemini，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
             <button class="button button-primary" type="submit">產生三個推薦方案</button>
             <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
+            <button id="retry-ai-advisor" class="button button-quiet" type="button" hidden>重試產生方案</button>
           </form>
           <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
         </section>
@@ -144,6 +145,7 @@
               <p class="eyebrow">OFFICIAL · NCCU 115-1</p>
               <h2>政大 115-1 課程庫</h2>
               <p class="section-helper">直接搜尋課名、教師或九碼課號，不需要 API Key。</p>
+              <p id="nccu-data-freshness" class="section-helper" aria-live="polite">資料學期 115-1 · 尚未成功查詢</p>
               <form id="nccu-course-search-form" class="nccu-search-form" role="search">
                 <label for="nccu-course-query">搜尋官方課程</label>
                 <div class="nccu-search-control"><input id="nccu-course-query" type="search" autocomplete="off" placeholder="例如：人機互動"><button class="button button-primary" type="submit">搜尋</button></div>
@@ -232,9 +234,9 @@
           <h3>加入、鎖定、刪除與清空</h3>
           <ol class="guide-steps">
             <li>點候選課程的主要區塊，可將課程加入左側課表；再點一次可移出。資格不符合或時段尚未選定時，請先處理提示。</li>
-            <li>按「鎖定」可鎖定任何課程，不限必修。鎖定課會留在目前課表，也會在 AI 方案中保留。</li>
-            <li>按「刪除」會移除該候選課程，也會一併移除它在課表中的區塊與鎖定狀態。</li>
-            <li>「清空目前課表」只清除已排課程，候選清單仍在；「清空候選課程」會清除整份候選清單與相關排課狀態。</li>
+            <li>每門候選課右側保留「詳細」；按「•••」可查看課綱、鎖定／解鎖或刪除。鎖定課會留在目前課表，也會在 AI 方案中保留。</li>
+            <li>刪除會移除候選課程，也會一併移除課表區塊與鎖定狀態；執行後右下角會提供 15 秒「復原」。</li>
+            <li>頁首「更多操作」內的「清空目前課表」只清除已排課程；「清空候選課程」則清除整份候選與相關排課狀態。兩者都可在 15 秒內復原。</li>
           </ol>
         </section>
         <section id="guide-attendance">
@@ -251,7 +253,7 @@
           <ol class="guide-steps">
             <li>到「實習設定」輸入目標天數與每天希望保留的開始、結束時間。</li>
             <li>選擇自動模式時，系統會從無衝堂時段找可實習日；選擇固定模式時，可指定每週的固定實習時段。</li>
-            <li>實習區塊會畫在課表上，與課程重疊時會出現排課提醒；半天與整天會依實際可用時數計算。</li>
+            <li>實習區塊會畫在課表上，與課程重疊時會出現提醒；摘要會分開顯示「已確認」與因另約課程而「待確認」的天數。</li>
             <li>到「匯入／新增」可加入社團、課外組織、打工、自修或其他個人行程，這些行程也會參與衝堂檢查。</li>
           </ol>
         </section>
@@ -263,16 +265,16 @@
             <li>在「AI 推薦」填寫自我介紹、學期目標與排課偏好，明確寫出最低學分、實習天數、想修的領域、語文偏好或不想考試等需求。</li>
             <li>系統會提供三個推薦方案。先按「預覽」檢查課程、學分、實習與提醒，再按「套用此方案」。鎖定課會保留，非同步課可補學分，但仍須符合資格。</li>
           </ol>
-          <p class="guide-note"><strong>Key 安全：</strong>Key 只保留在目前分頁記憶體，不會寫入伺服器、資料庫、網址或瀏覽器長期儲存；關閉或重新整理分頁即清除。GitHub Pages 分享版可使用一般排課與桌布匯出，AI 功能請使用完整 Live Demo。</p>
+          <p id="tutorial-deployment-note" class="guide-note"></p>
         </section>
         <section id="guide-export-faq">
           <h3>匯出手機桌布與常見問題</h3>
           <ol class="guide-steps">
-            <li>排完後按課表上方的「匯出手機桌布」，下載包含課表、非同步與時間未定課程及排課提醒的直式圖片。</li>
+            <li>手機預設使用「行程」模式依星期與時間排列；要核對政大節次時切到「方格」。排完後可匯出包含非同步、時間未定與提醒的手機桌布。</li>
             <li><strong>AI 顯示未設定：</strong>目前分頁沒有有效 Key，請重新貼上；重新整理後也必須重新設定。</li>
             <li><strong>課程待確認：</strong>代表無法從公開資料找到唯一結果或資料不足，請用課號與官方課綱核對。</li>
-            <li><strong>換手機沒有資料：</strong>資料只存在原本瀏覽器與網址，不會跨裝置或跨網站同步。</li>
-            <li><strong>清除錯誤內容：</strong>使用「清空目前課表」保留候選課，或使用「清空候選課程」重新建立清單。</li>
+            <li><strong>換手機或網址沒有資料：</strong>資料只存在原本瀏覽器。從頁首「更多操作」匯出排課 JSON，在另一台裝置用「從檔案匯入」預覽並確認；檔案不含 Key、AI 自我介紹或截圖。</li>
+            <li><strong>清除錯誤內容：</strong>在「更多操作」清空課表或候選清單；誤按時立刻使用 15 秒復原。</li>
           </ol>
         </section>
       </div>
@@ -285,6 +287,7 @@
       <ol><li>Google Assistant／Gemini App 不等於 Gemini API；一般排課不需要 Key。</li><li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">前往 Google AI Studio 建立 API Key</a>，學校帳號受限時請改用個人帳號。</li><li>貼上後只供本分頁使用，關閉或重新整理即清除。</li></ol>
       <label>Gemini API Key<div class="secret-field"><input id="api-key-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="api-key-reveal" type="button" aria-pressed="false">顯示</button></div></label>
       <p class="privacy-note">Key 僅供本分頁使用，關閉或重新整理即清除。網站不要求啟用付費帳務。</p>
+      <p id="api-key-deployment-note" class="privacy-note"></p>
       <p id="api-key-status" class="form-status" role="status" aria-live="polite"></p>
       <div class="api-key-actions"><button class="button button-primary" type="submit">驗證並開始使用</button><button id="api-key-skip" class="button button-quiet" type="button">先使用一般排課功能</button><button id="api-key-clear" class="button button-quiet" type="button" hidden>立即清除 Key</button></div>
     </form>
