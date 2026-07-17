@@ -679,3 +679,13 @@ test('keeps tutorial UI usable on compact screens', async () => {
   assert.match(html, /\.is-tour-target\s*\{[^}]*z-index:\s*auto/s);
   assert.match(html, /max-height:\s*calc\(100dvh - 20px\)/);
 });
+
+test('presents tutorial tasks as readable cards on desktop and one column on mobile', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /class="guide-steps"/);
+  assert.match(html, /class="guide-note"/);
+  assert.match(html, /\.guide-steps\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.guide-steps\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /\.tutorial-center-nav a\s*\{[^}]*min-height:\s*44px/s);
+});
