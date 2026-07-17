@@ -1,5 +1,7 @@
 import { NCCU_PERIODS } from './nccu-periods.mjs';
 import { classifyOfficialNotes } from './nccu-course-notes.mjs';
+import { trustedNccuUrl } from './nccu-url.mjs';
+import { officialSyllabusState } from './syllabus-state.mjs';
 
 export class NccuLookupError extends Error {
   constructor(message = '政大課程資料暫時無法查詢。') {
@@ -46,7 +48,7 @@ export function eligibilityRuleFromOfficialRestriction(course) {
   }];
 }
 
-export function nccuCourseToCandidate(course) {
+export function nccuCourseToCandidate(course, { checkedAt = null } = {}) {
   const meetings = meetingsFromNccuText(course.scheduleText);
   const officialNotes = classifyOfficialNotes(course);
   return {
@@ -62,6 +64,11 @@ export function nccuCourseToCandidate(course) {
     asyncAllowed: false,
     source: 'nccu-verified-import',
     sourceUrl: course.sourceUrl || '',
+    syllabus: officialSyllabusState({
+      sourceUrl: course.syllabusUrl || course.sourceUrl,
+      lookupStatus: 'success',
+      checkedAt,
+    }),
     conditions: [
       '由政大 115-1 公開課程資料匯入',
       ...(course.restrictionText ? [course.restrictionText] : []),
@@ -104,14 +111,7 @@ export function sanitizeOfficialEligibilityRules(course = {}) {
 }
 
 export function trustedOfficialSyllabusUrl(course = {}) {
-  try {
-    const url = new URL(String(course.sourceUrl || ''));
-    const officialHost = url.hostname === 'nccu.edu.tw'
-      || url.hostname.endsWith('.nccu.edu.tw');
-    return url.protocol === 'https:' && officialHost ? url.href : '';
-  } catch {
-    return '';
-  }
+  return trustedNccuUrl(course.sourceUrl);
 }
 
 export function candidateIncludesCourseCode(courseStore, courseCode) {

@@ -4,7 +4,7 @@ const root = new URL('../', import.meta.url);
 const read = (path) => readFile(new URL(path, root), 'utf8');
 const [
   template, styles, nccuPeriods, internshipPlanner, courseData, eligibilityConditions,
-  nccuCourseNotes, courseReconciler, plannerCore, planValidator, plannerStorage, plannerTransfer, plannerUndo, scheduleAgenda, apiKeySession, app,
+  nccuUrl, syllabusState, nccuCourseNotes, courseReconciler, plannerCore, planValidator, plannerStorage, plannerTransfer, plannerUndo, scheduleAgenda, apiKeySession, app,
   aiContracts, geminiClient, nccuCourseAdapter, aiService, worker, aiPlanner,
 ] = await Promise.all([
   read('src/index.html'),
@@ -13,6 +13,8 @@ const [
   read('src/internship-planner.mjs'),
   read('src/course-data.mjs'),
   read('src/eligibility-conditions.mjs'),
+  read('src/nccu-url.mjs'),
+  read('src/syllabus-state.mjs'),
   read('src/nccu-course-notes.mjs'),
   read('src/course-reconciler.mjs'),
   read('src/planner-core.mjs'),
@@ -50,6 +52,8 @@ const script = [
     'profileConditionIds', 'rulesForCourse', 'buildConditionDefinitions', 'buildConditionImpacts',
     'validateCustomCondition',
   ]),
+  wrapModule(nccuUrl, '__nccuUrl', ['trustedNccuUrl']),
+  wrapModule(syllabusState, '__syllabusState', ['officialSyllabusState']),
   wrapModule(nccuCourseNotes, '__nccuCourseNotes', ['classifyOfficialNotes']),
   wrapModule(courseReconciler, '__courseReconciler', ['reconcileOfficialCandidate']),
   wrapModule(plannerCore, '__plannerCore', [
@@ -95,6 +99,8 @@ const serverScript = [
   stripModuleSyntax(nccuPeriods),
   stripModuleSyntax(courseData),
   stripModuleSyntax(eligibilityConditions),
+  stripModuleSyntax(nccuUrl),
+  stripModuleSyntax(syllabusState),
   stripModuleSyntax(nccuCourseNotes),
   stripModuleSyntax(aiContracts),
   stripModuleSyntax(geminiClient),
