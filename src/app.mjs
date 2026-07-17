@@ -21,6 +21,7 @@ let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
 let pendingCourses = [];
 let lastImportedCourses = [];
 let recommendedPlans = [];
+let recommendationShortfall = '';
 let previewedPlanId = null;
 let customConditions = [];
 let quickTourIndex = 0;
@@ -1243,7 +1244,9 @@ function toggleRecommendedPlanPreview(planId) {
 function renderRecommendedPlans() {
   const results = byId('ai-plan-results');
   if (!recommendedPlans.length) {
-    results.innerHTML = '';
+    results.innerHTML = recommendationShortfall
+      ? `<p class="route-shortfall" role="status">${escapeHtml(recommendationShortfall)}</p>`
+      : '';
     return;
   }
   const previewedPlans = recommendedPlans.map((plan) => ({
@@ -1259,7 +1262,10 @@ function renderRecommendedPlans() {
   const hiddenNotice = hiddenConflictCount
     ? `<p class="form-status" role="status">已隱藏 ${hiddenConflictCount} 個衝堂方案。</p>`
     : '';
-  results.innerHTML = hiddenNotice + safePlans.map(({ plan, preview }, index) => {
+  const shortfallNotice = recommendationShortfall
+    ? `<p class="route-shortfall" role="status">${escapeHtml(recommendationShortfall)}</p>`
+    : '';
+  results.innerHTML = shortfallNotice + hiddenNotice + safePlans.map(({ plan, preview }, index) => {
     const expanded = previewedPlanId === plan.id;
     return `<article class="ai-route-board" data-route-id="${escapeHtml(plan.id)}">
       <div class="route-index"><span>路線 ${String(index + 1).padStart(2, '0')}</span><b>${escapeHtml(plan.attendance || '彈性安排')}</b></div>
@@ -1318,7 +1324,8 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.error?.message || '無法產生推薦，請稍後重試。');
     recommendedPlans = payload.plans || [];
-    status.textContent = payload.summary || '已產生三個推薦方案。';
+    recommendationShortfall = payload.shortfallReason || '';
+    status.textContent = payload.summary || (recommendedPlans.length ? '已產生可安全套用的推薦方案。' : recommendationShortfall);
     renderRecommendedPlans();
   } catch (error) {
     status.textContent = error.message || '無法產生推薦，請稍後重試。';
