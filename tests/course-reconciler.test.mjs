@@ -27,3 +27,10 @@ test('refreshes official fields while preserving user-owned planning state', () 
     userNote: '優先修',
   });
 });
+
+test('preserves the existing planner identity when an official section is refreshed', () => {
+  assert.equal(reconcileOfficialCandidate(
+    { id: 'hci', sectionCode: '703055001' },
+    { id: 'ai-703055001', sectionCode: '703055001', teacher: '廖文宏' },
+  ).id, 'hci');
+});

@@ -1,4 +1,5 @@
 const USER_OWNED_FIELDS = Object.freeze([
+  'id',
   'attendance',
   'userNote',
   'selectedArrangementId',
