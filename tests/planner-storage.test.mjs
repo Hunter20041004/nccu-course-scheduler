@@ -85,14 +85,38 @@ test('round-trips versioned planner state', () => {
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
 });
 
-test('uses storage version five for trusted course and eligibility data', () => {
+test('uses storage version six for explicit syllabus state', () => {
   const state = {
     selectedIds: [],
     addedCourses: [{ id: 'ai-123' }],
     pendingCourses: [{ title: '待確認課' }],
   };
-  assert.equal(JSON.parse(serializePlannerState(state)).version, 5);
+  assert.equal(JSON.parse(serializePlannerState(state)).version, 6);
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
+});
+
+test('migrates a legacy official course without source evidence to unverified', () => {
+  const stored = JSON.stringify({
+    version: 5,
+    state: {
+      selectedIds: ['ai-703055001'],
+      lockedCourseIds: ['ai-703055001'],
+      attendance: { 'ai-703055001': 'async' },
+      addedCourses: [{
+        id: 'ai-703055001',
+        sectionCode: '703055001',
+        source: 'nccu-verified-import',
+        sourceUrl: '',
+      }],
+    },
+  });
+
+  const migrated = parsePlannerState(stored, null);
+
+  assert.equal(migrated.addedCourses[0].syllabus.status, 'unverified');
+  assert.deepEqual(migrated.selectedIds, ['ai-703055001']);
+  assert.deepEqual(migrated.lockedCourseIds, ['ai-703055001']);
+  assert.equal(migrated.attendance['ai-703055001'], 'async');
 });
 
 test('migrates legacy AI project variant choices into atomic section choices', () => {
