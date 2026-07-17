@@ -26,14 +26,14 @@ let quickTourIndex = 0;
 let expandedCourseId = null;
 
 const quickTourSteps = [
-  { target: 'schedule-panel', compactView: 'schedule', title: '課表', body: '左側是政大官方節次課表，會顯示週一到週日、實習保留與衝堂。' },
-  { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '點候選課程可加入左側課表，列表可搜尋、篩選與檢查資格。' },
-  { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '詳細、課綱、鎖定、刪除', body: '每門課都能看詳細並查看可用的官方課綱，也可以鎖定或刪除；鎖定不限於必修課。' },
-  { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '有條件的課會在這裡生成可勾選條件，並說明為什麼需要。' },
-  { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '可以設定目標天數、固定時段或自動找可用時段。' },
-  { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、目標與偏好後產生三個方案；只有按 AI 功能時才需要 API Key。' },
-  { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可以直接搜尋政大 115-1 課程庫，也能用 AI 截圖辨識、手動新增課程，或加入社團與個人行程。' },
-  { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查', body: '套用方案前確認學分、衝堂、非同步課與條件是否符合。' },
+  { target: 'schedule-panel', compactView: 'schedule', title: '課表總覽', body: '左側使用政大官方節次，會顯示週一到週日、實習保留、課程衝堂、非同步工作區與排課提醒。' },
+  { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '每列會顯示課名、教師、課號、學分、時間與資格狀態；點課程主區塊可加入或移出左側課表。' },
+  { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」展開完整詳細資料，按「課綱」前往官方內容；任何課都可以鎖定或刪除。' },
+  { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '勾選你符合的系所、雙主修、學程、年級或先修條件，並查看每個條件為什麼需要及影響哪些課。' },
+  { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
+  { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、學期目標、最低學分、實習天數與課程偏好，產生三個可預覽的無衝堂方案；使用時才需要 API Key。' },
+  { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可搜尋政大 115-1 課程庫、使用 AI 截圖辨識或手動新增課程，也能加入社團、課外組織與個人行程。' },
+  { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '確認學分、資格、實體／同步／非同步、衝堂與排課提醒，再按「匯出手機桌布」保存課表。' },
 ];
 
 function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
