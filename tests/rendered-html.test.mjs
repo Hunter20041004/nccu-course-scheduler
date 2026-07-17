@@ -378,7 +378,7 @@ test('searches and imports official NCCU 115-1 courses without an AI key', async
   assert.match(html, /id="nccu-course-results"/);
   assert.match(html, /searchNccuCourses\(\{ term: '115-1', keyword: query \}\)/);
   assert.match(html, /data-add-nccu-course/);
-  assert.match(html, /nccuCourseToCandidate/);
+  assert.match(html, /const addedAt = new Date\(\)\.toISOString\(\);\s*const candidate = nccuCourseToCandidate\(officialCourse, \{ checkedAt: addedAt \}\)/);
 });
 
 test('lets an existing official candidate refresh instead of disabling the result', async () => {
@@ -387,6 +387,7 @@ test('lets an existing official candidate refresh instead of disabling the resul
   assert.match(html, /data-refresh-nccu-course/);
   assert.match(html, /reconcileOfficialCandidate\(existingCourse, candidate\)/);
   assert.match(html, /selected = selected\.map/);
+  assert.match(html, /const \{[^}]*persistedCourseAdditions[^}]*\} = __plannerStorage/);
   assert.match(html, /更新官方資料/);
 });
 

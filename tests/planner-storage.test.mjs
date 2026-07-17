@@ -4,6 +4,7 @@ import {
   createStartupCatalog,
   migratePlannerState,
   parsePlannerState,
+  persistedCourseAdditions,
   serializePlannerState,
 } from '../src/planner-storage.mjs';
 
@@ -36,6 +37,34 @@ test('repairs informational official rules while restoring saved courses', () =>
   const [restored] = createStartupCatalog(saved, []);
   assert.deepEqual(restored.eligibilityRules, []);
   assert.deepEqual(restored.conditions, ['日文系擴大輔系課程']);
+});
+
+test('persists and restores a refreshed official seed course as one authoritative candidate', () => {
+  const seed = {
+    id: 'hci',
+    title: '人機互動',
+    sectionCode: '703055001',
+    source: 'catalog',
+  };
+  const refreshed = {
+    ...seed,
+    source: 'nccu-verified-import',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/hci.html',
+    syllabus: {
+      status: 'available',
+      url: 'https://newdoc.nccu.edu.tw/teaschm/1151/hci.html',
+      checkedAt: '2026-07-17T12:00:00.000Z',
+    },
+  };
+
+  const savedAdditions = persistedCourseAdditions([refreshed], [seed]);
+  const restored = createStartupCatalog({
+    addedCourses: savedAdditions,
+    deletedCourseIds: [],
+  }, [seed]);
+
+  assert.deepEqual(savedAdditions, [refreshed]);
+  assert.deepEqual(restored, [refreshed]);
 });
 
 test('migrates a complete version-three state to generalized condition ids without data loss', () => {

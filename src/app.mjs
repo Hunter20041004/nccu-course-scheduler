@@ -221,8 +221,7 @@ function persistState() {
 }
 
 function plannerStateSnapshot() {
-    const officialIds = new Set(courses.map((course) => course.id));
-    const addedCourses = courseStore.filter((course) => !officialIds.has(course.id));
+    const addedCourses = persistedCourseAdditions(courseStore, courses);
     const retainedIds = new Set(courseStore.map((course) => course.id));
     const deletedCourseIds = courses
       .filter((course) => !retainedIds.has(course.id))
@@ -1412,7 +1411,8 @@ byId('nccu-course-results').addEventListener('click', async (event) => {
     (course) => course.courseCode === button.dataset.addNccuCourse,
   );
   if (!officialCourse || candidateIncludesCourseCode(courseStore, officialCourse.courseCode)) return;
-  const candidate = nccuCourseToCandidate(officialCourse);
+  const addedAt = new Date().toISOString();
+  const candidate = nccuCourseToCandidate(officialCourse, { checkedAt: addedAt });
   courseStore = [...courseStore, candidate];
   persistState();
   renderAll();
