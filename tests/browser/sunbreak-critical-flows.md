@@ -14,6 +14,8 @@ Verified on 2026-07-17 against `http://127.0.0.1:4173/` from branch `feature/sun
 - All eight quick-tour steps spotlight a real visible target, including an empty candidate list on step 3.
 - Live NCCU search for `人機互動` returned eight official 115-1 sections, showed the last successful query time, and exposed the official syllabus link.
 - Importing `703055001 人機互動` created one candidate with `週四 234`, complete details, eligibility explanation, source, official sections, and syllabus action.
+- Refreshing the existing built-in `703055001 人機互動` candidate replaced stale seed fields with current official data while preserving the selected course identity and lock state.
+- After a full page reload, the refreshed candidate still reports `政大 115-1 課程庫`, retains the trusted `newdoc.nccu.edu.tw` syllabus link, and remains selected and locked.
 - Candidate click added the course to the timetable; lock state, detail disclosure, and the compact More menu stayed synchronized.
 - Clear schedule removed the selected course and lock; the 15-second undo restored both immediately.
 - The desktop grid includes Monday through Sunday and all official NCCU periods without body-level horizontal overflow.
@@ -28,9 +30,9 @@ Verified on 2026-07-17 against `http://127.0.0.1:4173/` from branch `feature/sun
 
 ## Deterministic and boundary evidence
 
-- `npm test`: 167 unit tests and 76 rendered-page tests passed.
+- `npm test`: 175 unit tests and 77 rendered-page tests passed.
 - `npm run lint`: passed.
-- `npm run test:contract:nccu`: three live NCCU 115-1 contract tests passed.
+- `npm run test:contract:nccu`: four live NCCU 115-1 contract tests passed, including the trusted HCI syllabus-link contract.
 - AI service tests cover missing/invalid keys, timeouts, retryable upstream errors, request IDs, hallucinated course IDs, conflicts, locked courses, asynchronous attendance, minimum credits, language-course requirements, and internship minimums.
 - A real user API key was intentionally not submitted during browser QA; the UI and server contracts were exercised without exposing user secrets.
 - `git diff --check`: passed.
@@ -38,3 +40,5 @@ Verified on 2026-07-17 against `http://127.0.0.1:4173/` from branch `feature/sun
 ## Browser-discovered repair
 
 The compact viewport exposed two header-summary overflows. The internship value had grown from a short day count into one unbreakable confirmed-plus-pending sentence, and 1024px still used the desktop inline label/value layout. Two failing rendered-page regression tests were added first. The value now wraps as two semantic phrases, and metric labels stack before the compact desktop width can overflow. Chrome geometry checks confirm no metric or body-level horizontal overflow at all seven tested widths.
+
+The official-data refresh pass exposed a separate build-boundary defect: the new persistence helper existed in source but was missing from the browser bundle's planner-storage export list. The app therefore swallowed a runtime persistence error, so the refreshed syllabus appeared immediately but reverted to the seed candidate after reload. A storage round-trip regression and a rendered-bundle export contract were added first. The helper is now exported into the real browser bundle, and the Chrome reload flow confirms the official source, syllabus link, selection, and lock all survive.

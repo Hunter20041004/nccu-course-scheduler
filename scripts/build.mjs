@@ -72,6 +72,7 @@ const script = [
   ]),
   wrapModule(plannerStorage, '__plannerStorage', [
     'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState', 'createStartupCatalog',
+    'persistedCourseAdditions',
   ]),
   wrapModule(plannerTransfer, '__plannerTransfer', [
     'exportPlannerTransfer', 'previewPlannerTransfer', 'applyPlannerTransfer',

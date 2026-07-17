@@ -7,11 +7,23 @@ export const STORAGE_KEY = 'nccu-course-planner:v3';
 
 export function createStartupCatalog(savedState, officialCourses) {
   if (!savedState) return [];
+  const savedCourses = savedState.addedCourses || savedState.manualCourses || [];
+  const officialIds = new Set(officialCourses.map((course) => course.id));
+  const savedById = new Map(savedCourses.map((course) => [course.id, course]));
+  const officialWithOverrides = officialCourses.map((course) => savedById.get(course.id) || course);
+  const additions = savedCourses.filter((course) => !officialIds.has(course.id));
   return buildCandidateCatalog(
-    officialCourses,
-    savedState.addedCourses || savedState.manualCourses,
+    officialWithOverrides,
+    additions,
     savedState.deletedCourseIds,
   ).map(sanitizeOfficialEligibilityRules);
+}
+
+export function persistedCourseAdditions(courseStore, officialCourses) {
+  const officialIds = new Set(officialCourses.map((course) => course.id));
+  return courseStore.filter((course) => (
+    !officialIds.has(course.id) || course.source === 'nccu-verified-import'
+  ));
 }
 
 export function serializePlannerState(state) {

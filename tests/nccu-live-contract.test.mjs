@@ -19,6 +19,17 @@ test('live NCCU 115-1 search returns a course that can become a scheduler candid
   assert.ok(candidate.meetings.length > 0);
 });
 
+test('live NCCU HCI course exposes a trusted syllabus link', { timeout: 20_000 }, async () => {
+  const rows = await searchNccuCourses({ term: '115-1', keyword: '703055001' });
+  const candidate = nccuCourseToCandidate(
+    rows.find((row) => row.courseCode === '703055001'),
+    { checkedAt: new Date().toISOString() },
+  );
+
+  assert.equal(candidate.syllabus.status, 'available');
+  assert.match(candidate.syllabus.url, /^https:\/\/newdoc\.nccu\.edu\.tw\//);
+});
+
 test('live NCCU expanded-minor note stays informational', { timeout: 20_000 }, async () => {
   const rows = await searchNccuCourses({ term: '115-1', keyword: '010056001' });
   const candidate = nccuCourseToCandidate(
