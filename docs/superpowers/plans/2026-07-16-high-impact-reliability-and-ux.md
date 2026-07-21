@@ -38,35 +38,35 @@
 
 Add a test asserting that `英語授課。；傳播類課程；本課程為112/113級群C課程；日文系擴大輔系課程` produces no `eligibilityRules`, includes `英語授課` in `deliveryNotes`, and includes the remaining classification phrases in `programTags`.
 
-Run: `node --test tests/nccu-course-notes.test.mjs`  
+Run: `node --test tests/nccu-course-notes.test.mjs`
 Expected: FAIL because the module does not exist.
 
 - [ ] **Step 2: Green — minimal classifier**
 
 Implement sentence splitting on `；。\n`, normalization, and explicit information patterns. Return stable arrays and preserve unmatched sentences in `informationNotes`.
 
-Run: `node --test tests/nccu-course-notes.test.mjs`  
+Run: `node --test tests/nccu-course-notes.test.mjs`
 Expected: PASS.
 
 - [ ] **Step 3: Red → Green — TAICA mixed note**
 
 Add one failing test for the complete TAICA note. Implement classification so platform, remote delivery, scheduled exhibition/exam, and program mapping become separate typed notes rather than one checkbox.
 
-Run: `node --test tests/nccu-course-notes.test.mjs`  
+Run: `node --test tests/nccu-course-notes.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 4: Integrate adapter**
 
 Replace direct `eligibilityRuleFromOfficialRestriction()` use in `nccuCourseToCandidate()` with `classifyOfficialNotes()`. Preserve `conditions` as display-only official source text and add the typed arrays to the candidate.
 
-Run: `node --test tests/nccu-course-adapter.test.mjs tests/nccu-course-notes.test.mjs`  
+Run: `node --test tests/nccu-course-adapter.test.mjs tests/nccu-course-notes.test.mjs`
 Expected: PASS.
 
 - [ ] **Step 5: Refactor and register test**
 
 Add the new test file to `test:unit`, remove duplicated regex classification from the adapter, and run:
 
-`npm run test:unit`  
+`npm run test:unit`
 Expected: all unit tests PASS.
 
 - [ ] **Step 6: Commit**
@@ -96,33 +96,33 @@ git commit -m "fix: classify NCCU notes by meaning"
 
 Add a failing test asserting `僅限歐文系及雙主修學生修讀` creates one required rule with a short student-facing label and preserved rationale. Implement the exact explicit-restriction patterns.
 
-Run: `node --test tests/nccu-course-notes.test.mjs`  
+Run: `node --test tests/nccu-course-notes.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 2: Red → Green — unanswered required rule is review**
 
 Add a failing `planner-core` test where a required official condition is not present in `profile.conditionIds`. Change evaluation to return `{ status: 'review' }` when the user has not answered it; add a negative-answer representation `rejectedConditionIds` that returns `blocked`.
 
-Run: `node --test tests/planner-core.test.mjs`  
+Run: `node --test tests/planner-core.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 3: Red → Green — graduate conditional status migration**
 
 Change existing graduate review tests to expect `review`, remove the obsolete `conditional` status, and update catalog labels to `資格待確認，請看詳細。`.
 
-Run: `node --test tests/planner-core.test.mjs tests/rendered-html.test.mjs`  
+Run: `node --test tests/planner-core.test.mjs tests/rendered-html.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 4: Red → Green — condition controls**
 
 Add a condition-model test that exposes `符合／不符合／尚未確認` for course-derived conditions. Update the conditions UI to store accepted and rejected IDs separately and show why each condition exists, affected courses, official rationale, and source type.
 
-Run: `node --test tests/eligibility-conditions.test.mjs tests/rendered-html.test.mjs`  
+Run: `node --test tests/eligibility-conditions.test.mjs tests/rendered-html.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 5: Refactor and full regression**
 
-Run: `npm run test:unit`  
+Run: `npm run test:unit`
 Expected: PASS with no remaining `conditional` eligibility references.
 
 - [ ] **Step 6: Commit**
@@ -150,35 +150,35 @@ git commit -m "feat: add reviewable eligibility states"
 
 Add a failing course-data test asserting section `783006001` is taught by `魏綾音`, has three credits, and exposes two arrangements: fixed `週二 34C` and flexible `另約討論時間`.
 
-Run: `node --test tests/course-data.test.mjs`  
+Run: `node --test tests/course-data.test.mjs`
 Expected: FAIL against the current split variant/advisor model.
 
 - [ ] **Step 2: Green — atomic section data**
 
 Normalize the built-in AI project to section objects. Keep legacy `variants` readable during migration, but make `sections` the source of truth.
 
-Run: `node --test tests/course-data.test.mjs`  
+Run: `node --test tests/course-data.test.mjs`
 Expected: PASS.
 
 - [ ] **Step 3: Red → Green — atomic selection**
 
 Add a core test that switches from another section to `783006001` and verifies course code, teacher, schedule, meetings, eligibility, source URL and option message change together. Implement `selectCourseSection()` and make `resolveCourseOption()` delegate to it.
 
-Run: `node --test tests/planner-core.test.mjs`  
+Run: `node --test tests/planner-core.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 4: Red → Green — flexible arrangement**
 
 Add a test selecting `另約討論時間`; expect no fixed physical meeting, `optionStatus: 'flexible'`, and a pending-time warning. Implement arrangement resolution without marking the course asynchronous.
 
-Run: `node --test tests/planner-core.test.mjs`  
+Run: `node --test tests/planner-core.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 5: Integrate UI and refactor**
 
 Update detailed-course controls to select formal section first, then arrangement/advisor. Ensure header metadata always derives from the resolved section. Add rendered assertions for both Wei arrangements.
 
-Run: `node --test tests/course-data.test.mjs tests/planner-core.test.mjs tests/rendered-html.test.mjs`  
+Run: `node --test tests/course-data.test.mjs tests/planner-core.test.mjs tests/rendered-html.test.mjs`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -226,7 +226,7 @@ Add separate tests for requested minimum credits and minimum internship days. Us
 
 Keep validator deterministic and side-effect free. Add the test file to `test:unit`.
 
-Run: `npm run test:unit`  
+Run: `npm run test:unit`
 Expected: PASS.
 
 - [ ] **Step 7: Commit**
@@ -256,7 +256,7 @@ git commit -m "feat: validate every recommended schedule"
 
 Add a failing AI service test where all model routes conflict. Replace conflict-warning output with validator filtering; expect zero invalid plans and a shortfall explanation.
 
-Run: `node --test tests/ai-service.test.mjs`  
+Run: `node --test tests/ai-service.test.mjs`
 Expected after implementation: PASS.
 
 - [ ] **Step 2: Red → Green — minimum credits and async fill**
@@ -275,7 +275,7 @@ Add browser-facing tests that invalid plans cannot render an enabled apply butto
 
 Remove duplicated local repair logic now covered by the validator, retaining language-preference ranking and maximum-credit construction only as candidate generation.
 
-Run: `npm run test:unit`  
+Run: `npm run test:unit`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -312,7 +312,7 @@ Add a legacy AI-project `variantId/advisorId` state. Migrate it to `selectedSect
 
 Assert migrating a state twice is deep-equal to migrating once.
 
-Run: `node --test tests/planner-storage.test.mjs`  
+Run: `node --test tests/planner-storage.test.mjs`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -358,7 +358,7 @@ Add `匯出排課資料` and `從舊版匯入` to the More menu and tutorial. St
 
 Use Blob download and file input, revoke object URLs, announce preview/results through `aria-live`, and never write raw imported text to HTML.
 
-Run: `npm test`  
+Run: `npm test`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -399,7 +399,7 @@ Move both clear actions into an accessible More menu. Keep confirmation, create 
 
 Close menu on Escape/outside click, restore focus to trigger, and respect reduced motion. Ensure toast text is readable without color.
 
-Run: `npm test`  
+Run: `npm test`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -425,7 +425,7 @@ git commit -m "feat: undo destructive planner actions"
 
 Add rendered assertions that each candidate has a visible detailed-data button and a named More trigger, while syllabus/lock/delete controls live inside its menu.
 
-Run: `node --test tests/rendered-html.test.mjs`  
+Run: `node --test tests/rendered-html.test.mjs`
 Expected: FAIL.
 
 - [ ] **Step 2: Green — menu rendering and delegation**
@@ -440,7 +440,7 @@ Add static interaction hooks for Enter/Space, Escape and focus return. Ensure di
 
 Keep candidate rows compact, avoid overlap at desktop/mobile widths, and preserve 44×44px controls.
 
-Run: `npm test`  
+Run: `npm test`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -485,7 +485,7 @@ At 390px, prevent document-level horizontal overflow, set workspace tabs to at l
 
 Add assertions for accessible switcher state, agenda region labels, conflict text and non-color status markers.
 
-Run: `npm test`  
+Run: `npm test`
 Expected: PASS.
 
 - [ ] **Step 6: Commit**
@@ -526,7 +526,7 @@ Ensure retryable errors display a retry action without clearing AI form fields o
 
 Use host detection so static Pages explains its role and full Sites contains no GitHub-to-Live-Demo self-reference. Update tutorial and API dialog consistently.
 
-Run: `npm test`  
+Run: `npm test`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -551,7 +551,7 @@ git commit -m "fix: clarify uncertain and retryable states"
 
 Add one real information-note course assertion, run it, then one explicit-restriction assertion, run it, then one official syllabus assertion. Each test validates actual fields consumed by the app.
 
-Run after each cycle: `npm run test:contract:nccu`  
+Run after each cycle: `npm run test:contract:nccu`
 Expected: PASS or a clearly identified upstream outage; do not alter mocks to hide a contract mismatch.
 
 - [ ] **Step 2: Full local verification**
