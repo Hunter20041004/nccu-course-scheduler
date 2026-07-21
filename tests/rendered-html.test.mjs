@@ -107,7 +107,7 @@ test('renders secure Gemini API key setup without first-load auto prompt', async
   assert.match(html, /function requireApiKeyForAi\(status\)/);
   assert.match(html, /byId\('api-key-status-button'\)\.addEventListener\('click', openApiKeyDialog\)/);
   assert.match(html, /const apiKey = requireApiKeyForAi\(status\)/);
-  assert.match(html, /apiKey,\s*profileText:/);
+  assert.match(html, /apiKey,\s*\.\.\.readSharedAiProfile\(\),/);
   assert.match(html, /JSON\.stringify\(\{ apiKey, imageDataUrl, term: '115-1' \}\)/);
   assert.doesNotMatch(html, /API_ONBOARDING_SEEN_KEY/);
   assert.doesNotMatch(html, /openApiKeyDialog\(\);[\s\S]{0,240}renderApiKeyState\(\)/);
@@ -1004,7 +1004,8 @@ test('places comparison selection only inside the AI comparison tool', async () 
   assert.match(html, /id="clear-course-comparison"/);
   assert.match(html, /id="run-ai-comparison"/);
   assert.match(html, /id="open-chatgpt-comparison"/);
-  assert.match(html, /建議先填寫目標與偏好，比對會更精準/);
+  assert.match(html, /id="ai-comparison-profile-mount"/);
+  assert.match(html, /個人資料（選填）/);
 });
 
 test('keeps comparison selection at five courses and explains the limit', async () => {
@@ -1080,8 +1081,8 @@ test('teaches first-time users how optional profile-aware course comparison work
 
   assert.match(html, /AI 課綱比較/);
   assert.match(html, /勾選 2 至 5 門/);
-  assert.match(html, /學期目標、未來方向與排課偏好都是選填/);
-  assert.match(html, /未填仍可取得客觀比較/);
+  assert.match(html, /兩項 AI 功能共用同一份個人資料/);
+  assert.match(html, /重新整理或關閉分頁即清除/);
   assert.match(html, /帶到 ChatGPT/);
   assert.match(html, /不會替你自動送出訊息/);
   assert.match(html, /title: 'AI 功能'/);
@@ -1104,4 +1105,13 @@ test('keeps the AI comparison picker readable and actionable on phones', async (
   assert.match(html, /\.comparison-course-list\s*\{[^}]*overflow:\s*auto/s);
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.course-comparison-actions\s*\{[^}]*grid-template-columns:\s*1fr/s);
   assert.match(html, /AI 課綱比較[\s\S]*在比較頁搜尋並勾選 2 至 5 門候選課程/);
+});
+
+test('styles and teaches the private shared AI profile', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /\.shared-ai-profile\s*\{[^}]*border:/s);
+  assert.match(html, /\.shared-ai-profile summary\s*\{[^}]*min-height:\s*44px/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.shared-ai-profile-fields\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /兩項 AI 功能共用同一份個人資料/);
+  assert.doesNotMatch(html, /localStorage\.setItem\([^)]*(ai-profile|profileText|futureDirection|semesterGoals|preferences)/);
 });

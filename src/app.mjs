@@ -38,7 +38,7 @@ const quickTourSteps = [
   { target: 'catalog-list', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」查看完整詳細資料並切換實體／同步／非同步；已在候選的課可用「更新官方資料」補齊最新官方欄位，並保留選課、鎖定、上課方式與班別安排。課綱與其他管理操作在「•••」。' },
   { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '逐項標記符合、不符合或待確認的系所、雙主修、學程、年級與先修條件，並查看每個條件會影響哪些課。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
-  { target: 'ai-feature-hub', tab: 'ai', aiTool: 'hub', compactView: 'tools', title: 'AI 功能', body: '先選擇「AI 排課推薦」或「AI 課綱比較」。推薦會依最低學分與實習偏好產生三個無衝堂方案；進入比較頁後，可搜尋課名、教師或課號並勾選 2 至 5 門候選課程。個人資料皆為選填，未填仍可客觀比較。' },
+  { target: 'ai-feature-hub', tab: 'ai', aiTool: 'hub', compactView: 'tools', title: 'AI 功能', body: '先選擇「AI 排課推薦」或「AI 課綱比較」。兩項 AI 功能共用同一份選填個人資料，在任一頁修改都會立即同步；重新整理後清除。推薦會依最低學分與實習偏好產生三個無衝堂方案，比較頁可搜尋並勾選 2 至 5 門課。' },
   { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可搜尋政大 115-1 課程庫、使用 AI 截圖辨識或手動新增課程，也能加入社團、課外組織與個人行程。' },
   { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '手機可切換「行程／方格」；確認學分、資格、出席方式、衝堂與提醒後，再匯出手機桌布。' },
 ];

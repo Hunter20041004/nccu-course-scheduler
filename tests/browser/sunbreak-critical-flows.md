@@ -78,3 +78,29 @@ Verified in the user's Chrome against `http://127.0.0.1:4173/` on local `main`.
 - `npm run lint`: passed.
 - `npm run test:contract:nccu`: six live NCCU 115-1 boundary tests passed.
 - `git diff --check`: passed.
+
+## 2026-07-21 — Shared AI profile
+
+Verified in the user's Chrome against `http://127.0.0.1:4173/` on local `main`.
+
+### Shared behavior
+
+- `AI 排課推薦` opens the optional profile by default; entering self-introduction and future direction immediately changed the completion badge to `已填 2／4 項`.
+- `AI 課綱比較` mounts the same profile section collapsed by default and retained both values. Adding a semester goal there changed the shared badge to `已填 3／4 項`.
+- Returning to `AI 排課推薦` reopened the profile and retained all three values, confirming two-way sharing without duplicate form state.
+- Selecting two comparison courses still enabled both `帶到 ChatGPT` and `AI 比較`, so the shared form did not regress the comparison picker.
+- Reloading cleared all four profile fields as promised while the existing 23-course candidate bank remained visible.
+
+### Compact behavior
+
+- Tested with a 375×812 Chrome viewport override (360px content width before reload).
+- The collapsed profile stayed within the viewport from x=21 to x=339; the document and viewport widths both remained 360px.
+- After expansion, all four text areas stayed within x=34 to x=326 and the document had no horizontal overflow.
+
+### Console and automated evidence
+
+- Chrome console: zero errors.
+- `npm test`: 200 unit tests and 101 rendered-page tests passed.
+- `npm run lint`: passed.
+- `npm run test:contract:nccu`: six live NCCU 115-1 boundary tests passed.
+- `git diff --check`: passed.
