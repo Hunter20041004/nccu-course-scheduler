@@ -1,4 +1,7 @@
 import { NCCU_PERIODS } from './nccu-periods.mjs';
+import { classifyOfficialNotes } from './nccu-course-notes.mjs';
+import { trustedNccuUrl } from './nccu-url.mjs';
+import { officialSyllabusState } from './syllabus-state.mjs';
 
 export class NccuLookupError extends Error {
   constructor(message = '政大課程資料暫時無法查詢。') {
@@ -45,9 +48,9 @@ export function eligibilityRuleFromOfficialRestriction(course) {
   }];
 }
 
-export function nccuCourseToCandidate(course) {
+export function nccuCourseToCandidate(course, { checkedAt = null } = {}) {
   const meetings = meetingsFromNccuText(course.scheduleText);
-  const eligibilityRules = eligibilityRuleFromOfficialRestriction(course);
+  const officialNotes = classifyOfficialNotes(course);
   return {
     id: `ai-${course.courseCode}`,
     title: course.title,
@@ -61,39 +64,54 @@ export function nccuCourseToCandidate(course) {
     asyncAllowed: false,
     source: 'nccu-verified-import',
     sourceUrl: course.sourceUrl || '',
+    syllabus: officialSyllabusState({
+      sourceUrl: course.syllabusUrl || course.sourceUrl,
+      lookupStatus: 'success',
+      checkedAt,
+    }),
     conditions: [
       '由政大 115-1 公開課程資料匯入',
       ...(course.restrictionText ? [course.restrictionText] : []),
     ],
-    eligibilityRules,
+    ...officialNotes,
+    eligibilityRules: officialNotes.eligibilityRules,
     sections: [`${course.courseCode}｜${course.scheduleText || '時間未定'}`],
   };
 }
 
 export function sanitizeOfficialEligibilityRules(course = {}) {
   const currentRules = course.eligibilityRules || [];
-  const eligibilityRules = currentRules.filter((rule) => {
-    if (!String(rule.conditionId || '').startsWith('official-restriction:')) return true;
-    if (!rule.rationale) return true;
-    return eligibilityRuleFromOfficialRestriction({
+  const officialRules = currentRules.filter(
+    (rule) => String(rule.conditionId || '').startsWith('official-restriction:') && rule.rationale,
+  );
+  if (!officialRules.length) return course;
+  const customRules = currentRules.filter(
+    (rule) => !String(rule.conditionId || '').startsWith('official-restriction:'),
+  );
+  const classified = officialRules.map((rule) => classifyOfficialNotes({
       courseCode: course.sectionCode || course.id,
       restrictionText: rule.rationale,
-    }).length > 0;
-  });
-  return eligibilityRules.length === currentRules.length
-    ? course
-    : { ...course, eligibilityRules };
+    }));
+  const unique = (values) => [...new Set(values)];
+  return {
+    ...course,
+    eligibilityRules: [
+      ...customRules,
+      ...classified.flatMap(({ eligibilityRules }) => eligibilityRules),
+    ],
+    scheduleNotes: unique([...(course.scheduleNotes || []), ...classified.flatMap(({ scheduleNotes }) => scheduleNotes)]),
+    deliveryNotes: unique([...(course.deliveryNotes || []), ...classified.flatMap(({ deliveryNotes }) => deliveryNotes)]),
+    examEvents: [
+      ...(course.examEvents || []),
+      ...classified.flatMap(({ examEvents }) => examEvents),
+    ],
+    programTags: unique([...(course.programTags || []), ...classified.flatMap(({ programTags }) => programTags)]),
+    informationNotes: unique([...(course.informationNotes || []), ...classified.flatMap(({ informationNotes }) => informationNotes)]),
+  };
 }
 
 export function trustedOfficialSyllabusUrl(course = {}) {
-  try {
-    const url = new URL(String(course.sourceUrl || ''));
-    const officialHost = url.hostname === 'nccu.edu.tw'
-      || url.hostname.endsWith('.nccu.edu.tw');
-    return url.protocol === 'https:' && officialHost ? url.href : '';
-  } catch {
-    return '';
-  }
+  return trustedNccuUrl(course.sourceUrl);
 }
 
 export function candidateIncludesCourseCode(courseStore, courseCode) {

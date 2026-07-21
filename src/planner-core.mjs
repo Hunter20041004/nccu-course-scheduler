@@ -5,6 +5,7 @@ export function evaluateEligibility(section, profile) {
   const reasons = [];
   const reviewReasons = [];
   const selectedConditionIds = new Set(profileConditionIds(profile));
+  const rejectedConditionIds = new Set(profile.rejectedConditionIds || []);
   if (section.available === false) {
     return { status: 'unavailable', reasons: ['115-1 查無開課資料'] };
   }
@@ -14,7 +15,7 @@ export function evaluateEligibility(section, profile) {
     && section.undergradReview
   ) {
     return {
-      status: 'conditional',
+      status: 'review',
       reasons: ['碩士班課程，學士生須確認選課資格與學分認列'],
     };
   }
@@ -25,7 +26,7 @@ export function evaluateEligibility(section, profile) {
     && profile.year >= section.openToUndergradYear
   ) {
     return {
-      status: 'conditional',
+      status: 'review',
       reasons: ['碩士班課程，課綱開放大三以上，需確認學分認列'],
     };
   }
@@ -49,11 +50,14 @@ export function evaluateEligibility(section, profile) {
   });
   (section.eligibilityRules || []).forEach((rule) => {
     if (selectedConditionIds.has(rule.conditionId)) return;
-    if (rule.enforcement === 'review') reviewReasons.push(rule.rationale);
-    else reasons.push(rule.rationale);
+    if (rule.enforcement === 'required' && rejectedConditionIds.has(rule.conditionId)) {
+      reasons.push(rule.rationale);
+      return;
+    }
+    reviewReasons.push(rule.rationale);
   });
   if (!reasons.length && reviewReasons.length) {
-    return { status: 'conditional', reasons: reviewReasons };
+    return { status: 'review', reasons: reviewReasons };
   }
   return { status: reasons.length ? 'blocked' : 'eligible', reasons };
 }
@@ -180,7 +184,7 @@ export function toggleCourse(selected, course, lockedCourseIds = []) {
 export function toggleSelectableCourse(selected, course, profile) {
   const eligibility = evaluateEligibility(course, profile);
   if (eligibility.status === 'blocked' || eligibility.status === 'unavailable') return selected;
-  if (course.variants?.length && !selected.some((item) => item.id === course.id)) {
+  if ((course.variants?.length || atomicSections(course).length) && !selected.some((item) => item.id === course.id)) {
     return [...selected, { ...resolveCourseOption(course), attendance: 'physical' }];
   }
   return toggleCourse(selected, course);
@@ -195,7 +199,75 @@ export function applyPreset(courses, presetId) {
     }));
 }
 
+function atomicSections(course) {
+  return (course.sections || []).filter((section) => section && typeof section === 'object');
+}
+
+export function selectCourseSection(course, selection = {}) {
+  const sections = atomicSections(course);
+  if (!sections.length) return course;
+  const sectionId = selection.sectionId || selection.variantId;
+  const section = sections.find(({ id }) => id === sectionId);
+  if (!section) {
+    return {
+      ...course,
+      schedule: null,
+      meetings: [],
+      selectedSectionId: null,
+      selectedVariantId: null,
+      optionStatus: 'pending',
+      optionMessage: '請選擇正式課號',
+    };
+  }
+
+  const usesArrangements = Boolean(section.arrangements?.length);
+  const choices = usesArrangements ? section.arrangements : (section.advisorOptions || []);
+  const choiceId = usesArrangements
+    ? (selection.arrangementId || selection.advisorId)
+    : selection.advisorId;
+  const choice = choices.find(({ id }) => id === choiceId);
+  if (choices.length && !choice) {
+    return {
+      ...course,
+      ...section,
+      id: course.id,
+      schedule: null,
+      meetings: [],
+      eligibilityRules: section.eligibilityRules ?? course.eligibilityRules ?? [],
+      selectedSectionId: section.id,
+      selectedVariantId: section.id,
+      selectedAdvisorId: null,
+      selectedArrangementId: null,
+      optionStatus: 'pending',
+      optionMessage: `請選擇${section.selectionLabel || (usesArrangements ? '時間安排' : '指導老師')}`,
+    };
+  }
+
+  const source = choice || section;
+  const schedule = source.schedule ?? section.schedule ?? null;
+  const meetings = source.meetings ?? section.meetings ?? [];
+  const unresolvedMessage = source.optionMessage || '時間尚未確認';
+  return {
+    ...course,
+    ...section,
+    ...source,
+    id: course.id,
+    schedule,
+    meetings,
+    eligibilityRules: source.eligibilityRules ?? section.eligibilityRules ?? course.eligibilityRules ?? [],
+    selectedSectionId: section.id,
+    selectedVariantId: section.id,
+    selectedAdvisorId: usesArrangements ? null : (choice?.id || null),
+    selectedArrangementId: usesArrangements ? (choice?.id || null) : null,
+    optionStatus: schedule || meetings.length ? 'resolved' : 'flexible',
+    optionMessage: schedule || meetings.length
+      ? null
+      : unresolvedMessage.startsWith('時間待確認') ? unresolvedMessage : `時間待確認：${unresolvedMessage}`,
+  };
+}
+
 export function resolveCourseOption(course, selection = {}) {
+  if (atomicSections(course).length) return selectCourseSection(course, selection);
   if (!course.variants?.length) return course;
   const variant = course.variants.find(({ id }) => id === selection.variantId);
   if (!variant) {

@@ -50,3 +50,15 @@ test('rejects an internship window shorter than two hours', () => {
     message: '實習結束時間必須晚於開始時間，且每日時段至少兩小時。',
   });
 });
+
+test('separates confirmed internship days from availability pending an unresolved physical course', () => {
+  const result = calculateInternshipPlan([
+    ...concentrated,
+    { id: 'flexible', title: '另約討論', attendance: 'physical' },
+  ], DEFAULT_INTERNSHIP_SETTINGS);
+
+  assert.equal(result.tentative, true);
+  assert.equal(result.confirmedDays, 0);
+  assert.equal(result.pendingDays, result.availableDays);
+  assert.equal(result.meetsTarget, false);
+});

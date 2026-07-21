@@ -52,6 +52,44 @@ test('routes recommendation requests with the user Gemini key', async () => {
   assert.deepEqual(await response.json(), { summary: 'ok', plans: [] });
 });
 
+test('routes course comparison with the user key removed from service input', async () => {
+  let captured;
+  const worker = createWorker({
+    html: '<h1>ok</h1>',
+    comparisonService: async (input, deps) => {
+      captured = { input, deps };
+      return { summary: 'ok' };
+    },
+  });
+  const response = await worker.fetch(new Request('http://local/api/ai/compare-courses', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ apiKey: 'user-secret', courses: [] }),
+  }));
+
+  assert.equal(response.status, 200);
+  assert.equal(captured.deps.apiKey, 'user-secret');
+  assert.equal('apiKey' in captured.input, false);
+});
+
+test('prepares a ChatGPT comparison prompt without requiring an AI key', async () => {
+  let capturedInput;
+  const worker = createWorker({
+    html: '<h1>ok</h1>',
+    comparisonPromptService: async (input) => {
+      capturedInput = input;
+      return { prompt: '請比較課程 A 與 B', sources: [] };
+    },
+  });
+  const response = await worker.fetch(new Request('http://local/api/course-comparison/prompt', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ courses: [{ id: 'a' }, { id: 'b' }] }),
+  }));
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(capturedInput.courses, [{ id: 'a' }, { id: 'b' }]);
+  assert.deepEqual(await response.json(), { prompt: '請比較課程 A 與 B', sources: [] });
+});
+
 test('validates a user Gemini key without persisting it', async () => {
   let received;
   const worker = createWorker({
@@ -71,12 +109,72 @@ test('validates a user Gemini key without persisting it', async () => {
 });
 
 test('rejects AI routes without a user key', async () => {
-  const worker = createWorker({ html: '<h1>ok</h1>' });
+  const worker = createWorker({ html: '<h1>ok</h1>', createRequestId: () => 'req_missing_key' });
   const response = await worker.fetch(new Request('http://local/api/ai/recommend-plans', {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
   }));
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), {
-    error: { code: 'GEMINI_KEY_REQUIRED', message: '請先設定自己的 Gemini API Key。' },
+    error: {
+      code: 'GEMINI_KEY_REQUIRED',
+      message: '請先設定自己的 Gemini API Key。',
+      retryable: false,
+      requestId: 'req_missing_key',
+    },
   });
+});
+
+test('returns a stable retryable error shape with a non-sensitive request id', async () => {
+  const worker = createWorker({
+    html: '<h1>ok</h1>',
+    recommendationService: async () => {
+      const error = new Error('AI 額度或頻率已達上限，請稍後再試。');
+      error.status = 429;
+      error.code = 'AI_RATE_LIMITED';
+      error.providerBody = 'secret upstream details';
+      throw error;
+    },
+    createRequestId: () => 'req_test_123',
+  });
+  const response = await worker.fetch(new Request('http://local/api/ai/recommend-plans', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ apiKey: 'secret' }),
+  }));
+
+  assert.equal(response.status, 429);
+  assert.equal(response.headers.get('cache-control'), 'private, no-store');
+  assert.equal(response.headers.get('x-request-id'), 'req_test_123');
+  assert.deepEqual(await response.json(), {
+    error: {
+      code: 'AI_RATE_LIMITED',
+      message: 'AI 額度或頻率已達上限，請稍後再試。',
+      retryable: true,
+      requestId: 'req_test_123',
+    },
+  });
+});
+
+test('marks invalid keys permanent while timeouts and upstream failures are retryable', async () => {
+  const cases = [
+    { status: 401, code: 'GEMINI_KEY_INVALID', retryable: false },
+    { status: 504, code: 'AI_TIMEOUT', retryable: true },
+    { status: 502, code: 'AI_UPSTREAM_ERROR', retryable: true },
+  ];
+  for (const item of cases) {
+    const worker = createWorker({
+      html: '<h1>ok</h1>',
+      validateKey: async () => {
+        const error = new Error('安全訊息');
+        Object.assign(error, item);
+        throw error;
+      },
+      createRequestId: () => `req_${item.code}`,
+    });
+    const response = await worker.fetch(new Request('http://local/api/ai/validate-key', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ apiKey: 'secret' }),
+    }));
+    const payload = await response.json();
+    assert.equal(payload.error.retryable, item.retryable, item.code);
+    assert.equal(payload.error.requestId, `req_${item.code}`);
+    assert.equal(JSON.stringify(payload).includes('secret'), false);
+  }
 });

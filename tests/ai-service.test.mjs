@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { importCoursesFromScreenshot, recommendCoursePlans } from '../src/ai-service.mjs';
+import {
+  compareCourseSyllabi,
+  importCoursesFromScreenshot,
+  prepareCourseComparison,
+  recommendCoursePlans,
+} from '../src/ai-service.mjs';
 
 const imageDataUrl = 'data:image/png;base64,QQ==';
 const validImport = { imageDataUrl, term: '115-1' };
@@ -9,6 +14,110 @@ const recognizedUnknown = JSON.stringify({ recognizedCourses: [{
 }] });
 const officialA = { courseCode: '123456001', title: '未知課程', teacher: '老師', credits: 3, scheduleText: '一234', available: true };
 const officialB = { ...officialA, courseCode: '123456002' };
+
+test('compares official syllabi with optional profile context and deterministic conflicts', async () => {
+  let capturedRequest;
+  const courses = [
+    {
+      id: 'a', title: '課程 A', teacher: '甲', credits: 3,
+      syllabusUrl: 'https://newdoc.nccu.edu.tw/a.html',
+      meetings: [{ day: 2, start: 550, end: 720, label: '二234' }],
+    },
+    {
+      id: 'b', title: '課程 B', teacher: '乙', credits: 3,
+      syllabusUrl: 'https://newdoc.nccu.edu.tw/b.html',
+      meetings: [{ day: 2, start: 610, end: 780, label: '二345' }],
+    },
+  ];
+  const aiResponse = JSON.stringify({
+    summary: '兩課部分重疊',
+    overlap: { score: 55, level: '中度重疊', sharedTopics: ['AI'] },
+    courses: [
+      { id: 'a', focus: '基礎', uniqueValue: '方法', assessment: '專題', workload: '中' },
+      { id: 'b', focus: '應用', uniqueValue: '產品', assessment: '報告', workload: '中' },
+    ],
+    recommendation: { courseIds: ['b'], reason: '符合 AI PM 方向', confidence: 'medium' },
+    personalized: { used: true, reason: '依未來方向判斷' },
+    limitations: [],
+  });
+
+  const result = await compareCourseSyllabi({
+    courses,
+    futureDirection: 'AI PM',
+  }, {
+    apiKey: 'test-only',
+    syllabusLoader: async ({ url }) => ({ url, text: url.includes('a.html') ? 'A 課綱' : 'B 課綱' }),
+    aiRequest: async (request) => {
+      capturedRequest = request;
+      return aiResponse;
+    },
+  });
+
+  assert.equal(capturedRequest.model, 'gemini-3.5-flash');
+  assert.match(capturedRequest.messages[1].content, /AI PM/);
+  assert.deepEqual(result.conflicts.map(({ courseIds }) => courseIds), [['a', 'b']]);
+  assert.equal(result.profileMode, 'personalized');
+  assert.deepEqual(result.recommendation.courseIds, ['b']);
+});
+
+test('does not call AI when fewer than two official syllabi are readable', async () => {
+  let aiCalls = 0;
+  const courses = [
+    { id: 'a', title: '課程 A', syllabusUrl: 'https://newdoc.nccu.edu.tw/a.html' },
+    { id: 'b', title: '課程 B', syllabusUrl: 'https://newdoc.nccu.edu.tw/b.html' },
+  ];
+
+  await assert.rejects(() => compareCourseSyllabi({ courses }, {
+    apiKey: 'test-only',
+    syllabusLoader: async ({ url }) => {
+      if (url.includes('a.html')) return { url, text: 'A 課綱' };
+      throw new Error('not uploaded');
+    },
+    aiRequest: async () => { aiCalls += 1; return '{}'; },
+  }), { code: 'INSUFFICIENT_SYLLABI' });
+  assert.equal(aiCalls, 0);
+});
+
+test('repairs a legacy candidate missing its syllabus link from the official course code', async () => {
+  const searchedCodes = [];
+  const result = await prepareCourseComparison({
+    courses: [
+      { id: 'hci', sectionCode: '703055001', title: '人機互動', syllabusUrl: 'https://newdoc.nccu.edu.tw/hci.html' },
+      { id: 'ai-intro', sectionCode: '070423001', title: '人工智慧導論', syllabusUrl: '' },
+    ],
+  }, {
+    nccuSearch: async ({ keyword }) => {
+      searchedCodes.push(keyword);
+      return [{ courseCode: '070423001', title: '人工智慧導論', sourceUrl: 'https://newdoc.nccu.edu.tw/ai-intro.html' }];
+    },
+    syllabusLoader: async ({ url }) => ({ url, text: url.includes('hci') ? '人機互動課綱' : '人工智慧導論課綱' }),
+  });
+
+  assert.deepEqual(searchedCodes, ['070423001']);
+  assert.equal(result.sources[1].status, 'available');
+  assert.equal(result.sources[1].url, 'https://newdoc.nccu.edu.tw/ai-intro.html');
+  assert.match(result.prompt, /人工智慧導論課綱/);
+});
+
+test('retries one transient official lookup while repairing a missing syllabus link', async () => {
+  let searchCalls = 0;
+  const result = await prepareCourseComparison({
+    courses: [
+      { id: 'a', sectionCode: '111111001', title: '課程 A', syllabusUrl: 'https://newdoc.nccu.edu.tw/a.html' },
+      { id: 'b', sectionCode: '222222001', title: '課程 B', syllabusUrl: '' },
+    ],
+  }, {
+    nccuSearch: async () => {
+      searchCalls += 1;
+      if (searchCalls === 1) throw new Error('temporary');
+      return [{ courseCode: '222222001', sourceUrl: 'https://newdoc.nccu.edu.tw/b.html' }];
+    },
+    syllabusLoader: async ({ url }) => ({ url, text: url.endsWith('a.html') ? 'A 課綱' : 'B 課綱' }),
+  });
+
+  assert.equal(searchCalls, 2);
+  assert.equal(result.sources[1].status, 'available');
+});
 
 test('uses the free Gemini screenshot model for recognition', async () => {
   let model;
@@ -112,9 +221,11 @@ test('turns an official enrollment restriction into a required selectable condit
   assert.deepEqual(result.importedCourses[0].eligibilityRules, [{
     conditionId: 'official-restriction:509041001',
     conditionLabel: '我是歐文系或雙主修學生',
-    conditionDescription: '政大官方備註：僅限歐文系及雙主修學生修讀。',
+    conditionDescription: '政大官方限制：僅限歐文系及雙主修學生修讀',
     enforcement: 'required',
-    rationale: '僅限歐文系及雙主修學生修讀。',
+    rationale: '僅限歐文系及雙主修學生修讀',
+    source: 'nccu-official',
+    confidence: 'high',
   }]);
 });
 
@@ -150,9 +261,11 @@ test('summarizes alternative language prerequisites as one selectable condition'
   assert.deepEqual(result.importedCourses[0].eligibilityRules[0], {
     conditionId: 'official-restriction:651171001',
     conditionLabel: '我符合本課程任一項日文先修資格',
-    conditionDescription: `政大官方備註：${restrictionText}`,
+    conditionDescription: `政大官方限制：${restrictionText.replace(/。$/, '')}`,
     enforcement: 'required',
-    rationale: restrictionText,
+    rationale: restrictionText.replace(/。$/, ''),
+    source: 'nccu-official',
+    confidence: 'high',
   });
 });
 
@@ -208,7 +321,7 @@ test('does not resend the full recommendation payload when the JSON shape is inv
   assert.equal(calls, 1);
 });
 
-test('repairs a conflicting AI route locally without spending a second Groq request', async () => {
+test('drops a conflicting AI route without spending a second model request', async () => {
   let calls = 0;
   const plan = (id, courseIds, reason = id, tradeoffs = []) => ({
     id, title: id, reason, courseIds, attendance: '實體', tradeoffs,
@@ -235,9 +348,29 @@ test('repairs a conflicting AI route locally without spending a second Groq requ
 
   assert.equal(calls, 1);
   assert.equal(result.summary, '第一次');
-  assert.deepEqual(result.plans[0].courseIds, ['a']);
-  assert.doesNotMatch(result.plans[0].reason, /課程 B/);
-  assert.deepEqual(result.plans[0].tradeoffs, ['已移除衝堂課程：課程 B']);
+  assert.deepEqual(result.plans.map(({ id }) => id), ['balance', 'explore']);
+  assert.deepEqual(result.plans[0].courseIds, ['a', 'c']);
+  assert.match(result.shortfallReason, /1 個方案因衝堂未顯示/);
+});
+
+test('returns no route cards when every AI route conflicts', async () => {
+  const conflicting = JSON.stringify({ summary: '模型方案', plans: [
+    { id: 'focus', title: '集中', reason: '集中', courseIds: ['a', 'b'], attendance: '實體', tradeoffs: [] },
+    { id: 'balance', title: '平衡', reason: '平衡', courseIds: ['a', 'c'], attendance: '實體', tradeoffs: [] },
+    { id: 'explore', title: '探索', reason: '探索', courseIds: ['b', 'c'], attendance: '實體', tradeoffs: [] },
+  ] });
+  const courses = [
+    { id: 'a', title: '課程 A', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 550, end: 720 } },
+    { id: 'b', title: '課程 B', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 610, end: 780 } },
+    { id: 'c', title: '課程 C', credits: 3, eligibility: 'eligible', schedule: { day: 2, start: 650, end: 820 } },
+  ];
+
+  const result = await recommendCoursePlans({
+    courses, lockedCourseIds: [], selectedCourseIds: [], internshipSettings: {},
+  }, { apiKey: 'test-only', aiRequest: async () => conflicting });
+
+  assert.deepEqual(result.plans, []);
+  assert.match(result.shortfallReason, /3 個方案.*衝堂/);
 });
 
 test('accepts an overlapping route only when an async-capable course is explicitly asynchronous', async () => {
