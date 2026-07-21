@@ -187,7 +187,11 @@ input, select, textarea { width: 100%; border: 1px solid var(--line-strong); bor
 input:hover, select:hover, textarea:hover { border-color: #8E8998; }
 textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 1.45; }
 .catalog-list { --catalog-row-height: 48px; display: block; min-height: 0; flex: 1 1 auto; overflow: auto; scrollbar-gutter: stable; }
-.catalog-course { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; min-height: var(--catalog-row-height); border-bottom: 1px solid var(--line); }
+.catalog-course { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; min-height: var(--catalog-row-height); border-bottom: 1px solid var(--line); }
+.catalog-compare-control { display: grid; width: 44px; min-height: 47px; place-items: center; align-content: center; gap: 1px; color: var(--muted); cursor: pointer; }
+.catalog-compare-control input { width: 18px; min-height: 18px; accent-color: var(--violet); cursor: pointer; }
+.catalog-compare-control span { font-size: .54rem; font-weight: 850; }
+.catalog-course.is-comparing .catalog-compare-control { background: var(--violet-soft); color: var(--violet); }
 .catalog-select { display: flex; width: 100%; min-width: 0; min-height: 47px; justify-content: space-between; gap: 7px; align-items: center; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--ink); padding: 3px 7px; text-align: left; cursor: pointer; transition: background-color 140ms ease, border-color 140ms ease, transform 120ms var(--ease-out); }
 .catalog-select:hover:not(:disabled) { border-left-color: var(--sun); background: var(--sun-soft); }
 .catalog-course.is-selected .catalog-select { border-left-color: var(--blue); background: var(--blue-soft); color: #142D9A; }
@@ -240,6 +244,55 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .catalog-more-menu .catalog-delete:hover:not(:disabled) { background: var(--danger-soft); }
 .catalog-more-menu .catalog-lock.is-active { color: var(--violet); }
 .catalog-lock:disabled { cursor: not-allowed; opacity: .42; }
+.course-comparison-tray { flex: 0 0 auto; display: grid; gap: 8px; margin-top: 8px; border: 1px solid #C8BCE0; border-top: 3px solid var(--violet); border-radius: var(--radius-control); background: linear-gradient(135deg, var(--surface), var(--violet-soft)); padding: 10px; box-shadow: 0 -10px 28px rgb(73 52 116 / 8%); }
+.course-comparison-tray header, .course-comparison-tray header > div { display: flex; align-items: center; gap: 8px; }
+.course-comparison-tray header { justify-content: space-between; }
+.course-comparison-tray header strong { font-family: Georgia, "Noto Serif TC", serif; font-size: .9rem; }
+.course-comparison-tray header span { color: var(--violet); font-size: .65rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+.course-comparison-tray header button, .comparison-profile-hint button { min-height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--violet); padding: 0 8px; cursor: pointer; font-size: .65rem; font-weight: 850; }
+.course-comparison-tray header button:hover, .comparison-profile-hint button:hover { background: rgb(255 255 255 / 72%); }
+.course-comparison-tray .form-status { min-height: 0; margin: 0; }
+.ai-comparison { display: grid; gap: 12px; margin: 18px 0; border-top: 1px solid var(--line); padding-top: 18px; }
+.ai-comparison > header { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+.ai-comparison > header h3 { margin-top: 3px; font-family: Georgia, "Noto Serif TC", serif; font-size: 1.15rem; }
+.ai-comparison > header > span { color: var(--violet); font-size: .7rem; font-weight: 850; }
+.ai-comparison-results { display: grid; gap: 12px; min-width: 0; }
+.comparison-context, .comparison-no-conflict, .comparison-conflicts, .comparison-overlap, .comparison-recommendation, .comparison-limitations { border: 1px solid var(--line); border-radius: var(--radius-control); padding: 12px; }
+.comparison-context { border-left: 4px solid var(--blue); background: var(--blue-soft); }
+.comparison-context.is-personalized { border-left-color: var(--violet); background: var(--violet-soft); }
+.comparison-context p, .comparison-no-conflict span, .comparison-recommendation p { margin: 5px 0 0; color: var(--muted); font-size: .75rem; line-height: 1.55; }
+.comparison-conflicts { border-color: #D9948E; background: var(--danger-soft); color: var(--danger); }
+.comparison-conflicts h4, .comparison-limitations h4, .comparison-course-section > h4 { margin: 0 0 7px; }
+.comparison-conflicts ul, .comparison-limitations ul { margin: 0; padding-left: 19px; font-size: .74rem; line-height: 1.55; }
+.comparison-no-conflict { display: flex; flex-wrap: wrap; gap: 5px 10px; align-items: baseline; border-color: #B9C5EC; background: var(--blue-soft); }
+.comparison-overlap { display: grid; gap: 10px; }
+.comparison-overlap > div:first-child { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.comparison-meter { height: 9px; overflow: hidden; border-radius: 999px; background: var(--line); }
+.comparison-meter span { display: block; width: var(--comparison-score); height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--violet), var(--sun)); }
+.comparison-topic-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.comparison-topic-list li { border: 1px solid #C8BCE0; border-radius: 999px; background: var(--violet-soft); padding: 4px 8px; font-size: .68rem; font-weight: 750; }
+.comparison-course-grid { display: grid; gap: 10px; }
+.comparison-course-card { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-control); background: var(--surface); padding: 12px; }
+.comparison-course-card > header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 10px; align-items: baseline; }
+.comparison-course-card h4 { margin: 0; font-size: .86rem; overflow-wrap: anywhere; }
+.comparison-course-card a, .comparison-course-card header span { color: var(--blue); font-size: .66rem; font-weight: 800; }
+.comparison-course-card dl { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 12px 0 0; }
+.comparison-course-card dl div { min-width: 0; border-top: 1px solid var(--line); padding-top: 8px; }
+.comparison-course-card dt { color: var(--muted); font-size: .62rem; font-weight: 800; }
+.comparison-course-card dd { margin: 4px 0 0; font-size: .72rem; line-height: 1.5; overflow-wrap: anywhere; }
+.comparison-recommendation { border-left: 4px solid var(--sun); background: var(--sun-soft); }
+.comparison-recommendation small { color: var(--muted); font-size: .64rem; font-weight: 800; }
+.comparison-limitations { background: var(--canvas); color: var(--muted); }
+.chatgpt-comparison-recovery { display: grid; gap: 9px; border: 1px dashed var(--violet); border-radius: var(--radius-control); background: var(--violet-soft); padding: 12px; }
+.chatgpt-comparison-recovery h4, .chatgpt-comparison-recovery p { margin: 0; }
+.chatgpt-comparison-recovery > p { color: var(--muted); font-size: .72rem; line-height: 1.5; }
+.chatgpt-comparison-recovery textarea { width: 100%; min-height: 150px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); padding: 10px; font-size: .68rem; line-height: 1.5; }
+.chatgpt-comparison-recovery > div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.chatgpt-comparison-recovery a.button { display: grid; place-items: center; text-decoration: none; }
+.comparison-profile-hint { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0; color: var(--muted); font-size: .65rem; line-height: 1.4; }
+.comparison-profile-hint button { flex: 0 0 auto; }
+.course-comparison-actions { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1fr); gap: 8px; }
+.course-comparison-actions .button:disabled { cursor: not-allowed; opacity: .45; }
 .catalog-status { margin: 0; }
 .attendance-control, .course-option-controls { grid-column: 1 / -1; }
 .attendance-control { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; margin: 0; padding: 6px 7px 7px; border-top: 1px solid var(--line); background: var(--canvas); }
@@ -400,6 +453,9 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
   .course-actions { grid-template-columns: repeat(2, 44px); }
   .catalog-details-trigger, .catalog-more-trigger { width: 44px; }
   .course-details-panel { margin-inline: 3px; padding: 12px; }
+  .course-comparison-actions { grid-template-columns: 1fr 1fr; }
+  .comparison-course-card dl { grid-template-columns: 1fr; }
+  .chatgpt-comparison-recovery > div { grid-template-columns: 1fr; }
   .first-use-actions { display: grid; }
   .first-use-actions .button { width: 100%; }
   .tutorial-center { width: calc(100% - 12px); max-height: calc(100dvh - 12px); }

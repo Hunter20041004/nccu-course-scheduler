@@ -27,6 +27,8 @@ let previewedPlanId = null;
 let customConditions = [];
 let quickTourIndex = 0;
 let expandedCourseId = null;
+const MAX_COMPARISON_COURSES = 5;
+let comparisonCourseIds = [];
 
 const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表總覽', body: '左側使用政大官方節次，會顯示週一到週日、實習保留、課程衝堂、非同步工作區與排課提醒。' },
@@ -34,7 +36,7 @@ const quickTourSteps = [
   { target: 'catalog-list', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」查看完整詳細資料並切換實體／同步／非同步；已在候選的課可用「更新官方資料」補齊最新官方欄位，並保留選課、鎖定、上課方式與班別安排。課綱與其他管理操作在「•••」。' },
   { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '逐項標記符合、不符合或待確認的系所、雙主修、學程、年級與先修條件，並查看每個條件會影響哪些課。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
-  { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、學期目標、最低學分、實習天數與課程偏好，產生三個可預覽的無衝堂方案；使用時才需要 API Key。' },
+  { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦與課綱比較', body: '可輸入背景、學期目標、最低學分與排課偏好，產生三個無衝堂方案；也可從候選課程勾選 2 至 5 門比較課綱。個人資料皆為選填，未填仍會提供客觀比較。' },
   { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可搜尋政大 115-1 課程庫、使用 AI 截圖辨識或手動新增課程，也能加入社團、課外組織與個人行程。' },
   { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '手機可切換「行程／方格」；確認學分、資格、出席方式、衝堂與提醒後，再匯出手機桌布。' },
 ];
@@ -822,6 +824,135 @@ function currentCatalogFilters() {
   };
 }
 
+function renderCourseComparisonTray() {
+  const availableIds = new Set(courseStore.map(({ id }) => id));
+  comparisonCourseIds = comparisonCourseIds.filter((id) => availableIds.has(id));
+  const count = comparisonCourseIds.length;
+  const tray = byId('course-comparison-tray');
+  tray.hidden = count === 0;
+  byId('comparison-selected-count').textContent = `${count} / ${MAX_COMPARISON_COURSES}`;
+  byId('course-comparison-status').textContent = count < 2
+    ? `再選 ${2 - count} 門就能開始比較。`
+    : `已選 ${count} 門，可以比較課綱內容與衝堂。`;
+  byId('run-ai-comparison').disabled = count < 2;
+  byId('open-chatgpt-comparison').disabled = count < 2;
+}
+
+function comparisonRequestBody() {
+  return {
+    profileText: byId('ai-profile').value,
+    futureDirection: byId('ai-future').value,
+    semesterGoals: byId('ai-goals').value,
+    preferences: byId('ai-preferences').value,
+    courses: comparisonCourseIds.map((id) => {
+      const course = selected.find((item) => item.id === id)
+        || courseStore.find((item) => item.id === id);
+      const syllabus = syllabusStateForCourse(course);
+      return {
+        id: course.id,
+        sectionCode: course.sectionCode,
+        title: course.title,
+        teacher: course.teacher,
+        credits: course.credits,
+        syllabusUrl: syllabus.status === 'available' ? syllabus.url : '',
+        schedule: course.schedule,
+        meetings: meetingsForCourse(course),
+        conditions: (course.conditions || []).map((condition) => (
+          typeof condition === 'string' ? condition : condition.label || condition.description || condition.id
+        )).filter(Boolean),
+      };
+    }),
+  };
+}
+
+function comparisonCourseTitle(id) {
+  return courseStore.find((course) => course.id === id)?.title || id;
+}
+
+function comparisonConflictText(conflict) {
+  const titles = (conflict.courseIds || []).map(comparisonCourseTitle).join(' × ');
+  return [titles, conflict.label || conflict.message || '固定時段重疊'].filter(Boolean).join(' · ');
+}
+
+function renderCourseComparison(payload) {
+  const results = byId('ai-comparison-results');
+  const personalized = payload.profileMode === 'personalized' && payload.personalized?.used;
+  const profileNotice = personalized
+    ? `<section class="comparison-context is-personalized"><strong>個人化建議</strong><p>已讀取你選填的學期目標、未來方向與排課偏好。${escapeHtml(payload.personalized?.reason || '')}</p></section>`
+    : '<section class="comparison-context"><strong>客觀比較</strong><p>這次未使用個人資料，只根據官方課綱與固定時段比較。建議填寫上方選填資料，取捨建議會更精準。</p></section>';
+  const conflicts = payload.conflicts?.length
+    ? `<section class="comparison-conflicts" role="alert"><h4>確定性衝堂</h4><ul>${payload.conflicts.map((conflict) => `<li>${escapeHtml(comparisonConflictText(conflict))}</li>`).join('')}</ul></section>`
+    : '<section class="comparison-no-conflict"><strong>固定時段沒有衝堂</strong><span>仍請核對特殊日期與考試資訊。</span></section>';
+  const sharedTopics = payload.overlap?.sharedTopics?.length
+    ? `<ul class="comparison-topic-list">${payload.overlap.sharedTopics.map((topic) => `<li>${escapeHtml(topic)}</li>`).join('')}</ul>`
+    : '<p>課綱未提供足夠共同主題。</p>';
+  const courseCards = (payload.courses || []).map((item) => {
+    const source = payload.sources?.find(({ id }) => id === item.id);
+    const sourceLink = source?.status === 'available' && source.url
+      ? `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">查看官方課綱</a>`
+      : '<span>官方課綱暫時無法讀取</span>';
+    return `<article class="comparison-course-card">
+      <header><h4>${escapeHtml(comparisonCourseTitle(item.id))}</h4>${sourceLink}</header>
+      <dl>
+        <div><dt>課程重點</dt><dd>${escapeHtml(item.focus)}</dd></div>
+        <div><dt>獨有價值</dt><dd>${escapeHtml(item.uniqueValue)}</dd></div>
+        <div><dt>評量方式</dt><dd>${escapeHtml(item.assessment)}</dd></div>
+        <div><dt>預估負擔</dt><dd>${escapeHtml(item.workload)}</dd></div>
+      </dl>
+    </article>`;
+  }).join('');
+  const recommendedTitles = (payload.recommendation?.courseIds || []).map(comparisonCourseTitle);
+  const recommendation = recommendedTitles.length
+    ? `<strong>建議優先：${escapeHtml(recommendedTitles.join('、'))}</strong>`
+    : '<strong>目前證據不足，不替你硬選</strong>';
+  const limitations = payload.limitations?.length
+    ? `<ul>${payload.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+    : '<p>目前沒有額外資料限制。</p>';
+  results.innerHTML = `${profileNotice}
+    ${conflicts}
+    <section class="comparison-overlap">
+      <div><p class="eyebrow">內容重疊</p><strong>${escapeHtml(payload.overlap?.level || '未判定')} · ${Number(payload.overlap?.score || 0)}%</strong></div>
+      <div class="comparison-meter" role="progressbar" aria-label="課程內容重疊程度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Number(payload.overlap?.score || 0)}"><span style="--comparison-score:${Number(payload.overlap?.score || 0)}%"></span></div>
+      ${sharedTopics}
+    </section>
+    <section class="comparison-course-section"><h4>各課獨有價值</h4><div class="comparison-course-grid">${courseCards}</div></section>
+    <section class="comparison-recommendation">${recommendation}<p>${escapeHtml(payload.recommendation?.reason || payload.summary || '')}</p><small>信心程度：${escapeHtml(payload.recommendation?.confidence || 'low')}</small></section>
+    <section class="comparison-limitations"><h4>資料限制</h4>${limitations}</section>`;
+}
+
+function showChatGptComparisonRecovery(prompt, message) {
+  const recovery = byId('chatgpt-comparison-recovery');
+  recovery.hidden = false;
+  byId('chatgpt-comparison-prompt').value = prompt;
+  byId('chatgpt-comparison-status').textContent = message;
+}
+
+function cacheComparisonSources(sources) {
+  const available = new Map((sources || [])
+    .filter((source) => source.status === 'available' && source.url)
+    .map((source) => [source.id, source.url]));
+  if (!available.size) return;
+  const enrich = (courseList) => courseList.map((course) => {
+    const url = available.get(course.id);
+    if (!url) return course;
+    const isSeedCourse = courses.some((seedCourse) => seedCourse.id === course.id);
+    return {
+      ...course,
+      source: isSeedCourse ? 'nccu-verified-import' : course.source,
+      sourceUrl: url,
+      syllabus: {
+        status: 'available',
+        url,
+        lookupStatus: 'success',
+        checkedAt: new Date().toISOString(),
+      },
+    };
+  });
+  courseStore = enrich(courseStore);
+  selected = enrich(selected);
+  persistState();
+}
+
 function renderCatalogFilterCount(filters) {
   const count = countActiveCatalogFilters(filters);
   const badge = byId('catalog-filter-count');
@@ -837,6 +968,7 @@ function renderCatalog() {
   const filters = currentCatalogFilters();
   const visible = filterCandidateCourses(courseStore, filters);
   renderCatalogFilterCount(filters);
+  renderCourseComparisonTray();
   byId('catalog-count').textContent = `${visible.length} / ${courseStore.length}`;
   if (!visible.length) {
     catalogList.innerHTML = courseStore.length
@@ -944,7 +1076,12 @@ function renderCatalog() {
         </div>`
       : '';
     const optionControls = atomicOptionControls || legacyOptionControls;
-    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
+    const comparing = comparisonCourseIds.includes(course.id);
+    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''} ${comparing ? 'is-comparing' : ''}">
+      <label class="catalog-compare-control" title="加入課綱比較">
+        <input type="checkbox" data-compare-course="${escapeHtml(course.id)}" aria-label="將 ${escapeHtml(course.title)}加入比較" ${comparing ? 'checked' : ''}>
+        <span>比較</span>
+      </label>
       <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small><small class="catalog-time">${escapeHtml(scheduleSummary)}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
@@ -1001,6 +1138,110 @@ byId('workspace-tabs').addEventListener('click', (event) => {
   const button = event.target.closest('[data-workspace-tab]');
   if (!button) return;
   setWorkspaceTab(button.dataset.workspaceTab);
+});
+
+byId('clear-course-comparison').addEventListener('click', () => {
+  comparisonCourseIds = [];
+  byId('catalog-status').textContent = '已清除課程比較清單。';
+  renderCatalog();
+});
+
+byId('open-comparison-profile').addEventListener('click', () => {
+  setWorkspaceTab('ai');
+  byId('ai-future').focus();
+  byId('ai-advisor-form').scrollIntoView({ block: 'start' });
+});
+
+byId('run-ai-comparison').addEventListener('click', async () => {
+  const trayStatus = byId('course-comparison-status');
+  const resultStatus = byId('ai-comparison-status');
+  const button = byId('run-ai-comparison');
+  const apiKey = requireApiKeyForAi(trayStatus);
+  if (!apiKey) return;
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  trayStatus.textContent = '正在讀取官方課綱並比較…';
+  resultStatus.textContent = '正在分析共同主題、獨有內容、評量與負擔…';
+  try {
+    const response = await fetch('/api/ai/compare-courses', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ apiKey, ...comparisonRequestBody() }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw errorFromPayload(payload, '課綱比較失敗，請稍後重試。');
+    cacheComparisonSources(payload.sources);
+    renderCourseComparison(payload);
+    setWorkspaceTab('ai');
+    setCompactView('tools');
+    resultStatus.textContent = payload.profileMode === 'personalized'
+      ? '比較完成，已加入你選填的個人目標與偏好。'
+      : '比較完成；這次未填個人資料，因此只提供客觀比較。';
+    byId('ai-course-comparison').scrollIntoView({ block: 'start' });
+    trayStatus.textContent = '比較完成，結果已顯示在「AI 推薦」。';
+  } catch (error) {
+    const message = error?.message || '課綱比較失敗，請稍後重試。';
+    trayStatus.textContent = message;
+    resultStatus.textContent = message;
+  } finally {
+    button.disabled = comparisonCourseIds.length < 2;
+    button.removeAttribute('aria-busy');
+  }
+});
+
+byId('open-chatgpt-comparison').addEventListener('click', async () => {
+  const trayStatus = byId('course-comparison-status');
+  const button = byId('open-chatgpt-comparison');
+  const chatWindow = window.open('about:blank', '_blank');
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  trayStatus.textContent = '正在讀取官方課綱並準備提示詞…';
+  try {
+    const response = await fetch('/api/course-comparison/prompt', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(comparisonRequestBody()),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw errorFromPayload(payload, '無法產生 ChatGPT 比較提示詞。');
+    cacheComparisonSources(payload.sources);
+    showChatGptComparisonRecovery(payload.prompt, '提示詞已準備完成；正在嘗試自動複製…');
+    if (chatWindow) {
+      chatWindow.opener = null;
+      chatWindow.location.href = 'https://chatgpt.com/';
+    }
+    const copied = await Promise.race([
+      Promise.resolve().then(() => navigator.clipboard.writeText(payload.prompt)).then(() => true).catch(() => false),
+      new Promise((resolve) => setTimeout(() => resolve(false), 1_500)),
+    ]);
+    const message = copied
+      ? `已複製比較提示詞${chatWindow ? '並開啟 ChatGPT' : ''}，請貼上後自行送出。`
+      : '瀏覽器未允許自動複製，請使用下方按鈕手動複製後開啟 ChatGPT。';
+    showChatGptComparisonRecovery(payload.prompt, message);
+    setWorkspaceTab('ai');
+    setCompactView('tools');
+    byId('chatgpt-comparison-recovery').scrollIntoView({ block: 'start' });
+    trayStatus.textContent = message;
+  } catch (error) {
+    if (chatWindow && !chatWindow.closed) chatWindow.close();
+    trayStatus.textContent = error?.message || '無法產生 ChatGPT 比較提示詞。';
+  } finally {
+    button.disabled = comparisonCourseIds.length < 2;
+    button.removeAttribute('aria-busy');
+  }
+});
+
+byId('copy-chatgpt-comparison-prompt').addEventListener('click', async () => {
+  const prompt = byId('chatgpt-comparison-prompt').value;
+  try {
+    await navigator.clipboard.writeText(prompt);
+    byId('chatgpt-comparison-status').textContent = '已複製提示詞，請到 ChatGPT 貼上並送出。';
+  } catch {
+    const textarea = byId('chatgpt-comparison-prompt');
+    textarea.focus();
+    textarea.select();
+    byId('chatgpt-comparison-status').textContent = '請長按或使用鍵盤複製選取的提示詞。';
+  }
 });
 
 function setCompactView(name) {
@@ -1255,6 +1496,22 @@ catalogList.addEventListener('click', async (event) => {
 });
 
 catalogList.addEventListener('change', (event) => {
+  const compareInput = event.target.closest('[data-compare-course]');
+  if (compareInput) {
+    const courseId = compareInput.dataset.compareCourse;
+    if (compareInput.checked && !comparisonCourseIds.includes(courseId)) {
+      if (comparisonCourseIds.length >= MAX_COMPARISON_COURSES) {
+        compareInput.checked = false;
+        byId('catalog-status').textContent = `一次最多比較 ${MAX_COMPARISON_COURSES} 門課，請先移除一門。`;
+        return;
+      }
+      comparisonCourseIds = [...comparisonCourseIds, courseId];
+    } else if (!compareInput.checked) {
+      comparisonCourseIds = comparisonCourseIds.filter((id) => id !== courseId);
+    }
+    renderCatalog();
+    return;
+  }
   const optionSelect = event.target.closest('[data-course-section], [data-course-arrangement], [data-course-variant], [data-course-advisor]');
   if (optionSelect) {
     const courseId = optionSelect.dataset.courseSection

@@ -52,6 +52,44 @@ test('routes recommendation requests with the user Gemini key', async () => {
   assert.deepEqual(await response.json(), { summary: 'ok', plans: [] });
 });
 
+test('routes course comparison with the user key removed from service input', async () => {
+  let captured;
+  const worker = createWorker({
+    html: '<h1>ok</h1>',
+    comparisonService: async (input, deps) => {
+      captured = { input, deps };
+      return { summary: 'ok' };
+    },
+  });
+  const response = await worker.fetch(new Request('http://local/api/ai/compare-courses', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ apiKey: 'user-secret', courses: [] }),
+  }));
+
+  assert.equal(response.status, 200);
+  assert.equal(captured.deps.apiKey, 'user-secret');
+  assert.equal('apiKey' in captured.input, false);
+});
+
+test('prepares a ChatGPT comparison prompt without requiring an AI key', async () => {
+  let capturedInput;
+  const worker = createWorker({
+    html: '<h1>ok</h1>',
+    comparisonPromptService: async (input) => {
+      capturedInput = input;
+      return { prompt: '請比較課程 A 與 B', sources: [] };
+    },
+  });
+  const response = await worker.fetch(new Request('http://local/api/course-comparison/prompt', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ courses: [{ id: 'a' }, { id: 'b' }] }),
+  }));
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(capturedInput.courses, [{ id: 'a' }, { id: 'b' }]);
+  assert.deepEqual(await response.json(), { prompt: '請比較課程 A 與 B', sources: [] });
+});
+
 test('validates a user Gemini key without persisting it', async () => {
   let received;
   const worker = createWorker({

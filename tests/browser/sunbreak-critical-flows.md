@@ -1,6 +1,6 @@
 # Sunbreak Critical Flow Verification
 
-Verified on 2026-07-17 against `http://127.0.0.1:4173/` from branch `feature/sunbreak-redesign`.
+Verified on 2026-07-21 against `http://127.0.0.1:4173/` from branch `feature/sunbreak-redesign`.
 
 ## Browser surfaces
 
@@ -26,13 +26,18 @@ Verified on 2026-07-17 against `http://127.0.0.1:4173/` from branch `feature/sun
 - Phone-wallpaper export reports successful completion with a selected course.
 - The header summary keeps confirmed and pending internship time readable without crossing into the warning cell at every tested width.
 - The complete tutorial center opens with all nine chapters and closes normally.
+- Candidate rows expose an independent comparison checkbox without changing the existing add-to-schedule button behavior; selecting two courses enables both comparison paths.
+- The optional-profile link switches to the AI panel and focuses the first relevant field. Future direction, semester goals, and scheduling preferences are included in the generated comparison prompt when supplied; empty fields produce an explicitly objective-only prompt.
+- A legacy built-in candidate without a saved syllabus link is repaired from its official nine-digit NCCU course code. The repaired official syllabus link survives a full reload and changes the candidate action from retry to `查看課綱`.
+- The ChatGPT handoff reads two real official syllabi, renders a manual-copy recovery panel, opens `https://chatgpt.com/`, and never submits the prompt. A stalled clipboard permission falls back after 1.5 seconds instead of leaving a blank page indefinitely.
+- The Gemini comparison action correctly opens the BYOK dialog when the current tab has no API key; no secret was entered during QA.
 - Chrome console: 0 errors and 0 warnings throughout the final pass.
 
 ## Deterministic and boundary evidence
 
-- `npm test`: 175 unit tests and 77 rendered-page tests passed.
+- `npm test`: 195 unit tests and 91 rendered-page tests passed.
 - `npm run lint`: passed.
-- `npm run test:contract:nccu`: four live NCCU 115-1 contract tests passed, including the trusted HCI syllabus-link contract.
+- `npm run test:contract:nccu`: six live NCCU 115-1 contract tests passed, including an end-to-end comparison prompt route that reads two official syllabi.
 - AI service tests cover missing/invalid keys, timeouts, retryable upstream errors, request IDs, hallucinated course IDs, conflicts, locked courses, asynchronous attendance, minimum credits, language-course requirements, and internship minimums.
 - A real user API key was intentionally not submitted during browser QA; the UI and server contracts were exercised without exposing user secrets.
 - `git diff --check`: passed.
@@ -42,3 +47,5 @@ Verified on 2026-07-17 against `http://127.0.0.1:4173/` from branch `feature/sun
 The compact viewport exposed two header-summary overflows. The internship value had grown from a short day count into one unbreakable confirmed-plus-pending sentence, and 1024px still used the desktop inline label/value layout. Two failing rendered-page regression tests were added first. The value now wraps as two semantic phrases, and metric labels stack before the compact desktop width can overflow. Chrome geometry checks confirm no metric or body-level horizontal overflow at all seven tested widths.
 
 The official-data refresh pass exposed a separate build-boundary defect: the new persistence helper existed in source but was missing from the browser bundle's planner-storage export list. The app therefore swallowed a runtime persistence error, so the refreshed syllabus appeared immediately but reverted to the seed candidate after reload. A storage round-trip regression and a rendered-bundle export contract were added first. The helper is now exported into the real browser bundle, and the Chrome reload flow confirms the official source, syllabus link, selection, and lock all survive.
+
+The syllabus-comparison pass exposed three additional real-browser defects. Older built-in candidates could lack a stored syllabus URL even when NCCU had one, clipboard permission could stall the whole ChatGPT handoff, and a repaired seed URL originally disappeared on reload. Regression tests were added before each repair. Comparison now resolves a missing link by official course code with one transient retry, bounds the clipboard wait to 1.5 seconds, and persists repaired official sources through the existing verified-candidate storage path.
