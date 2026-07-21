@@ -804,20 +804,39 @@ function syllabusAction(course) {
   return `<button class="catalog-syllabus" type="button" role="menuitem" data-refresh-nccu-course="${escapeHtml(course.sectionCode || '')}">課綱狀態暫時無法確認 · 重新查詢官方資料</button>`;
 }
 
+function currentCatalogFilters() {
+  return {
+    query: byId('catalog-search').value,
+    statuses: [...document.querySelectorAll('[data-catalog-status-filter]:checked')]
+      .map((input) => input.dataset.catalogStatusFilter),
+    weekdays: [...document.querySelectorAll('[data-catalog-day-filter]:checked')]
+      .map((input) => Number(input.dataset.catalogDayFilter)),
+    dayparts: [...document.querySelectorAll('[data-catalog-daypart-filter]:checked')]
+      .map((input) => input.dataset.catalogDaypartFilter),
+    selectedIds: selected.map(({ id }) => id),
+    attendanceByCourse: Object.fromEntries(selected.map(({ id, attendance }) => [id, attendance])),
+    eligibilityStatuses: Object.fromEntries(courseStore.map((course) => [
+      course.id,
+      evaluateEligibility(course, profile).status,
+    ])),
+  };
+}
+
+function renderCatalogFilterCount(filters) {
+  const count = countActiveCatalogFilters(filters);
+  const badge = byId('catalog-filter-count');
+  const toggle = byId('catalog-filter-toggle');
+  badge.textContent = String(count);
+  badge.hidden = count === 0;
+  badge.setAttribute('aria-label', count ? `目前套用 ${count} 個複選條件` : '目前沒有套用複選條件');
+  toggle.classList.toggle('has-active-filters', count > 0);
+}
+
 function renderCatalog() {
   const catalogList = byId('catalog-list');
-  const query = byId('catalog-search').value.trim().toLowerCase();
-  const filter = byId('catalog-filter').value;
-  const visible = courseStore.filter((course) => {
-    const eligibility = evaluateEligibility(course, profile);
-    const selectedNow = selected.some((item) => item.id === course.id);
-    const haystack = `${course.title} ${course.teacher} ${course.sectionCode}`.toLowerCase();
-    if (query && !haystack.includes(query)) return false;
-    if (filter === 'selected' && !selectedNow) return false;
-    if (filter === 'remote' && !course.asyncAllowed) return false;
-    if (filter === 'review' && eligibility.status !== 'review') return false;
-    return true;
-  });
+  const filters = currentCatalogFilters();
+  const visible = filterCandidateCourses(courseStore, filters);
+  renderCatalogFilterCount(filters);
   byId('catalog-count').textContent = `${visible.length} / ${courseStore.length}`;
   if (!visible.length) {
     catalogList.innerHTML = courseStore.length
@@ -1281,7 +1300,21 @@ function removeFromSchedule(event) {
 }
 
 byId('catalog-search').addEventListener('input', renderCatalog);
-byId('catalog-filter').addEventListener('change', renderCatalog);
+byId('catalog-filter-toggle').addEventListener('click', () => {
+  const toggle = byId('catalog-filter-toggle');
+  const panel = byId('catalog-filter-panel');
+  const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+  toggle.setAttribute('aria-expanded', String(expanded));
+  panel.hidden = !expanded;
+});
+byId('catalog-filter-panel').addEventListener('change', (event) => {
+  if (!event.target.matches('[data-catalog-status-filter], [data-catalog-day-filter], [data-catalog-daypart-filter]')) return;
+  renderCatalog();
+});
+byId('clear-catalog-filters').addEventListener('click', () => {
+  byId('catalog-filter-panel').querySelectorAll('input[type="checkbox"]').forEach((input) => { input.checked = false; });
+  renderCatalog();
+});
 byId('clear-candidates').addEventListener('click', () => {
   if (!courseStore.length) {
     byId('catalog-status').textContent = '候選課程目前已經是空的。';

@@ -36,6 +36,38 @@ test('starts a new browser with an empty personal workspace', async () => {
   assert.doesNotMatch(html, /let selected = applyPreset/);
 });
 
+test('renders an accessible expandable multi-select candidate filter panel', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="catalog-filter-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="catalog-filter-panel"/);
+  assert.match(html, /id="catalog-filter-count"/);
+  assert.match(html, /id="catalog-filter-panel"[^>]*hidden/);
+  for (const status of ['selected', 'remote', 'review']) {
+    assert.match(html, new RegExp(`data-catalog-status-filter="${status}"`));
+  }
+  for (const day of [1, 2, 3, 4, 5, 6, 7]) {
+    assert.match(html, new RegExp(`data-catalog-day-filter="${day}"`));
+  }
+  for (const daypart of ['morning', 'afternoon', 'evening', 'flexible']) {
+    assert.match(html, new RegExp(`data-catalog-daypart-filter="${daypart}"`));
+  }
+  assert.match(html, /id="clear-catalog-filters"/);
+});
+
+test('wires multi-select candidate filters and adapts the panel for phones', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /filterCandidateCourses\(courseStore, filters\)/);
+  assert.match(html, /countActiveCatalogFilters\(filters\)/);
+  assert.match(html, /data-catalog-status-filter[^\n]+:checked/);
+  assert.match(html, /data-catalog-day-filter[^\n]+:checked/);
+  assert.match(html, /data-catalog-daypart-filter[^\n]+:checked/);
+  assert.match(html, /byId\('catalog-filter-toggle'\)\.addEventListener\('click'/);
+  assert.match(html, /byId\('clear-catalog-filters'\)\.addEventListener\('click'/);
+  assert.match(html, /\.catalog-filter-groups\s*\{[^}]*grid-template-columns:\s*repeat\(3,/);
+  assert.match(html, /@media[^}]+max-width:\s*640px[\s\S]*?\.catalog-filter-groups\s*\{[^}]*grid-template-columns:\s*1fr/);
+});
+
 test('build emits a GitHub Pages static fallback', () => {
   const html = readFileSync(new URL('../dist/static/index.html', import.meta.url), 'utf8');
 
@@ -166,6 +198,16 @@ test('explains safe recovery when an official refresh fails or succeeds', async 
 
   assert.match(tutorial, /重新查詢失敗時，原有候選課程與排課資料會保留/);
   assert.match(tutorial, /更新成功後，重新整理網頁仍會保留新的官方資料/);
+});
+
+test('teaches the expandable weekday and daypart candidate filters', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  assert.match(tutorial, /展開「篩選」/);
+  assert.match(tutorial, /星期與上課時段可複選/);
+  assert.match(tutorial, /非同步／時間未定/);
+  assert.match(tutorial, /清除篩選/);
 });
 
 test('marks quick tour skipped or completed without changing planner data', async () => {
@@ -815,7 +857,7 @@ test('uses plain-language eligibility labels in compact course rows', async () =
   assert.match(html, /review: '資格待確認，請看詳細。'/);
   assert.match(html, /blocked: '條件不符合，請看詳細。'/);
   assert.match(html, /unavailable: '本學期未開課'/);
-  assert.match(html, /option value="review">資格待確認/);
+  assert.match(html, /data-catalog-status-filter="review"><span>資格待確認/);
   assert.doesNotMatch(html, /blocked: '條件不符合'/);
 });
 
