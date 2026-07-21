@@ -5,7 +5,7 @@ const read = (path) => readFile(new URL(path, root), 'utf8');
 const [
   template, styles, nccuPeriods, internshipPlanner, courseData, eligibilityConditions,
   nccuUrl, syllabusState, nccuCourseNotes, courseReconciler, plannerCore, planValidator, plannerStorage, plannerTransfer, plannerUndo, scheduleAgenda, apiKeySession, app,
-  aiContracts, courseComparison, geminiClient, nccuCourseAdapter, nccuSyllabus, aiService, worker, aiPlanner, catalogFilters,
+  aiContracts, courseComparison, geminiClient, nccuCourseAdapter, nccuSyllabus, aiService, worker, aiPlanner, catalogFilters, courseComparisonPicker,
 ] = await Promise.all([
   read('src/index.html'),
   read('src/styles.css'),
@@ -34,6 +34,7 @@ const [
   read('src/worker.mjs'),
   read('src/ai-planner.mjs'),
   read('src/catalog-filters.mjs'),
+  read('src/course-comparison-picker.mjs'),
 ]);
 
 const stripModuleSyntax = (source) => source
@@ -85,6 +86,9 @@ const script = [
   wrapModule(apiKeySession, '__apiKeySession', ['createApiKeySession', 'validateAndStoreApiKey']),
   wrapModule(catalogFilters, '__catalogFilters', [
     'CATALOG_DAYPARTS', 'filterCandidateCourses', 'countActiveCatalogFilters',
+  ]),
+  wrapModule(courseComparisonPicker, '__courseComparisonPicker', [
+    'filterComparisonCourses',
   ]),
   wrapModule(aiPlanner, '__aiPlanner', [
     'validateScreenshotFile', 'mergeImportedCourses', 'applyRecommendedPlan',
