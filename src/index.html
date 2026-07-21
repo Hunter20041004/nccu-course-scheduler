@@ -130,18 +130,6 @@
           </section>
           <p id="catalog-status" class="form-status catalog-status" aria-live="polite"></p>
           <div id="catalog-list" class="catalog-list"></div>
-          <section id="course-comparison-tray" class="course-comparison-tray" aria-labelledby="course-comparison-title" hidden>
-            <header>
-              <div><strong id="course-comparison-title">比較課程</strong><span id="comparison-selected-count">0 / 5</span></div>
-              <button id="clear-course-comparison" type="button">清除</button>
-            </header>
-            <p id="course-comparison-status" class="form-status" aria-live="polite">請選擇至少兩門課。</p>
-            <p class="comparison-profile-hint">建議先填寫目標與偏好，比對會更精準。<button id="open-comparison-profile" type="button">前往填寫</button></p>
-            <div class="course-comparison-actions">
-              <button id="open-chatgpt-comparison" class="button button-quiet" type="button" disabled>帶到 ChatGPT</button>
-              <button id="run-ai-comparison" class="button button-primary" type="button" disabled>AI 比較</button>
-            </div>
-          </section>
         </section>
 
         <section id="workspace-panel-ai" class="workspace-tab-panel ai-advisor" role="tabpanel" data-workspace-panel="ai" hidden>
@@ -194,7 +182,24 @@
             </header>
             <section id="ai-course-comparison" class="ai-comparison">
               <header><strong>已選課程比較</strong><span>2–5 門</span></header>
-              <p class="section-helper">從候選課程勾選要比較的課。個人資料皆為選填；填寫後會多一層個人化建議，未填仍會提供客觀比較。</p>
+              <p class="section-helper">在這裡搜尋並勾選要比較的候選課程。個人資料皆為選填；填寫後會多一層個人化建議，未填仍會提供客觀比較。</p>
+              <section id="course-comparison-picker" class="course-comparison-picker" aria-labelledby="course-comparison-picker-title">
+                <header>
+                  <div><strong id="course-comparison-picker-title">選擇候選課程</strong><span id="comparison-selected-count">0 / 5</span></div>
+                  <button id="clear-course-comparison" type="button">清除</button>
+                </header>
+                <label class="comparison-search" for="comparison-course-search">
+                  <span>搜尋課名、教師或課號</span>
+                  <input id="comparison-course-search" type="search" autocomplete="off" placeholder="例如：人機互動、教師姓名或 070355001">
+                </label>
+                <div id="comparison-course-list" class="comparison-course-list"></div>
+                <p id="course-comparison-status" class="form-status" aria-live="polite">請選擇至少兩門課。</p>
+                <p class="comparison-profile-hint">建議先填寫目標與偏好，比對會更精準。<button id="open-comparison-profile" type="button">前往填寫</button></p>
+                <div class="course-comparison-actions">
+                  <button id="open-chatgpt-comparison" class="button button-quiet" type="button" disabled>帶到 ChatGPT</button>
+                  <button id="run-ai-comparison" class="button button-primary" type="button" disabled>AI 比較</button>
+                </div>
+              </section>
               <p id="ai-comparison-status" class="form-status" aria-live="polite">尚未產生比較。</p>
               <div id="ai-comparison-results" class="ai-comparison-results" aria-live="polite"></div>
               <section id="chatgpt-comparison-recovery" class="chatgpt-comparison-recovery" aria-labelledby="chatgpt-comparison-recovery-title" hidden>
