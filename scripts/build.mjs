@@ -88,7 +88,7 @@ const script = [
     'CATALOG_DAYPARTS', 'filterCandidateCourses', 'countActiveCatalogFilters',
   ]),
   wrapModule(courseComparisonPicker, '__courseComparisonPicker', [
-    'filterComparisonCourses',
+    'filterComparisonCourses', 'toggleComparisonCourse', 'reconcileComparisonCourseIds',
   ]),
   wrapModule(aiPlanner, '__aiPlanner', [
     'validateScreenshotFile', 'mergeImportedCourses', 'applyRecommendedPlan',
