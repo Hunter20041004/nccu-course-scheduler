@@ -966,12 +966,14 @@ test('presents tutorial tasks as readable cards on desktop and one column on mob
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.guide-steps\s*\{[^}]*grid-template-columns:\s*1fr/s);
   assert.match(html, /\.tutorial-center-nav a\s*\{[^}]*min-height:\s*44px/s);
 });
-test('renders accessible candidate comparison controls and a two-to-five course tray', async () => {
+test('places comparison selection only inside the AI comparison tool', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /data-compare-course="\$\{escapeHtml\(course\.id\)\}"/);
-  assert.match(html, /aria-label="將 \$\{escapeHtml\(course\.title\)\}加入比較"/);
-  assert.match(html, /id="course-comparison-tray"[^>]*hidden/);
+  assert.doesNotMatch(html, /class="catalog-compare-control"/);
+  assert.doesNotMatch(html, /id="course-comparison-tray"/);
+  assert.match(html, /id="ai-course-comparison"[\s\S]*id="course-comparison-picker"/);
+  assert.match(html, /id="comparison-course-search"[^>]*type="search"/);
+  assert.match(html, /id="comparison-course-list"/);
   assert.match(html, /id="comparison-selected-count"/);
   assert.match(html, /id="clear-course-comparison"/);
   assert.match(html, /id="run-ai-comparison"/);

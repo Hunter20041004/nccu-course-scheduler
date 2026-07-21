@@ -1078,12 +1078,7 @@ function renderCatalog() {
         </div>`
       : '';
     const optionControls = atomicOptionControls || legacyOptionControls;
-    const comparing = comparisonCourseIds.includes(course.id);
-    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''} ${comparing ? 'is-comparing' : ''}">
-      <label class="catalog-compare-control" title="加入課綱比較">
-        <input type="checkbox" data-compare-course="${escapeHtml(course.id)}" aria-label="將 ${escapeHtml(course.title)}加入比較" ${comparing ? 'checked' : ''}>
-        <span>比較</span>
-      </label>
+    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
       <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small><small class="catalog-time">${escapeHtml(scheduleSummary)}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
