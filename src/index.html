@@ -75,7 +75,7 @@
       <aside class="panel workspace-panel" aria-label="排課工具">
         <div id="workspace-tabs" class="workspace-tabs" role="tablist" aria-label="排課工具">
           <button type="button" role="tab" aria-selected="true" aria-controls="workspace-panel-catalog" data-workspace-tab="catalog">候選課程</button>
-          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-ai" data-workspace-tab="ai">AI 推薦</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-ai" data-workspace-tab="ai">AI 功能</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-conditions" data-workspace-tab="conditions">選課條件</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-internship" data-workspace-tab="internship">實習設定</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-add" data-workspace-tab="add">匯入／新增</button>
@@ -145,39 +145,70 @@
         </section>
 
         <section id="workspace-panel-ai" class="workspace-tab-panel ai-advisor" role="tabpanel" data-workspace-panel="ai" hidden>
-          <h2>AI 排課顧問</h2>
-          <p>依你的經歷、目標與實習安排產生三個推薦方案。</p>
-          <p id="deployment-ai-note" class="privacy-note"></p>
-          <form id="ai-advisor-form" class="ai-advisor-form">
-            <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
-            <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
-            <label>這學期想達成什麼<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：每週實習三天、完成 AI 作品並補足研究方法"></textarea></label>
-            <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
-            <p class="privacy-note">個人敘述會以你的 Key 傳送給 Gemini，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
-            <button class="button button-primary" type="submit">產生三個推薦方案</button>
-            <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
-            <button id="retry-ai-advisor" class="button button-quiet" type="button" hidden>重試產生方案</button>
-          </form>
-          <section id="ai-course-comparison" class="ai-comparison" aria-labelledby="ai-comparison-title">
+          <section id="ai-feature-hub" class="ai-feature-hub" aria-labelledby="ai-feature-hub-title">
             <header>
-              <div><p class="eyebrow">COMPARE · SYLLABUS</p><h3 id="ai-comparison-title">課綱比較</h3></div>
-              <span>2–5 門</span>
+              <p class="eyebrow">AI · CHOOSE A TASK</p>
+              <h2 id="ai-feature-hub-title" tabindex="-1">想用 AI 做什麼？</h2>
+              <p>選擇這次需要的協助；兩項功能會共用你已填寫的目標與偏好。</p>
             </header>
-            <p class="section-helper">從候選課程勾選要比較的課。上方資料皆為選填；填寫後會多一層個人化建議，未填仍會提供客觀比較。</p>
-            <p id="ai-comparison-status" class="form-status" aria-live="polite">尚未產生比較。</p>
-            <div id="ai-comparison-results" class="ai-comparison-results" aria-live="polite"></div>
-            <section id="chatgpt-comparison-recovery" class="chatgpt-comparison-recovery" aria-labelledby="chatgpt-comparison-recovery-title" hidden>
-              <h4 id="chatgpt-comparison-recovery-title">ChatGPT 比較提示詞</h4>
-              <p>網站無法替你送出訊息。請確認內容後複製，開啟 ChatGPT 再貼上送出。</p>
-              <textarea id="chatgpt-comparison-prompt" rows="8" readonly aria-label="可複製的課綱比較提示詞"></textarea>
-              <div>
-                <button id="copy-chatgpt-comparison-prompt" class="button button-quiet" type="button">複製提示詞</button>
-                <a class="button button-primary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">開啟 ChatGPT</a>
-              </div>
-              <p id="chatgpt-comparison-status" class="form-status" aria-live="polite"></p>
+            <div class="ai-feature-grid">
+              <button type="button" class="ai-feature-card" data-ai-tool="advisor">
+                <span class="ai-feature-index">01</span>
+                <strong>AI 排課推薦</strong>
+                <small>根據學期目標、實習安排與偏好，產生三套無衝堂方案。</small>
+                <span class="ai-feature-action">開始規劃</span>
+              </button>
+              <button type="button" class="ai-feature-card" data-ai-tool="comparison">
+                <span class="ai-feature-index">02</span>
+                <strong>AI 課綱比較</strong>
+                <small>比較 2–5 門課的內容重疊、獨有價值、評量、負擔與衝堂。</small>
+                <span class="ai-feature-action">查看比較</span>
+              </button>
+            </div>
+          </section>
+
+          <section id="ai-tool-advisor" class="ai-tool-view" aria-labelledby="ai-advisor-title" hidden>
+            <header class="ai-tool-heading">
+              <button class="ai-tool-back" type="button" data-ai-tool-back>返回 AI 功能</button>
+              <div><p class="eyebrow">PLAN · THREE ROUTES</p><h2 id="ai-advisor-title" tabindex="-1">AI 排課推薦</h2></div>
+            </header>
+            <p>依你的經歷、目標與實習安排產生三個推薦方案。</p>
+            <p id="deployment-ai-note" class="privacy-note"></p>
+            <form id="ai-advisor-form" class="ai-advisor-form">
+              <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
+              <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
+              <label>這學期想達成什麼<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：每週實習三天、完成 AI 作品並補足研究方法"></textarea></label>
+              <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
+              <p class="privacy-note">個人敘述會以你的 Key 傳送給 Gemini，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
+              <button class="button button-primary" type="submit">產生三個推薦方案</button>
+              <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
+              <button id="retry-ai-advisor" class="button button-quiet" type="button" hidden>重試產生方案</button>
+            </form>
+            <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
+          </section>
+
+          <section id="ai-tool-comparison" class="ai-tool-view" aria-labelledby="ai-comparison-title" hidden>
+            <header class="ai-tool-heading">
+              <button class="ai-tool-back" type="button" data-ai-tool-back>返回 AI 功能</button>
+              <div><p class="eyebrow">COMPARE · SYLLABUS</p><h2 id="ai-comparison-title" tabindex="-1">AI 課綱比較</h2></div>
+            </header>
+            <section id="ai-course-comparison" class="ai-comparison">
+              <header><strong>已選課程比較</strong><span>2–5 門</span></header>
+              <p class="section-helper">從候選課程勾選要比較的課。個人資料皆為選填；填寫後會多一層個人化建議，未填仍會提供客觀比較。</p>
+              <p id="ai-comparison-status" class="form-status" aria-live="polite">尚未產生比較。</p>
+              <div id="ai-comparison-results" class="ai-comparison-results" aria-live="polite"></div>
+              <section id="chatgpt-comparison-recovery" class="chatgpt-comparison-recovery" aria-labelledby="chatgpt-comparison-recovery-title" hidden>
+                <h4 id="chatgpt-comparison-recovery-title">ChatGPT 比較提示詞</h4>
+                <p>網站無法替你送出訊息。請確認內容後複製，開啟 ChatGPT 再貼上送出。</p>
+                <textarea id="chatgpt-comparison-prompt" rows="8" readonly aria-label="可複製的課綱比較提示詞"></textarea>
+                <div>
+                  <button id="copy-chatgpt-comparison-prompt" class="button button-quiet" type="button">複製提示詞</button>
+                  <a class="button button-primary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">開啟 ChatGPT</a>
+                </div>
+                <p id="chatgpt-comparison-status" class="form-status" aria-live="polite"></p>
+              </section>
             </section>
           </section>
-          <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
         </section>
 
         <section id="workspace-panel-conditions" class="workspace-tab-panel profile-settings" role="tabpanel" data-workspace-panel="conditions" hidden>
@@ -265,7 +296,7 @@
         <a href="#guide-schedule">管理課表</a>
         <a href="#guide-attendance">上課形式</a>
         <a href="#guide-internship">實習與行程</a>
-        <a href="#guide-ai">AI 推薦</a>
+        <a href="#guide-ai">AI 功能</a>
         <a href="#guide-export-faq">匯出與排錯</a>
       </nav>
       <div class="tutorial-center-body">
@@ -338,11 +369,12 @@
           </ol>
         </section>
         <section id="guide-ai">
-          <h3>取得 API Key、使用 AI 推薦與 AI 課綱比較</h3>
+          <h3>選擇 AI 功能並安全使用自己的 API Key</h3>
           <ol class="guide-steps">
             <li>前往 Google AI Studio，使用 Google 帳號建立 Gemini API Key；學校帳號受限時請改用個人帳號。</li>
             <li>回到網站按「API Key 未設定」，貼上 Key 並驗證。API Key 等同使用者自己的額度，請不要傳給別人。</li>
-            <li>在「AI 推薦」填寫自我介紹、學期目標與排課偏好，明確寫出最低學分、實習天數、想修的領域、語文偏好或不想考試等需求。</li>
+            <li>打開「AI 功能」，選擇「AI 排課推薦」或「AI 課綱比較」。兩項工具分開顯示，但會共用你已填寫的目標與偏好。</li>
+            <li>使用「AI 排課推薦」時，填寫自我介紹、學期目標與排課偏好，明確寫出最低學分、實習天數、想修的領域、語文偏好或不想考試等需求。</li>
             <li>系統會提供三個推薦方案。先按「預覽」檢查課程、學分、實習與提醒，再按「套用此方案」。鎖定課會保留，非同步課可補學分，但仍須符合資格。</li>
             <li><strong>比較衝堂或內容相近的課：</strong>回到「候選課程」，勾選 2 至 5 門的「比較」，再按「AI 比較」。結果會分開顯示確定性衝堂、內容重疊、各課獨有內容、評量、負擔與資料限制。</li>
             <li><strong>選填個人資料：</strong>學期目標、未來方向與排課偏好都是選填；未填仍可取得客觀比較，填寫後才會加入更精準的個人化取捨建議。</li>

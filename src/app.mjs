@@ -29,6 +29,7 @@ let quickTourIndex = 0;
 let expandedCourseId = null;
 const MAX_COMPARISON_COURSES = 5;
 let comparisonCourseIds = [];
+let activeAiTool = 'hub';
 
 const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表總覽', body: '左側使用政大官方節次，會顯示週一到週日、實習保留、課程衝堂、非同步工作區與排課提醒。' },
@@ -36,7 +37,7 @@ const quickTourSteps = [
   { target: 'catalog-list', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」查看完整詳細資料並切換實體／同步／非同步；已在候選的課可用「更新官方資料」補齊最新官方欄位，並保留選課、鎖定、上課方式與班別安排。課綱與其他管理操作在「•••」。' },
   { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '逐項標記符合、不符合或待確認的系所、雙主修、學程、年級與先修條件，並查看每個條件會影響哪些課。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
-  { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦與課綱比較', body: '可輸入背景、學期目標、最低學分與排課偏好，產生三個無衝堂方案；也可從候選課程勾選 2 至 5 門比較課綱。個人資料皆為選填，未填仍會提供客觀比較。' },
+  { target: 'ai-feature-hub', tab: 'ai', aiTool: 'hub', compactView: 'tools', title: 'AI 功能', body: '先選擇「AI 排課推薦」或「AI 課綱比較」。推薦會依最低學分與實習偏好產生三個無衝堂方案；比較會分析 2 至 5 門候選課程。個人資料皆為選填，未填仍可客觀比較。' },
   { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可搜尋政大 115-1 課程庫、使用 AI 截圖辨識或手動新增課程，也能加入社團、課外組織與個人行程。' },
   { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '手機可切換「行程／方格」；確認學分、資格、出席方式、衝堂與提醒後，再匯出手機桌布。' },
 ];
@@ -123,6 +124,7 @@ function positionQuickTourSpotlight(targetElement) {
 function renderQuickTourStep() {
   const step = quickTourSteps[quickTourIndex];
   if (step.tab) setWorkspaceTab(step.tab);
+  if (step.aiTool) setAiTool(step.aiTool);
   if (step.compactView) setCompactView(step.compactView);
   const overlay = byId('quick-tour-overlay');
   const targetElement = document.getElementById(step.target) || document.querySelector(`.${step.target}`);
@@ -1134,10 +1136,37 @@ function setWorkspaceTab(name) {
   });
 }
 
+function setAiTool(name, { focus = false } = {}) {
+  if (!['hub', 'advisor', 'comparison'].includes(name)) return;
+  activeAiTool = name;
+  const hub = byId('ai-feature-hub');
+  const advisor = byId('ai-tool-advisor');
+  const comparison = byId('ai-tool-comparison');
+  hub.hidden = name !== 'hub';
+  advisor.hidden = name !== 'advisor';
+  comparison.hidden = name !== 'comparison';
+  if (!focus) return;
+  const heading = name === 'hub'
+    ? byId('ai-feature-hub-title')
+    : name === 'advisor'
+      ? byId('ai-advisor-title')
+      : byId('ai-comparison-title');
+  heading.focus();
+}
+
 byId('workspace-tabs').addEventListener('click', (event) => {
   const button = event.target.closest('[data-workspace-tab]');
   if (!button) return;
   setWorkspaceTab(button.dataset.workspaceTab);
+});
+
+byId('workspace-panel-ai').addEventListener('click', (event) => {
+  const tool = event.target.closest('[data-ai-tool]');
+  if (tool) {
+    setAiTool(tool.dataset.aiTool, { focus: true });
+    return;
+  }
+  if (event.target.closest('[data-ai-tool-back]')) setAiTool('hub', { focus: true });
 });
 
 byId('clear-course-comparison').addEventListener('click', () => {
@@ -1148,6 +1177,7 @@ byId('clear-course-comparison').addEventListener('click', () => {
 
 byId('open-comparison-profile').addEventListener('click', () => {
   setWorkspaceTab('ai');
+  setAiTool('advisor');
   byId('ai-future').focus();
   byId('ai-advisor-form').scrollIntoView({ block: 'start' });
 });
@@ -1158,6 +1188,9 @@ byId('run-ai-comparison').addEventListener('click', async () => {
   const button = byId('run-ai-comparison');
   const apiKey = requireApiKeyForAi(trayStatus);
   if (!apiKey) return;
+  setWorkspaceTab('ai');
+  setAiTool('comparison');
+  setCompactView('tools');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   trayStatus.textContent = '正在讀取官方課綱並比較…';
@@ -1172,13 +1205,11 @@ byId('run-ai-comparison').addEventListener('click', async () => {
     if (!response.ok) throw errorFromPayload(payload, '課綱比較失敗，請稍後重試。');
     cacheComparisonSources(payload.sources);
     renderCourseComparison(payload);
-    setWorkspaceTab('ai');
-    setCompactView('tools');
     resultStatus.textContent = payload.profileMode === 'personalized'
       ? '比較完成，已加入你選填的個人目標與偏好。'
       : '比較完成；這次未填個人資料，因此只提供客觀比較。';
     byId('ai-course-comparison').scrollIntoView({ block: 'start' });
-    trayStatus.textContent = '比較完成，結果已顯示在「AI 推薦」。';
+    trayStatus.textContent = '比較完成，結果已顯示在「AI 功能」。';
   } catch (error) {
     const message = error?.message || '課綱比較失敗，請稍後重試。';
     trayStatus.textContent = message;
@@ -1193,6 +1224,9 @@ byId('open-chatgpt-comparison').addEventListener('click', async () => {
   const trayStatus = byId('course-comparison-status');
   const button = byId('open-chatgpt-comparison');
   const chatWindow = window.open('about:blank', '_blank');
+  setWorkspaceTab('ai');
+  setAiTool('comparison');
+  setCompactView('tools');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
   trayStatus.textContent = '正在讀取官方課綱並準備提示詞…';
@@ -1218,8 +1252,6 @@ byId('open-chatgpt-comparison').addEventListener('click', async () => {
       ? `已複製比較提示詞${chatWindow ? '並開啟 ChatGPT' : ''}，請貼上後自行送出。`
       : '瀏覽器未允許自動複製，請使用下方按鈕手動複製後開啟 ChatGPT。';
     showChatGptComparisonRecovery(payload.prompt, message);
-    setWorkspaceTab('ai');
-    setCompactView('tools');
     byId('chatgpt-comparison-recovery').scrollIntoView({ block: 'start' });
     trayStatus.textContent = message;
   } catch (error) {
