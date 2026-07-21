@@ -29,6 +29,7 @@ let quickTourIndex = 0;
 let expandedCourseId = null;
 const MAX_COMPARISON_COURSES = 5;
 let comparisonCourseIds = [];
+let comparisonSearchQuery = '';
 let activeAiTool = 'hub';
 
 const quickTourSteps = [
@@ -826,18 +827,35 @@ function currentCatalogFilters() {
   };
 }
 
-function renderCourseComparisonTray() {
-  const availableIds = new Set(courseStore.map(({ id }) => id));
-  comparisonCourseIds = comparisonCourseIds.filter((id) => availableIds.has(id));
+function renderCourseComparisonPicker() {
+  comparisonCourseIds = reconcileComparisonCourseIds(comparisonCourseIds, courseStore);
   const count = comparisonCourseIds.length;
-  const tray = byId('course-comparison-tray');
-  tray.hidden = count === 0;
-  byId('comparison-selected-count').textContent = `${count} / ${MAX_COMPARISON_COURSES}`;
+  const limitReached = comparisonCourseIds.length >= MAX_COMPARISON_COURSES;
+  const visibleCourses = filterComparisonCourses(courseStore, comparisonSearchQuery);
+  const list = byId('comparison-course-list');
+  byId('comparison-course-search').value = comparisonSearchQuery;
+  byId('comparison-selected-count').textContent = `已選 ${count}／${MAX_COMPARISON_COURSES}`;
   byId('course-comparison-status').textContent = count < 2
     ? `再選 ${2 - count} 門就能開始比較。`
-    : `已選 ${count} 門，可以比較課綱內容與衝堂。`;
+    : limitReached
+      ? `已選滿 ${MAX_COMPARISON_COURSES} 門；若要更換，請先取消一門。`
+      : `已選 ${count} 門，可以開始比較。`;
   byId('run-ai-comparison').disabled = count < 2;
   byId('open-chatgpt-comparison').disabled = count < 2;
+  byId('clear-course-comparison').disabled = count === 0;
+  list.innerHTML = !courseStore.length
+    ? '<div class="comparison-picker-empty"><strong>尚無候選課程</strong><p>請先到「匯入／新增」加入課程。</p><button class="button button-quiet" type="button" data-open-add-panel>前往匯入／新增</button></div>'
+    : !visibleCourses.length
+      ? '<p class="comparison-picker-empty">找不到符合的候選課程，請調整關鍵字。</p>'
+      : visibleCourses.map((course) => {
+          const checked = comparisonCourseIds.includes(course.id);
+          const disabled = limitReached && !checked;
+          return `<label class="comparison-picker-course ${checked ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}">
+            <input type="checkbox" data-comparison-course="${escapeHtml(course.id)}" aria-label="選擇 ${escapeHtml(course.title)}進行課綱比較" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+            <span><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small><small>${escapeHtml(candidateScheduleSummary(course, dayLabels))}</small></span>
+            <b>${course.credits} 學分</b>
+          </label>`;
+        }).join('');
 }
 
 function comparisonRequestBody() {
@@ -970,7 +988,6 @@ function renderCatalog() {
   const filters = currentCatalogFilters();
   const visible = filterCandidateCourses(courseStore, filters);
   renderCatalogFilterCount(filters);
-  renderCourseComparisonTray();
   byId('catalog-count').textContent = `${visible.length} / ${courseStore.length}`;
   if (!visible.length) {
     catalogList.innerHTML = courseStore.length
@@ -1106,6 +1123,7 @@ function renderAll() {
   renderSchedule();
   renderWarnings();
   renderCatalog();
+  renderCourseComparisonPicker();
   renderConditions();
 }
 
@@ -1166,8 +1184,33 @@ byId('workspace-panel-ai').addEventListener('click', (event) => {
 
 byId('clear-course-comparison').addEventListener('click', () => {
   comparisonCourseIds = [];
-  byId('catalog-status').textContent = '已清除課程比較清單。';
-  renderCatalog();
+  renderCourseComparisonPicker();
+  byId('course-comparison-status').textContent = '已清除課程比較清單；請重新選擇至少兩門課。';
+});
+
+byId('comparison-course-search').addEventListener('input', (event) => {
+  comparisonSearchQuery = event.target.value;
+  renderCourseComparisonPicker();
+});
+
+byId('comparison-course-list').addEventListener('change', (event) => {
+  const input = event.target.closest('[data-comparison-course]');
+  if (!input) return;
+  const result = toggleComparisonCourse(
+    comparisonCourseIds,
+    input.dataset.comparisonCourse,
+    input.checked,
+    MAX_COMPARISON_COURSES,
+  );
+  comparisonCourseIds = result.ids;
+  renderCourseComparisonPicker();
+  if (result.limitReached) {
+    byId('course-comparison-status').textContent = `一次最多比較 ${MAX_COMPARISON_COURSES} 門課，請先移除一門。`;
+  }
+});
+
+byId('comparison-course-list').addEventListener('click', (event) => {
+  if (event.target.closest('[data-open-add-panel]')) setWorkspaceTab('add');
 });
 
 byId('open-comparison-profile').addEventListener('click', () => {
@@ -1178,17 +1221,17 @@ byId('open-comparison-profile').addEventListener('click', () => {
 });
 
 byId('run-ai-comparison').addEventListener('click', async () => {
-  const trayStatus = byId('course-comparison-status');
+  const pickerStatus = byId('course-comparison-status');
   const resultStatus = byId('ai-comparison-status');
   const button = byId('run-ai-comparison');
-  const apiKey = requireApiKeyForAi(trayStatus);
+  const apiKey = requireApiKeyForAi(pickerStatus);
   if (!apiKey) return;
   setWorkspaceTab('ai');
   setAiTool('comparison');
   setCompactView('tools');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
-  trayStatus.textContent = '正在讀取官方課綱並比較…';
+  pickerStatus.textContent = '正在讀取官方課綱並比較…';
   resultStatus.textContent = '正在分析共同主題、獨有內容、評量與負擔…';
   try {
     const response = await fetch('/api/ai/compare-courses', {
@@ -1204,10 +1247,10 @@ byId('run-ai-comparison').addEventListener('click', async () => {
       ? '比較完成，已加入你選填的個人目標與偏好。'
       : '比較完成；這次未填個人資料，因此只提供客觀比較。';
     byId('ai-course-comparison').scrollIntoView({ block: 'start' });
-    trayStatus.textContent = '比較完成，結果已顯示在「AI 功能」。';
+    pickerStatus.textContent = '比較完成，結果已顯示在「AI 功能」。';
   } catch (error) {
     const message = error?.message || '課綱比較失敗，請稍後重試。';
-    trayStatus.textContent = message;
+    pickerStatus.textContent = message;
     resultStatus.textContent = message;
   } finally {
     button.disabled = comparisonCourseIds.length < 2;
@@ -1216,7 +1259,7 @@ byId('run-ai-comparison').addEventListener('click', async () => {
 });
 
 byId('open-chatgpt-comparison').addEventListener('click', async () => {
-  const trayStatus = byId('course-comparison-status');
+  const pickerStatus = byId('course-comparison-status');
   const button = byId('open-chatgpt-comparison');
   const chatWindow = window.open('about:blank', '_blank');
   setWorkspaceTab('ai');
@@ -1224,7 +1267,7 @@ byId('open-chatgpt-comparison').addEventListener('click', async () => {
   setCompactView('tools');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');
-  trayStatus.textContent = '正在讀取官方課綱並準備提示詞…';
+  pickerStatus.textContent = '正在讀取官方課綱並準備提示詞…';
   try {
     const response = await fetch('/api/course-comparison/prompt', {
       method: 'POST',
@@ -1248,10 +1291,10 @@ byId('open-chatgpt-comparison').addEventListener('click', async () => {
       : '瀏覽器未允許自動複製，請使用下方按鈕手動複製後開啟 ChatGPT。';
     showChatGptComparisonRecovery(payload.prompt, message);
     byId('chatgpt-comparison-recovery').scrollIntoView({ block: 'start' });
-    trayStatus.textContent = message;
+    pickerStatus.textContent = message;
   } catch (error) {
     if (chatWindow && !chatWindow.closed) chatWindow.close();
-    trayStatus.textContent = error?.message || '無法產生 ChatGPT 比較提示詞。';
+    pickerStatus.textContent = error?.message || '無法產生 ChatGPT 比較提示詞。';
   } finally {
     button.disabled = comparisonCourseIds.length < 2;
     button.removeAttribute('aria-busy');
@@ -1523,22 +1566,6 @@ catalogList.addEventListener('click', async (event) => {
 });
 
 catalogList.addEventListener('change', (event) => {
-  const compareInput = event.target.closest('[data-compare-course]');
-  if (compareInput) {
-    const courseId = compareInput.dataset.compareCourse;
-    if (compareInput.checked && !comparisonCourseIds.includes(courseId)) {
-      if (comparisonCourseIds.length >= MAX_COMPARISON_COURSES) {
-        compareInput.checked = false;
-        byId('catalog-status').textContent = `一次最多比較 ${MAX_COMPARISON_COURSES} 門課，請先移除一門。`;
-        return;
-      }
-      comparisonCourseIds = [...comparisonCourseIds, courseId];
-    } else if (!compareInput.checked) {
-      comparisonCourseIds = comparisonCourseIds.filter((id) => id !== courseId);
-    }
-    renderCatalog();
-    return;
-  }
   const optionSelect = event.target.closest('[data-course-section], [data-course-arrangement], [data-course-variant], [data-course-advisor]');
   if (optionSelect) {
     const courseId = optionSelect.dataset.courseSection

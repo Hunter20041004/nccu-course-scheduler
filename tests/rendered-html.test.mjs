@@ -989,6 +989,18 @@ test('keeps comparison selection at five courses and explains the limit', async 
   assert.match(html, /一次最多比較 \$\{MAX_COMPARISON_COURSES\} 門課，請先移除一門/);
 });
 
+test('renders and updates the searchable AI comparison picker', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /let comparisonSearchQuery = ''/);
+  assert.match(html, /function renderCourseComparisonPicker\(\)/);
+  assert.match(html, /filterComparisonCourses\(courseStore, comparisonSearchQuery\)/);
+  assert.match(html, /data-comparison-course="\$\{escapeHtml\(course\.id\)\}"/);
+  assert.match(html, /candidateScheduleSummary\(course, dayLabels\)/);
+  assert.match(html, /byId\('comparison-course-search'\)\.addEventListener\('input'/);
+  assert.match(html, /byId\('comparison-course-list'\)\.addEventListener\('change'/);
+});
+
 test('renders a complete syllabus comparison with optional profile context and evidence limits', async () => {
   const html = await (await render()).text();
 
