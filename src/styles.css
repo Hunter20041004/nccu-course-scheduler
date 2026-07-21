@@ -151,7 +151,34 @@ h3 { margin: 0; font-size: .9rem; }
 .workspace-tabs button[aria-selected="true"] { background: var(--ink); color: #fff; }
 .workspace-tab-panel { min-height: 0; overflow: auto; padding: 14px; }
 .catalog-panel { display: flex; flex: 1 1 auto; flex-direction: column; overflow: hidden; }
-.catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 8px; margin: 10px 0 5px; }
+.catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; margin: 10px 0 5px; }
+.catalog-filter-toggle { display: flex; min-width: 108px; min-height: 44px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); padding: 0 10px; cursor: pointer; font-size: .75rem; font-weight: 850; transition: transform 120ms var(--ease-out), border-color 160ms ease, background-color 160ms ease; }
+.catalog-filter-toggle:hover, .catalog-filter-toggle[aria-expanded="true"] { border-color: var(--violet); background: var(--violet-soft); color: #51318C; }
+.catalog-filter-toggle:active { transform: scale(.98); }
+.catalog-filter-toggle.has-active-filters { border-color: var(--blue); color: var(--blue); }
+.catalog-filter-count { display: grid; min-width: 20px; height: 20px; place-items: center; border-radius: 999px; background: var(--blue); color: #fff; padding-inline: 5px; font-size: .61rem; font-variant-numeric: tabular-nums; }
+.catalog-filter-chevron { display: inline-block; font-size: 1rem; line-height: 1; transition: transform 180ms var(--ease-out); }
+.catalog-filter-toggle[aria-expanded="true"] .catalog-filter-chevron { transform: rotate(180deg); }
+.catalog-filter-panel { flex: 0 0 auto; max-height: min(48vh, 420px); margin: 3px 0 7px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius-control); background: linear-gradient(145deg, var(--surface) 0 70%, var(--violet-soft)); padding: 10px; scrollbar-gutter: stable; }
+.catalog-filter-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; padding-bottom: 9px; border-bottom: 1px solid var(--line); }
+.catalog-filter-heading strong { font-family: Georgia, "Noto Serif TC", serif; font-size: .86rem; }
+.catalog-filter-heading p { max-width: 42ch; margin: 2px 0 0; color: var(--muted); font-size: .65rem; line-height: 1.45; }
+.catalog-filter-heading button { flex: 0 0 auto; min-height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--violet); padding: 0 8px; cursor: pointer; font-size: .68rem; font-weight: 850; }
+.catalog-filter-heading button:hover { background: var(--violet-soft); }
+.catalog-filter-groups { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 10px; }
+.catalog-filter-groups fieldset { min-width: 0; margin: 0; border: 0; padding: 0; }
+.catalog-filter-groups legend { margin-bottom: 6px; color: var(--ink); font-size: .68rem; font-weight: 850; }
+.catalog-filter-options { display: flex; flex-wrap: wrap; gap: 5px; }
+.catalog-filter-options label { position: relative; display: block; min-width: 0; cursor: pointer; }
+.catalog-filter-options input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
+.catalog-filter-options span { display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 2px; border: 1px solid var(--line); border-radius: 7px; background: rgb(255 255 255 / 78%); color: var(--muted); padding: 5px 9px; font-size: .66rem; font-weight: 800; line-height: 1.2; text-align: center; transition: transform 120ms var(--ease-out), border-color 150ms ease, background-color 150ms ease, color 150ms ease; }
+.catalog-filter-options label:active span { transform: scale(.97); }
+.catalog-filter-options input:focus-visible + span { outline: 3px solid var(--sun); outline-offset: 2px; }
+.catalog-filter-options input:checked + span { border-color: var(--blue); background: var(--blue-soft); color: #1736A3; box-shadow: inset 0 0 0 1px var(--blue); }
+.catalog-filter-options small { display: block; color: inherit; font-size: .52rem; font-weight: 700; }
+.catalog-filter-days label { flex: 1 1 36px; }
+.catalog-filter-days span { padding-inline: 5px; }
+.catalog-filter-dayparts label { flex: 1 1 100%; }
 .catalog-empty { display: grid; place-items: center; gap: 10px; min-height: 220px; padding: 28px; border: 1px dashed var(--line-strong); border-radius: var(--radius-control); background: var(--canvas); text-align: center; }
 .catalog-empty strong { font-family: Georgia, "Noto Serif TC", serif; font-size: 1.05rem; }
 .catalog-empty p { max-width: 32ch; margin: 0; color: var(--muted); font-size: .78rem; line-height: 1.6; }
@@ -364,6 +391,9 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
   .workspace-panel { padding: 0; }
   .workspace-tab-panel { padding: 10px; }
   .catalog-tools, .profile-form, .internship-form, .manual-course-form, .course-option-controls, .nccu-search-control, .nccu-course-result { grid-template-columns: 1fr; }
+  .catalog-filter-toggle { width: 100%; }
+  .catalog-filter-panel { max-height: 54vh; }
+  .catalog-filter-groups { grid-template-columns: 1fr; }
   .nccu-course-result button { width: 100%; }
   .profile-helper, .internship-fixed-days, .internship-status, .form-wide, .course-option-controls p { grid-column: 1; }
   .section-heading h2 { font-size: 1.2rem; }

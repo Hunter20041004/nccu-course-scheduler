@@ -84,9 +84,50 @@
         <section id="workspace-panel-catalog" class="workspace-tab-panel catalog-panel" role="tabpanel" data-workspace-panel="catalog" data-testid="course-catalog" aria-labelledby="catalog-title">
           <div class="section-heading"><div><p class="eyebrow">RIGHT · COURSE BANK</p><h2 id="catalog-title">候選課程</h2></div><span id="catalog-count">0 / 0</span></div>
           <div class="catalog-tools">
-            <label>搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
-            <label>篩選<select id="catalog-filter"><option value="all">全部</option><option value="selected">已加入</option><option value="remote">可非同步</option><option value="review">資格待確認</option></select></label>
+            <label class="catalog-search-control">搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
+            <button id="catalog-filter-toggle" class="catalog-filter-toggle" type="button" aria-expanded="false" aria-controls="catalog-filter-panel">
+              <span>篩選</span>
+              <span id="catalog-filter-count" class="catalog-filter-count" aria-label="目前沒有套用複選條件" hidden>0</span>
+              <span class="catalog-filter-chevron" aria-hidden="true">⌄</span>
+            </button>
           </div>
+          <section id="catalog-filter-panel" class="catalog-filter-panel" aria-label="候選課程複選篩選" hidden>
+            <header class="catalog-filter-heading">
+              <div><strong>複選篩選</strong><p>同一類別符合任一項；不同類別需同時符合。</p></div>
+              <button id="clear-catalog-filters" type="button">清除篩選</button>
+            </header>
+            <div class="catalog-filter-groups">
+              <fieldset>
+                <legend>課程狀態</legend>
+                <div class="catalog-filter-options">
+                  <label><input type="checkbox" data-catalog-status-filter="selected"><span>已加入</span></label>
+                  <label><input type="checkbox" data-catalog-status-filter="remote"><span>可非同步</span></label>
+                  <label><input type="checkbox" data-catalog-status-filter="review"><span>資格待確認</span></label>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>星期</legend>
+                <div class="catalog-filter-options catalog-filter-days">
+                  <label><input type="checkbox" data-catalog-day-filter="1"><span>一</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="2"><span>二</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="3"><span>三</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="4"><span>四</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="5"><span>五</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="6"><span>六</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="7"><span>日</span></label>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>上課時段</legend>
+                <div class="catalog-filter-options catalog-filter-dayparts">
+                  <label><input type="checkbox" data-catalog-daypart-filter="morning"><span>早上<small>06:10–12:00</small></span></label>
+                  <label><input type="checkbox" data-catalog-daypart-filter="afternoon"><span>下午<small>12:10–18:00</small></span></label>
+                  <label><input type="checkbox" data-catalog-daypart-filter="evening"><span>晚上<small>18:10–22:00</small></span></label>
+                  <label><input type="checkbox" data-catalog-daypart-filter="flexible"><span>非同步／時間未定</span></label>
+                </div>
+              </fieldset>
+            </div>
+          </section>
           <p id="catalog-status" class="form-status catalog-status" aria-live="polite"></p>
           <div id="catalog-list" class="catalog-list"></div>
         </section>
@@ -221,6 +262,7 @@
           <h3>查看課程時間、完整詳細資料與官方課綱</h3>
           <ol class="guide-steps">
             <li>候選課程列會直接顯示課程時間與政大節次代號，例如「週四 34」。</li>
+            <li>課很多時，展開「篩選」：課程狀態、星期與上課時段可複選；同一類別符合任一項，不同類別要同時符合。「非同步／時間未定」可找沒有固定占用課表的課，按「清除篩選」可取消所有勾選，但不會清掉搜尋文字。</li>
             <li>按「詳細」會在該課程下方展開完整詳細資料；同時間只會展開一門，避免畫面互相遮住。</li>
             <li>完整資料包含課名、課號、授課教師、學分、上課時間、上課形式、修課資格、資料來源、官方備註與班別時段。</li>
             <li>課綱會顯示三種狀態：「可以查看課綱」可直接開啟政大官方頁面；「老師尚未上傳課綱」代表官方查詢成功，但老師目前還沒有提供課綱連結。</li>
