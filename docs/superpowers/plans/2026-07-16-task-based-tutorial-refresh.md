@@ -326,4 +326,3 @@ Confirm HTTP 200 and deployed HTML contains `guide-details`, `guide-attendance`,
 - `https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site/`
 
 Expected: both serve the exact updated tutorial.
-
