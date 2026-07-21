@@ -258,10 +258,11 @@ test('defines a native eight-step quick tour that can switch tabs without mutati
   assert.match(html, /id="quick-tour-next"/);
   assert.match(html, /id="quick-tour-end"/);
   assert.match(html, /const quickTourSteps = \[/);
-  for (const target of ['schedule-panel', 'workspace-panel-catalog', 'catalog-list', 'workspace-panel-conditions', 'workspace-panel-internship', 'workspace-panel-ai', 'workspace-panel-add', 'schedule-grid']) {
+  for (const target of ['schedule-panel', 'workspace-panel-catalog', 'catalog-list', 'workspace-panel-conditions', 'workspace-panel-internship', 'ai-feature-hub', 'workspace-panel-add', 'schedule-grid']) {
     assert.match(html, new RegExp(`target: '${target}'`));
   }
   assert.match(html, /setWorkspaceTab\(step\.tab\)/);
+  assert.match(html, /setAiTool\(step\.aiTool\)/);
   assert.match(html, /setCompactView\(step\.compactView\)/);
   assert.match(html, /targetElement\.scrollIntoView\(\{ block: 'nearest', inline: 'nearest' \}\)/);
   assert.doesNotMatch(html, /renderQuickTourStep[\s\S]{0,1600}persistState\(\)/);
@@ -547,6 +548,49 @@ test('collects the student profile and goals for AI planning', async () => {
   assert.match(html, /這學期想達成什麼/);
   assert.match(html, /個人敘述會以你的 Key 傳送給 Gemini/);
   assert.match(html, /id="ai-advisor-status"[^>]*aria-live="polite"/);
+});
+
+test('presents AI tools through a dedicated feature hub', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-workspace-tab="ai">AI 功能</);
+  assert.match(html, /id="ai-feature-hub"/);
+  assert.match(html, /data-ai-tool="advisor"[\s\S]*AI 排課推薦/);
+  assert.match(html, /data-ai-tool="comparison"[\s\S]*AI 課綱比較/);
+  assert.match(html, /id="ai-tool-advisor"[^>]*hidden/);
+  assert.match(html, /id="ai-tool-comparison"[^>]*hidden/);
+});
+
+test('switches AI tools in memory without clearing their state', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /let activeAiTool = 'hub'/);
+  assert.match(html, /function setAiTool\(name, \{ focus = false \} = \{\}\)/);
+  assert.match(html, /hub\.hidden = name !== 'hub'/);
+  assert.match(html, /advisor\.hidden = name !== 'advisor'/);
+  assert.match(html, /comparison\.hidden = name !== 'comparison'/);
+  assert.match(html, /setAiTool\('hub'/);
+  assert.doesNotMatch(html, /localStorage\.setItem\([^)]*activeAiTool/);
+});
+
+test('routes candidate comparison actions to the matching AI tool', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /byId\('open-comparison-profile'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('advisor'\)/);
+  assert.match(html, /byId\('run-ai-comparison'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('comparison'\);[\s\S]*?fetch\('\/api\/ai\/compare-courses'/);
+  assert.match(html, /byId\('open-chatgpt-comparison'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('comparison'\);[\s\S]*?fetch\('\/api\/course-comparison\/prompt'/);
+  assert.match(html, /比較完成，結果已顯示在「AI 功能」/);
+});
+
+test('styles and teaches the AI feature hub on desktop and phones', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.ai-feature-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(html, /\.ai-feature-card\s*\{[^}]*min-height:\s*210px/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.ai-feature-grid\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /title: 'AI 功能'/);
+  assert.match(html, /選擇「AI 排課推薦」或「AI 課綱比較」/);
+  assert.match(html, /href="#guide-ai">AI 功能</);
 });
 
 test('sends current courses locks and internship settings to the advisor API', async () => {
@@ -1004,7 +1048,7 @@ test('teaches first-time users how optional profile-aware course comparison work
   assert.match(html, /未填仍可取得客觀比較/);
   assert.match(html, /帶到 ChatGPT/);
   assert.match(html, /不會替你自動送出訊息/);
-  assert.match(html, /title: 'AI 推薦與課綱比較'/);
+  assert.match(html, /title: 'AI 功能'/);
 });
 
 test('keeps course comparison readable and actionable on phones', async () => {

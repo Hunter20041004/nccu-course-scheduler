@@ -150,6 +150,32 @@ h3 { margin: 0; font-size: .9rem; }
 .workspace-tabs button:hover { background: var(--canvas); color: var(--ink); }
 .workspace-tabs button[aria-selected="true"] { background: var(--ink); color: #fff; }
 .workspace-tab-panel { min-height: 0; overflow: auto; padding: 14px; }
+.ai-feature-hub { display: grid; gap: 18px; min-height: 100%; align-content: start; padding-top: 4px; }
+.ai-feature-hub > header { display: grid; gap: 5px; padding: 4px 2px 2px; }
+.ai-feature-hub h2, .ai-tool-heading h2 { margin: 0; font-family: Georgia, "Noto Serif TC", serif; font-size: 1.42rem; line-height: 1.08; letter-spacing: -.035em; }
+.ai-feature-hub > header > p:last-child { max-width: 52ch; margin: 3px 0 0; color: var(--muted); font-size: .76rem; line-height: 1.55; }
+.ai-feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ai-feature-card { position: relative; display: grid; min-width: 0; min-height: 210px; align-content: space-between; gap: 12px; overflow: hidden; border: 1px solid #B9C5EC; border-radius: var(--radius-panel); background: radial-gradient(circle at 88% 10%, rgb(231 164 58 / 28%) 0 34px, transparent 35px), linear-gradient(145deg, var(--surface), var(--blue-soft)); color: var(--ink); padding: 16px; text-align: left; cursor: pointer; isolation: isolate; transition: transform 140ms var(--ease-out), border-color 180ms ease, box-shadow 180ms ease; }
+.ai-feature-card:nth-child(2) { border-color: #C8BCE0; background: radial-gradient(circle at 88% 10%, rgb(36 70 216 / 16%) 0 34px, transparent 35px), linear-gradient(145deg, var(--surface), var(--violet-soft)); }
+.ai-feature-card:active { transform: scale(.98); }
+.ai-feature-card:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.ai-feature-index { color: var(--blue); font-size: .64rem; font-weight: 900; letter-spacing: .12em; }
+.ai-feature-card:nth-child(2) .ai-feature-index { color: var(--violet); }
+.ai-feature-card strong { align-self: end; font-family: Georgia, "Noto Serif TC", serif; font-size: 1.06rem; line-height: 1.2; }
+.ai-feature-card small { align-self: start; color: var(--muted); font-size: .7rem; line-height: 1.55; }
+.ai-feature-action { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid rgb(36 70 216 / 20%); padding-top: 10px; color: var(--blue); font-size: .7rem; font-weight: 900; }
+.ai-feature-action::after { content: "→"; font-size: 1rem; }
+.ai-feature-card:nth-child(2) .ai-feature-action { border-top-color: rgb(110 70 184 / 20%); color: var(--violet); }
+.ai-tool-view { display: grid; gap: 10px; }
+.ai-tool-heading { display: grid; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.ai-tool-back { justify-self: start; min-height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--violet); padding: 0 8px; cursor: pointer; font-size: .7rem; font-weight: 850; }
+.ai-tool-back::before { content: "←"; margin-right: 6px; }
+.ai-tool-back:hover { background: var(--violet-soft); }
+.ai-tool-view > p { margin: 0; color: var(--muted); font-size: .76rem; line-height: 1.55; }
+@media (hover: hover) and (pointer: fine) {
+  .ai-feature-card:hover { transform: translateY(-2px); border-color: var(--blue); box-shadow: 0 12px 28px rgb(36 70 216 / 10%); }
+  .ai-feature-card:nth-child(2):hover { border-color: var(--violet); box-shadow: 0 12px 28px rgb(110 70 184 / 10%); }
+}
 .catalog-panel { display: flex; flex: 1 1 auto; flex-direction: column; overflow: hidden; }
 .catalog-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; margin: 10px 0 5px; }
 .catalog-filter-toggle { display: flex; min-width: 108px; min-height: 44px; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line-strong); border-radius: var(--radius-control); background: var(--surface); color: var(--ink); padding: 0 10px; cursor: pointer; font-size: .75rem; font-weight: 850; transition: transform 120ms var(--ease-out), border-color 160ms ease, background-color 160ms ease; }
@@ -443,6 +469,8 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
   .panel, .schedule-panel { padding: 10px; }
   .workspace-panel { padding: 0; }
   .workspace-tab-panel { padding: 10px; }
+  .ai-feature-grid { grid-template-columns: 1fr; }
+  .ai-feature-card { min-height: 168px; }
   .catalog-tools, .profile-form, .internship-form, .manual-course-form, .course-option-controls, .nccu-search-control, .nccu-course-result { grid-template-columns: 1fr; }
   .catalog-filter-toggle { width: 100%; }
   .catalog-filter-panel { max-height: 54vh; }
