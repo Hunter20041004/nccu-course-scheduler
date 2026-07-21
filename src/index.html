@@ -163,10 +163,20 @@
             <p>依你的經歷、目標與實習安排產生三個推薦方案。</p>
             <p id="deployment-ai-note" class="privacy-note"></p>
             <form id="ai-advisor-form" class="ai-advisor-form">
-              <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
-              <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
-              <label>這學期想達成什麼<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：每週實習三天、完成 AI 作品並補足研究方法"></textarea></label>
-              <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
+              <div id="ai-advisor-profile-mount" class="shared-ai-profile-mount">
+                <details id="shared-ai-profile" class="shared-ai-profile" open>
+                  <summary>
+                    <span><strong>個人資料（選填）</strong><small>填寫後，AI 會加入更貼近你的取捨建議。</small></span>
+                    <b id="shared-ai-profile-completion">尚未填寫</b>
+                  </summary>
+                  <div class="shared-ai-profile-fields">
+                    <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
+                    <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
+                    <label>這學期想達成什麼<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：每週實習三天、完成 AI 作品並補足研究方法"></textarea></label>
+                    <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
+                  </div>
+                </details>
+              </div>
               <p class="privacy-note">個人敘述會以你的 Key 傳送給 Gemini，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
               <button class="button button-primary" type="submit">產生三個推薦方案</button>
               <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
@@ -183,6 +193,7 @@
             <section id="ai-course-comparison" class="ai-comparison">
               <header><strong>已選課程比較</strong><span>2–5 門</span></header>
               <p class="section-helper">在這裡搜尋並勾選要比較的候選課程。個人資料皆為選填；填寫後會多一層個人化建議，未填仍會提供客觀比較。</p>
+              <div id="ai-comparison-profile-mount" class="shared-ai-profile-mount"></div>
               <section id="course-comparison-picker" class="course-comparison-picker" aria-labelledby="course-comparison-picker-title">
                 <header>
                   <div><strong id="course-comparison-picker-title">選擇候選課程</strong><span id="comparison-selected-count">0 / 5</span></div>
@@ -194,7 +205,6 @@
                 </label>
                 <div id="comparison-course-list" class="comparison-course-list"></div>
                 <p id="course-comparison-status" class="form-status" aria-live="polite">請選擇至少兩門課。</p>
-                <p class="comparison-profile-hint">建議先填寫目標與偏好，比對會更精準。<button id="open-comparison-profile" type="button">前往填寫</button></p>
                 <div class="course-comparison-actions">
                   <button id="open-chatgpt-comparison" class="button button-quiet" type="button" disabled>帶到 ChatGPT</button>
                   <button id="run-ai-comparison" class="button button-primary" type="button" disabled>AI 比較</button>

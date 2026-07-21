@@ -860,10 +860,7 @@ function renderCourseComparisonPicker() {
 
 function comparisonRequestBody() {
   return {
-    profileText: byId('ai-profile').value,
-    futureDirection: byId('ai-future').value,
-    semesterGoals: byId('ai-goals').value,
-    preferences: byId('ai-preferences').value,
+    ...readSharedAiProfile(),
     courses: comparisonCourseIds.map((id) => {
       const course = selected.find((item) => item.id === id)
         || courseStore.find((item) => item.id === id);
@@ -1149,6 +1146,28 @@ function setWorkspaceTab(name) {
   });
 }
 
+function readSharedAiProfile() {
+  return {
+    profileText: byId('ai-profile').value,
+    futureDirection: byId('ai-future').value,
+    semesterGoals: byId('ai-goals').value,
+    preferences: byId('ai-preferences').value,
+  };
+}
+
+function updateSharedAiProfileCompletion() {
+  byId('shared-ai-profile-completion').textContent = aiProfileCompletionLabel(readSharedAiProfile());
+}
+
+function mountSharedAiProfile(toolName) {
+  if (!['advisor', 'comparison'].includes(toolName)) return;
+  const target = byId(toolName === 'advisor' ? 'ai-advisor-profile-mount' : 'ai-comparison-profile-mount');
+  const profileSection = byId('shared-ai-profile');
+  target.append(profileSection);
+  profileSection.open = toolName === 'advisor';
+  updateSharedAiProfileCompletion();
+}
+
 function setAiTool(name, { focus = false } = {}) {
   if (!['hub', 'advisor', 'comparison'].includes(name)) return;
   activeAiTool = name;
@@ -1158,6 +1177,7 @@ function setAiTool(name, { focus = false } = {}) {
   hub.hidden = name !== 'hub';
   advisor.hidden = name !== 'advisor';
   comparison.hidden = name !== 'comparison';
+  mountSharedAiProfile(name);
   if (!focus) return;
   const heading = name === 'hub'
     ? byId('ai-feature-hub-title')
@@ -1181,6 +1201,9 @@ byId('workspace-panel-ai').addEventListener('click', (event) => {
   }
   if (event.target.closest('[data-ai-tool-back]')) setAiTool('hub', { focus: true });
 });
+
+byId('shared-ai-profile').addEventListener('input', updateSharedAiProfileCompletion);
+updateSharedAiProfileCompletion();
 
 byId('clear-course-comparison').addEventListener('click', () => {
   comparisonCourseIds = [];
@@ -1211,13 +1234,6 @@ byId('comparison-course-list').addEventListener('change', (event) => {
 
 byId('comparison-course-list').addEventListener('click', (event) => {
   if (event.target.closest('[data-open-add-panel]')) setWorkspaceTab('add');
-});
-
-byId('open-comparison-profile').addEventListener('click', () => {
-  setWorkspaceTab('ai');
-  setAiTool('advisor');
-  byId('ai-future').focus();
-  byId('ai-advisor-form').scrollIntoView({ block: 'start' });
 });
 
 byId('run-ai-comparison').addEventListener('click', async () => {
@@ -1929,10 +1945,7 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         apiKey,
-        profileText: byId('ai-profile').value,
-        futureDirection: byId('ai-future').value,
-        semesterGoals: byId('ai-goals').value,
-        preferences: byId('ai-preferences').value,
+        ...readSharedAiProfile(),
         internshipSettings,
         courses: courseStore.map((course) => {
           const effectiveCourse = selected.find((item) => item.id === course.id) || course;

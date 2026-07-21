@@ -550,6 +550,17 @@ test('collects the student profile and goals for AI planning', async () => {
   assert.match(html, /id="ai-advisor-status"[^>]*aria-live="polite"/);
 });
 
+test('renders one shared AI profile with a mount in each tool', async () => {
+  const html = await (await render()).text();
+  for (const id of ['ai-profile', 'ai-future', 'ai-goals', 'ai-preferences']) {
+    assert.equal((html.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1);
+  }
+  assert.match(html, /id="ai-advisor-profile-mount"/);
+  assert.match(html, /id="ai-comparison-profile-mount"/);
+  assert.match(html, /id="shared-ai-profile"/);
+  assert.doesNotMatch(html, /id="open-comparison-profile"/);
+});
+
 test('presents AI tools through a dedicated feature hub', async () => {
   const html = await (await render()).text();
 
@@ -573,10 +584,25 @@ test('switches AI tools in memory without clearing their state', async () => {
   assert.doesNotMatch(html, /localStorage\.setItem\([^)]*activeAiTool/);
 });
 
+test('moves the same AI profile between tools and updates completion', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /function readSharedAiProfile\(\)/);
+  assert.match(html, /function mountSharedAiProfile\(toolName\)/);
+  assert.match(html, /target\.append\(profileSection\)/);
+  assert.match(html, /profileSection\.open = toolName === 'advisor'/);
+  assert.match(html, /byId\('shared-ai-profile'\)\.addEventListener\('input', updateSharedAiProfileCompletion\)/);
+});
+
+test('uses one shared AI profile object for planning and comparison requests', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /function comparisonRequestBody\(\)\s*\{\s*return \{\s*\.\.\.readSharedAiProfile\(\),/s);
+  assert.match(html, /fetch\('\/api\/ai\/recommend-plans'[\s\S]*?body: JSON\.stringify\(\{\s*apiKey,\s*\.\.\.readSharedAiProfile\(\),/);
+});
+
 test('routes candidate comparison actions to the matching AI tool', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /byId\('open-comparison-profile'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('advisor'\)/);
+  assert.doesNotMatch(html, /open-comparison-profile/);
   assert.match(html, /byId\('run-ai-comparison'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('comparison'\);[\s\S]*?fetch\('\/api\/ai\/compare-courses'/);
   assert.match(html, /byId\('open-chatgpt-comparison'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('comparison'\);[\s\S]*?fetch\('\/api\/course-comparison\/prompt'/);
   assert.match(html, /比較完成，結果已顯示在「AI 功能」/);
@@ -1007,10 +1033,7 @@ test('renders a complete syllabus comparison with optional profile context and e
   assert.match(html, /id="ai-comparison-status"[^>]*aria-live="polite"/);
   assert.match(html, /id="ai-comparison-results"[^>]*aria-live="polite"/);
   assert.match(html, /function comparisonRequestBody\(\)/);
-  assert.match(html, /profileText:\s*byId\('ai-profile'\)\.value/);
-  assert.match(html, /futureDirection:\s*byId\('ai-future'\)\.value/);
-  assert.match(html, /semesterGoals:\s*byId\('ai-goals'\)\.value/);
-  assert.match(html, /preferences:\s*byId\('ai-preferences'\)\.value/);
+  assert.match(html, /\.\.\.readSharedAiProfile\(\)/);
   assert.match(html, /function renderCourseComparison\(payload\)/);
   assert.match(html, /客觀比較/);
   assert.match(html, /個人化建議/);
