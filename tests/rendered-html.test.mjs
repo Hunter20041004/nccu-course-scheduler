@@ -9,6 +9,10 @@ async function render() {
   return worker.fetch(new Request('http://localhost/'));
 }
 
+function tutorialDialog(html) {
+  return html.match(/<dialog id="tutorial-center"[\s\S]*?<dialog id="api-key-dialog"/)?.[0] ?? '';
+}
+
 test('serves the private NCCU course scheduler with schedule before catalog', async () => {
   const response = await render();
   const html = await response.text();
@@ -134,6 +138,36 @@ test('teaches the complete current scheduling workflow in nine task-based chapte
   assert.match(html, /byId\('open-tutorial-center'\)\.addEventListener\('click', openTutorialCenter\)/);
 });
 
+test('teaches that refreshing an existing candidate preserves personal scheduling decisions', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  assert.match(tutorial, /更新官方資料/);
+  assert.match(tutorial, /保留你目前的選課、鎖定、上課方式與班別安排/);
+});
+
+test('explains all three official syllabus states and the retry action', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  for (const copy of [
+    '可以查看課綱',
+    '老師尚未上傳課綱',
+    '課綱狀態暫時無法確認',
+    '重新查詢官方資料',
+  ]) {
+    assert.match(tutorial, new RegExp(copy));
+  }
+});
+
+test('explains safe recovery when an official refresh fails or succeeds', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  assert.match(tutorial, /重新查詢失敗時，原有候選課程與排課資料會保留/);
+  assert.match(tutorial, /更新成功後，重新整理網頁仍會保留新的官方資料/);
+});
+
 test('marks quick tour skipped or completed without changing planner data', async () => {
   const html = await (await render()).text();
 
@@ -163,6 +197,8 @@ test('aligns the first-use message and eight-step tour with the current workflow
   for (const copy of [
     '課名、教師、課號、學分、時間與資格狀態',
     '完整詳細資料',
+    '更新官方資料',
+    '保留選課、鎖定、上課方式與班別安排',
     '實體／同步／非同步',
     '最低學分',
     '手動新增課程',
