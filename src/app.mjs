@@ -31,7 +31,7 @@ let expandedCourseId = null;
 const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表總覽', body: '左側使用政大官方節次，會顯示週一到週日、實習保留、課程衝堂、非同步工作區與排課提醒。' },
   { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '每列會顯示課名、教師、課號、學分、時間與資格狀態；點課程主區塊可加入或移出左側課表。' },
-  { target: 'catalog-list', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」展開完整詳細資料並切換實體／同步／非同步；課綱、鎖定與刪除集中在「•••」更多選單。' },
+  { target: 'catalog-list', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」查看完整詳細資料並切換實體／同步／非同步；已在候選的課可用「更新官方資料」補齊最新官方欄位，並保留選課、鎖定、上課方式與班別安排。課綱與其他管理操作在「•••」。' },
   { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '逐項標記符合、不符合或待確認的系所、雙主修、學程、年級與先修條件，並查看每個條件會影響哪些課。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
   { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、學期目標、最低學分、實習天數與課程偏好，產生三個可預覽的無衝堂方案；使用時才需要 API Key。' },
