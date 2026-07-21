@@ -1,7 +1,7 @@
 const byId = (id) => document.getElementById(id);
 const FIRST_USE_TUTORIAL_SEEN_KEY = 'sunbreak:first-use-tutorial-seen:v1';
 const SCHEDULE_VIEW_KEY = 'sunbreak:schedule-view:v1';
-const FULL_LIVE_DEMO_URL = 'https://nccu-course-planner-1151.huntertseng.chatgpt.site';
+const FULL_LIVE_DEMO_URL = 'https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site';
 const isStaticFallbackHost = location.hostname.endsWith('github.io');
 const apiKeySession = createApiKeySession();
 const defaultProfile = {
