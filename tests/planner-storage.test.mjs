@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createStartupCatalog, parsePlannerState, serializePlannerState } from '../src/planner-storage.mjs';
+import {
+  createStartupCatalog,
+  migratePlannerState,
+  parsePlannerState,
+  persistedCourseAdditions,
+  serializePlannerState,
+} from '../src/planner-storage.mjs';
 
 test('starts new visitors empty but rebuilds the legacy catalog for saved users', () => {
   const official = [{ id: 'hci', title: '人機互動' }];
@@ -33,6 +39,34 @@ test('repairs informational official rules while restoring saved courses', () =>
   assert.deepEqual(restored.conditions, ['日文系擴大輔系課程']);
 });
 
+test('persists and restores a refreshed official seed course as one authoritative candidate', () => {
+  const seed = {
+    id: 'hci',
+    title: '人機互動',
+    sectionCode: '703055001',
+    source: 'catalog',
+  };
+  const refreshed = {
+    ...seed,
+    source: 'nccu-verified-import',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/hci.html',
+    syllabus: {
+      status: 'available',
+      url: 'https://newdoc.nccu.edu.tw/teaschm/1151/hci.html',
+      checkedAt: '2026-07-17T12:00:00.000Z',
+    },
+  };
+
+  const savedAdditions = persistedCourseAdditions([refreshed], [seed]);
+  const restored = createStartupCatalog({
+    addedCourses: savedAdditions,
+    deletedCourseIds: [],
+  }, [seed]);
+
+  assert.deepEqual(savedAdditions, [refreshed]);
+  assert.deepEqual(restored, [refreshed]);
+});
+
 test('migrates a complete version-three state to generalized condition ids without data loss', () => {
   const state = {
     selectedIds: ['agentic-ai'],
@@ -55,6 +89,13 @@ test('migrates a complete version-three state to generalized condition ids witho
     parsePlannerState(JSON.stringify({ version: 3, state }), null),
     {
       ...state,
+      courseOptions: {
+        'ai-practical-project': {
+          sectionId: '070395001',
+          advisorId: null,
+          arrangementId: null,
+        },
+      },
       profile: {
         ...state.profile,
         conditionIds: ['program:innovation', 'prerequisite:statistics'],
@@ -73,14 +114,73 @@ test('round-trips versioned planner state', () => {
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
 });
 
-test('uses storage version four for imported and pending courses', () => {
+test('uses storage version six for explicit syllabus state', () => {
   const state = {
     selectedIds: [],
     addedCourses: [{ id: 'ai-123' }],
     pendingCourses: [{ title: '待確認課' }],
   };
-  assert.equal(JSON.parse(serializePlannerState(state)).version, 4);
+  assert.equal(JSON.parse(serializePlannerState(state)).version, 6);
   assert.deepEqual(parsePlannerState(serializePlannerState(state), null), state);
+});
+
+test('migrates a legacy official course without source evidence to unverified', () => {
+  const stored = JSON.stringify({
+    version: 5,
+    state: {
+      selectedIds: ['ai-703055001'],
+      lockedCourseIds: ['ai-703055001'],
+      attendance: { 'ai-703055001': 'async' },
+      addedCourses: [{
+        id: 'ai-703055001',
+        sectionCode: '703055001',
+        source: 'nccu-verified-import',
+        sourceUrl: '',
+      }],
+    },
+  });
+
+  const migrated = parsePlannerState(stored, null);
+
+  assert.equal(migrated.addedCourses[0].syllabus.status, 'unverified');
+  assert.deepEqual(migrated.selectedIds, ['ai-703055001']);
+  assert.deepEqual(migrated.lockedCourseIds, ['ai-703055001']);
+  assert.equal(migrated.attendance['ai-703055001'], 'async');
+});
+
+test('migrates legacy AI project variant choices into atomic section choices', () => {
+  const state = {
+    selectedIds: ['ai-practical-project'],
+    lockedCourseIds: ['ai-practical-project'],
+    courseOptions: {
+      'ai-practical-project': {
+        variantId: '783006001',
+        advisorId: 'wei-flexible',
+      },
+    },
+  };
+
+  const migrated = parsePlannerState(JSON.stringify({ version: 4, state }), null);
+
+  assert.deepEqual(migrated.courseOptions['ai-practical-project'], {
+    sectionId: '783006001',
+    advisorId: null,
+    arrangementId: 'wei-flexible',
+  });
+  assert.deepEqual(migrated.selectedIds, ['ai-practical-project']);
+  assert.deepEqual(migrated.lockedCourseIds, ['ai-practical-project']);
+});
+
+test('planner migration is idempotent', () => {
+  const legacy = {
+    selectedIds: ['ai-practical-project'],
+    courseOptions: {
+      'ai-practical-project': { variantId: '783006001', advisorId: 'wei-tuesday-34c' },
+    },
+  };
+
+  const migrated = migratePlannerState(legacy);
+  assert.deepEqual(migratePlannerState(migrated), migrated);
 });
 
 test('returns the fallback for corrupt or incompatible storage', () => {

@@ -37,21 +37,21 @@ test('marks a program-only junior course eligible for a matching year-three stud
   );
 });
 
-test('marks a graduate course that opens to juniors as conditional for an undergraduate', () => {
+test('marks a graduate course that opens to juniors for review', () => {
   assert.deepEqual(
     core.evaluateEligibility({ level: 'graduate', openToUndergradYear: 3 }, profile),
-    { status: 'conditional', reasons: ['碩士班課程，課綱開放大三以上，需確認學分認列'] },
+    { status: 'review', reasons: ['碩士班課程，課綱開放大三以上，需確認學分認列'] },
   );
 });
 
-test('marks a graduate course requiring undergraduate review as conditional', () => {
+test('marks a graduate course requiring undergraduate review for review', () => {
   assert.deepEqual(
     core.evaluateEligibility({ level: 'graduate', undergradReview: true }, profile),
-    { status: 'conditional', reasons: ['碩士班課程，學士生須確認選課資格與學分認列'] },
+    { status: 'review', reasons: ['碩士班課程，學士生須確認選課資格與學分認列'] },
   );
 });
 
-test('marks a missing review condition conditional with its rationale', () => {
+test('marks a missing review condition for review with its rationale', () => {
   assert.deepEqual(
     core.evaluateEligibility({
       eligibilityRules: [{
@@ -61,8 +61,44 @@ test('marks a missing review condition conditional with its rationale', () => {
       }],
     }, { ...profile, conditionIds: [] }),
     {
-      status: 'conditional',
+      status: 'review',
       reasons: ['建議具備 Python 基礎，未具備者須先與教師確認。'],
+    },
+  );
+});
+
+test('marks an unanswered required official condition for review', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({
+      eligibilityRules: [{
+        conditionId: 'official-restriction:509041001',
+        enforcement: 'required',
+        rationale: '僅限歐文系及雙主修學生修讀',
+      }],
+    }, { ...profile, conditionIds: [], rejectedConditionIds: [] }),
+    {
+      status: 'review',
+      reasons: ['僅限歐文系及雙主修學生修讀'],
+    },
+  );
+});
+
+test('blocks a required official condition the student rejected', () => {
+  assert.deepEqual(
+    core.evaluateEligibility({
+      eligibilityRules: [{
+        conditionId: 'official-restriction:509041001',
+        enforcement: 'required',
+        rationale: '僅限歐文系及雙主修學生修讀',
+      }],
+    }, {
+      ...profile,
+      conditionIds: [],
+      rejectedConditionIds: ['official-restriction:509041001'],
+    }),
+    {
+      status: 'blocked',
+      reasons: ['僅限歐文系及雙主修學生修讀'],
     },
   );
 });
@@ -348,6 +384,85 @@ test('resolves the AI project advisor to the correct mutually exclusive meeting'
   assert.equal(resolved.selectedVariantId, '070395001');
   assert.equal(resolved.schedule.label, '週二 D56');
   assert.equal(resolved.optionStatus, 'resolved');
+});
+
+test('switches an atomic section without mixing metadata from the previous section', () => {
+  const course = {
+    id: 'ai-practical-project',
+    title: '人工智慧實務專題',
+    sectionCode: '070395001',
+    teacher: '其他老師',
+    credits: 2,
+    schedule: { day: 6, start: 550, end: 720, label: '週六 234' },
+    sourceUrl: 'https://example.edu/old',
+    eligibilityRules: [{ conditionId: 'old' }],
+    sections: [{
+      id: '783006001',
+      sectionCode: '783006001',
+      teacher: '魏綾音',
+      credits: 3,
+      sourceUrl: 'https://example.edu/783006001',
+      eligibilityRules: [{ conditionId: 'ai-program' }],
+      arrangements: [{
+        id: 'wei-tuesday-34c',
+        schedule: { day: 2, start: 610, end: 780, label: '週二 34C' },
+      }],
+    }],
+  };
+
+  const resolved = core.selectCourseSection(course, {
+    sectionId: '783006001',
+    arrangementId: 'wei-tuesday-34c',
+  });
+
+  assert.deepEqual({
+    id: resolved.id,
+    sectionCode: resolved.sectionCode,
+    teacher: resolved.teacher,
+    credits: resolved.credits,
+    schedule: resolved.schedule,
+    sourceUrl: resolved.sourceUrl,
+    eligibilityRules: resolved.eligibilityRules,
+    selectedSectionId: resolved.selectedSectionId,
+  }, {
+    id: 'ai-practical-project',
+    sectionCode: '783006001',
+    teacher: '魏綾音',
+    credits: 3,
+    schedule: { day: 2, start: 610, end: 780, label: '週二 34C' },
+    sourceUrl: 'https://example.edu/783006001',
+    eligibilityRules: [{ conditionId: 'ai-program' }],
+    selectedSectionId: '783006001',
+  });
+});
+
+test('marks a flexible section arrangement as physical time awaiting confirmation', () => {
+  const course = {
+    id: 'ai-practical-project',
+    attendance: 'physical',
+    sections: [{
+      id: '783006001',
+      sectionCode: '783006001',
+      teacher: '魏綾音',
+      deliveryMode: 'in-person',
+      arrangements: [{
+        id: 'wei-flexible',
+        schedule: null,
+        optionMessage: '另約討論時間（中午時段亦可）',
+      }],
+    }],
+  };
+
+  const resolved = core.selectCourseSection(course, {
+    sectionId: '783006001',
+    arrangementId: 'wei-flexible',
+  });
+
+  assert.equal(resolved.schedule, null);
+  assert.deepEqual(resolved.meetings, []);
+  assert.equal(resolved.attendance, 'physical');
+  assert.equal(resolved.optionStatus, 'flexible');
+  assert.equal(resolved.optionMessage, '時間待確認：另約討論時間（中午時段亦可）');
 });
 
 test('keeps the selected section while waiting for an advisor choice', () => {

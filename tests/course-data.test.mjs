@@ -38,6 +38,19 @@ test('models Wei Lingyin project discussions as two mutually exclusive arrangeme
   assert.equal(variant.advisors[1].optionMessage, '另約討論時間（中午時段亦可）');
 });
 
+test('keeps the Wei Lingyin NCCU section as one atomic record', () => {
+  const course = courses.find(({ id }) => id === 'ai-practical-project');
+  const section = course.sections.find(({ id }) => id === '783006001');
+
+  assert.equal(section.sectionCode, '783006001');
+  assert.equal(section.teacher, '魏綾音');
+  assert.equal(section.credits, 3);
+  assert.deepEqual(section.arrangements.map(({ id }) => id), [
+    'wei-tuesday-34c',
+    'wei-flexible',
+  ]);
+});
+
 test('routes FinTech Introduction through undergraduate eligibility review', () => {
   const course = courses.find(({ id }) => id === 'fintech-intro');
 

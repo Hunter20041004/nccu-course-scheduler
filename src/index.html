@@ -21,17 +21,37 @@
     </div>
     <section class="header-metrics" aria-label="排課摘要">
       <div><small>已選學分</small><strong id="credit-value">17</strong></div>
-      <div><small>可實習</small><strong id="internship-value">3 天</strong></div>
+      <div>
+        <small>可實習</small>
+        <strong id="internship-value">
+          <span>已確認 <span id="internship-confirmed-value">3</span> 天</span>
+          <span>待確認 <span id="internship-pending-value">0</span> 天</span>
+        </strong>
+      </div>
       <div><small>待處理</small><strong id="warning-value">0</strong></div>
     </section>
     <div class="header-actions">
       <button id="open-tutorial-center" class="button button-quiet" type="button">使用教學</button>
       <button id="api-key-status-button" class="button button-quiet" type="button">API Key 未設定</button>
-      <button id="clear-schedule" class="button button-quiet" type="button">清空目前課表</button>
-      <button id="clear-candidates" class="button button-danger" type="button">清空候選課程</button>
+      <details id="header-more-menu" class="header-more-menu">
+        <summary class="button button-quiet">更多操作</summary>
+        <div class="header-more-popover" role="menu">
+          <button id="export-planner-data" type="button" role="menuitem">匯出排課資料</button>
+          <label class="header-file-action" role="menuitem">從檔案匯入<input id="import-planner-data" type="file" accept="application/json,.json" hidden></label>
+          <a id="export-and-open-full" href="https://nccu-course-planner-1151.huntertseng.chatgpt.site" target="_blank" rel="noopener noreferrer" role="menuitem" hidden>匯出並前往完整版</a>
+          <button id="clear-schedule" type="button" role="menuitem">清空目前課表</button>
+          <button id="clear-candidates" class="is-danger" type="button" role="menuitem">清空候選課程</button>
+          <p id="planner-transfer-status" aria-live="polite"></p>
+        </div>
+      </details>
     </div>
     <div id="internship-progress" class="sunline" role="progressbar" aria-label="實習時間達成率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><span></span></div>
   </header>
+
+  <div id="planner-undo-toast" class="planner-undo-toast" role="status" aria-live="polite" hidden>
+    <span id="planner-undo-message"></span>
+    <button id="restore-planner-change" type="button">復原</button>
+  </div>
 
   <main>
     <p id="planner-status" class="form-status planner-status" aria-live="polite"></p>
@@ -42,11 +62,12 @@
     </div>
 
     <div id="planner-workbench" class="planner-layout" data-compact-view="schedule">
-      <section class="panel schedule-panel" data-testid="schedule-panel" aria-labelledby="schedule-title">
-        <div class="section-heading"><div><p class="eyebrow">LEFT · MY WEEK</p><h2 id="schedule-title">課表</h2></div><div class="schedule-actions"><button id="export-wallpaper" class="button button-primary" type="button">匯出手機桌布</button><span class="status-pill">實習時間達標</span></div></div>
+      <section class="panel schedule-panel" data-testid="schedule-panel" data-schedule-view="grid" aria-labelledby="schedule-title">
+        <div class="section-heading"><div><p class="eyebrow">LEFT · MY WEEK</p><h2 id="schedule-title">課表</h2></div><div class="schedule-actions"><div id="schedule-view-switch" class="schedule-view-switch" aria-label="課表顯示方式"><button type="button" data-schedule-view="agenda" aria-pressed="false">行程</button><button type="button" data-schedule-view="grid" aria-pressed="true">方格</button></div><button id="export-wallpaper" class="button button-primary" type="button">匯出手機桌布</button><span class="status-pill">實習時間達標</span></div></div>
         <div class="schedule-scroll" aria-label="政大官方節次課表">
           <div id="schedule-grid" class="nccu-grid" role="table" aria-live="polite"></div>
         </div>
+        <div id="schedule-agenda" class="schedule-agenda" aria-live="polite"></div>
         <section class="async-section"><h3>非同步工作區</h3><div id="async-lane"></div></section>
         <section class="warning-section"><h3>排課提醒</h3><div id="warning-list" aria-live="polite"></div></section>
       </section>
@@ -54,7 +75,7 @@
       <aside class="panel workspace-panel" aria-label="排課工具">
         <div id="workspace-tabs" class="workspace-tabs" role="tablist" aria-label="排課工具">
           <button type="button" role="tab" aria-selected="true" aria-controls="workspace-panel-catalog" data-workspace-tab="catalog">候選課程</button>
-          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-ai" data-workspace-tab="ai">AI 推薦</button>
+          <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-ai" data-workspace-tab="ai">AI 功能</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-conditions" data-workspace-tab="conditions">選課條件</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-internship" data-workspace-tab="internship">實習設定</button>
           <button type="button" role="tab" aria-selected="false" aria-controls="workspace-panel-add" data-workspace-tab="add">匯入／新增</button>
@@ -63,27 +84,131 @@
         <section id="workspace-panel-catalog" class="workspace-tab-panel catalog-panel" role="tabpanel" data-workspace-panel="catalog" data-testid="course-catalog" aria-labelledby="catalog-title">
           <div class="section-heading"><div><p class="eyebrow">RIGHT · COURSE BANK</p><h2 id="catalog-title">候選課程</h2></div><span id="catalog-count">0 / 0</span></div>
           <div class="catalog-tools">
-            <label>搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
-            <label>篩選<select id="catalog-filter"><option value="all">全部</option><option value="selected">已加入</option><option value="remote">可非同步</option><option value="conditional">資格需確認</option></select></label>
+            <label class="catalog-search-control">搜尋課名、教師或課號<input id="catalog-search" type="search" placeholder="例如：人機互動"></label>
+            <button id="catalog-filter-toggle" class="catalog-filter-toggle" type="button" aria-expanded="false" aria-controls="catalog-filter-panel">
+              <span>篩選</span>
+              <span id="catalog-filter-count" class="catalog-filter-count" aria-label="目前沒有套用複選條件" hidden>0</span>
+              <span class="catalog-filter-chevron" aria-hidden="true">⌄</span>
+            </button>
           </div>
+          <section id="catalog-filter-panel" class="catalog-filter-panel" aria-label="候選課程複選篩選" hidden>
+            <header class="catalog-filter-heading">
+              <div><strong>複選篩選</strong><p>同一類別符合任一項；不同類別需同時符合。</p></div>
+              <button id="clear-catalog-filters" type="button">清除篩選</button>
+            </header>
+            <div class="catalog-filter-groups">
+              <fieldset>
+                <legend>課程狀態</legend>
+                <div class="catalog-filter-options">
+                  <label><input type="checkbox" data-catalog-status-filter="selected"><span>已加入</span></label>
+                  <label><input type="checkbox" data-catalog-status-filter="remote"><span>可非同步</span></label>
+                  <label><input type="checkbox" data-catalog-status-filter="review"><span>資格待確認</span></label>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>星期</legend>
+                <div class="catalog-filter-options catalog-filter-days">
+                  <label><input type="checkbox" data-catalog-day-filter="1"><span>一</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="2"><span>二</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="3"><span>三</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="4"><span>四</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="5"><span>五</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="6"><span>六</span></label>
+                  <label><input type="checkbox" data-catalog-day-filter="7"><span>日</span></label>
+                </div>
+              </fieldset>
+              <fieldset>
+                <legend>上課時段</legend>
+                <div class="catalog-filter-options catalog-filter-dayparts">
+                  <label><input type="checkbox" data-catalog-daypart-filter="morning"><span>早上<small>06:10–12:00</small></span></label>
+                  <label><input type="checkbox" data-catalog-daypart-filter="afternoon"><span>下午<small>12:10–18:00</small></span></label>
+                  <label><input type="checkbox" data-catalog-daypart-filter="evening"><span>晚上<small>18:10–22:00</small></span></label>
+                  <label><input type="checkbox" data-catalog-daypart-filter="flexible"><span>非同步／時間未定</span></label>
+                </div>
+              </fieldset>
+            </div>
+          </section>
           <p id="catalog-status" class="form-status catalog-status" aria-live="polite"></p>
           <div id="catalog-list" class="catalog-list"></div>
+          <section id="course-comparison-tray" class="course-comparison-tray" aria-labelledby="course-comparison-title" hidden>
+            <header>
+              <div><strong id="course-comparison-title">比較課程</strong><span id="comparison-selected-count">0 / 5</span></div>
+              <button id="clear-course-comparison" type="button">清除</button>
+            </header>
+            <p id="course-comparison-status" class="form-status" aria-live="polite">請選擇至少兩門課。</p>
+            <p class="comparison-profile-hint">建議先填寫目標與偏好，比對會更精準。<button id="open-comparison-profile" type="button">前往填寫</button></p>
+            <div class="course-comparison-actions">
+              <button id="open-chatgpt-comparison" class="button button-quiet" type="button" disabled>帶到 ChatGPT</button>
+              <button id="run-ai-comparison" class="button button-primary" type="button" disabled>AI 比較</button>
+            </div>
+          </section>
         </section>
 
         <section id="workspace-panel-ai" class="workspace-tab-panel ai-advisor" role="tabpanel" data-workspace-panel="ai" hidden>
-          <h2>AI 排課顧問</h2>
-          <p>依你的經歷、目標與實習安排產生三個推薦方案。</p>
-          <p class="privacy-note">GitHub Pages 分享版可測試一般排課與桌布匯出；AI 匯入與推薦請改用完整 Live Demo。</p>
-          <form id="ai-advisor-form" class="ai-advisor-form">
-            <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
-            <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
-            <label>這學期想達成什麼<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：每週實習三天、完成 AI 作品並補足研究方法"></textarea></label>
-            <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
-            <p class="privacy-note">個人敘述會以你的 Key 傳送給 Gemini，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
-            <button class="button button-primary" type="submit">產生三個推薦方案</button>
-            <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
-          </form>
-          <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
+          <section id="ai-feature-hub" class="ai-feature-hub" aria-labelledby="ai-feature-hub-title">
+            <header>
+              <p class="eyebrow">AI · CHOOSE A TASK</p>
+              <h2 id="ai-feature-hub-title" tabindex="-1">想用 AI 做什麼？</h2>
+              <p>選擇這次需要的協助；兩項功能會共用你已填寫的目標與偏好。</p>
+            </header>
+            <div class="ai-feature-grid">
+              <button type="button" class="ai-feature-card" data-ai-tool="advisor">
+                <span class="ai-feature-index">01</span>
+                <strong>AI 排課推薦</strong>
+                <small>根據學期目標、實習安排與偏好，產生三套無衝堂方案。</small>
+                <span class="ai-feature-action">開始規劃</span>
+              </button>
+              <button type="button" class="ai-feature-card" data-ai-tool="comparison">
+                <span class="ai-feature-index">02</span>
+                <strong>AI 課綱比較</strong>
+                <small>比較 2–5 門課的內容重疊、獨有價值、評量、負擔與衝堂。</small>
+                <span class="ai-feature-action">查看比較</span>
+              </button>
+            </div>
+          </section>
+
+          <section id="ai-tool-advisor" class="ai-tool-view" aria-labelledby="ai-advisor-title" hidden>
+            <header class="ai-tool-heading">
+              <button class="ai-tool-back" type="button" data-ai-tool-back>返回 AI 功能</button>
+              <div><p class="eyebrow">PLAN · THREE ROUTES</p><h2 id="ai-advisor-title" tabindex="-1">AI 排課推薦</h2></div>
+            </header>
+            <p>依你的經歷、目標與實習安排產生三個推薦方案。</p>
+            <p id="deployment-ai-note" class="privacy-note"></p>
+            <form id="ai-advisor-form" class="ai-advisor-form">
+              <label>自我介紹<textarea id="ai-profile" maxlength="2000" rows="3" placeholder="例如：政大大三，具程式與產品設計基礎"></textarea></label>
+              <label>未來方向<textarea id="ai-future" maxlength="2000" rows="3" placeholder="例如：AI 產品、金融科技或創業"></textarea></label>
+              <label>這學期想達成什麼<textarea id="ai-goals" maxlength="2000" rows="3" placeholder="例如：每週實習三天、完成 AI 作品並補足研究方法"></textarea></label>
+              <label>排課偏好<textarea id="ai-preferences" maxlength="2000" rows="3" placeholder="例如：課集中週二、週四，偏好可非同步課"></textarea></label>
+              <p class="privacy-note">個人敘述會以你的 Key 傳送給 Gemini，網站不會在伺服器長期保存；目前課表與實習設定會一併納入考量。</p>
+              <button class="button button-primary" type="submit">產生三個推薦方案</button>
+              <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
+              <button id="retry-ai-advisor" class="button button-quiet" type="button" hidden>重試產生方案</button>
+            </form>
+            <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
+          </section>
+
+          <section id="ai-tool-comparison" class="ai-tool-view" aria-labelledby="ai-comparison-title" hidden>
+            <header class="ai-tool-heading">
+              <button class="ai-tool-back" type="button" data-ai-tool-back>返回 AI 功能</button>
+              <div><p class="eyebrow">COMPARE · SYLLABUS</p><h2 id="ai-comparison-title" tabindex="-1">AI 課綱比較</h2></div>
+            </header>
+            <section id="ai-course-comparison" class="ai-comparison">
+              <header><strong>已選課程比較</strong><span>2–5 門</span></header>
+              <p class="section-helper">從候選課程勾選要比較的課。個人資料皆為選填；填寫後會多一層個人化建議，未填仍會提供客觀比較。</p>
+              <p id="ai-comparison-status" class="form-status" aria-live="polite">尚未產生比較。</p>
+              <div id="ai-comparison-results" class="ai-comparison-results" aria-live="polite"></div>
+              <section id="chatgpt-comparison-recovery" class="chatgpt-comparison-recovery" aria-labelledby="chatgpt-comparison-recovery-title" hidden>
+                <h4 id="chatgpt-comparison-recovery-title">ChatGPT 比較提示詞</h4>
+                <p>網站無法替你送出訊息。請確認內容後複製，開啟 ChatGPT 再貼上送出。</p>
+                <textarea id="chatgpt-comparison-prompt" rows="8" readonly aria-label="可複製的課綱比較提示詞"></textarea>
+                <div>
+                  <button id="copy-chatgpt-comparison-prompt" class="button button-quiet" type="button">複製提示詞</button>
+                  <a class="button button-primary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">開啟 ChatGPT</a>
+                </div>
+                <p id="chatgpt-comparison-status" class="form-status" aria-live="polite"></p>
+              </section>
+            </section>
+          </section>
         </section>
 
         <section id="workspace-panel-conditions" class="workspace-tab-panel profile-settings" role="tabpanel" data-workspace-panel="conditions" hidden>
@@ -129,6 +254,7 @@
               <p class="eyebrow">OFFICIAL · NCCU 115-1</p>
               <h2>政大 115-1 課程庫</h2>
               <p class="section-helper">直接搜尋課名、教師或九碼課號，不需要 API Key。</p>
+              <p id="nccu-data-freshness" class="section-helper" aria-live="polite">資料學期 115-1 · 尚未成功查詢</p>
               <form id="nccu-course-search-form" class="nccu-search-form" role="search">
                 <label for="nccu-course-query">搜尋官方課程</label>
                 <div class="nccu-search-control"><input id="nccu-course-query" type="search" autocomplete="off" placeholder="例如：人機互動"><button class="button button-primary" type="submit">搜尋</button></div>
@@ -170,7 +296,7 @@
         <a href="#guide-schedule">管理課表</a>
         <a href="#guide-attendance">上課形式</a>
         <a href="#guide-internship">實習與行程</a>
-        <a href="#guide-ai">AI 推薦</a>
+        <a href="#guide-ai">AI 功能</a>
         <a href="#guide-export-faq">匯出與排錯</a>
       </nav>
       <div class="tutorial-center-body">
@@ -188,7 +314,7 @@
         <section id="guide-import">
           <h3>用三種方式加入候選課程</h3>
           <ol class="guide-steps">
-            <li><strong>政大 115-1 課程庫：</strong>在「匯入／新增」輸入課名、教師或九碼課號，按「搜尋」後選擇「加入候選」。這個方式不需要 API Key。</li>
+            <li><strong>政大 115-1 課程庫：</strong>在「匯入／新增」輸入課名、教師或九碼課號。新課按「加入候選」；已在候選的課按「更新官方資料」。更新只替換最新官方欄位，會保留你目前的選課、鎖定、上課方式與班別安排。這個方式不需要 API Key。</li>
             <li><strong>AI 截圖辨識：</strong>上傳政大課程追蹤清單截圖，系統會辨識課名與課號，再核對政大公開資料。這個方式需要自己的 Gemini API Key。</li>
             <li><strong>手動新增：</strong>自行輸入課程名稱、學分、星期與時間，也能新增社團、課外組織或個人行程。</li>
           </ol>
@@ -198,9 +324,11 @@
           <h3>查看課程時間、完整詳細資料與官方課綱</h3>
           <ol class="guide-steps">
             <li>候選課程列會直接顯示課程時間與政大節次代號，例如「週四 34」。</li>
+            <li>課很多時，展開「篩選」：課程狀態、星期與上課時段可複選；同一類別符合任一項，不同類別要同時符合。「非同步／時間未定」可找沒有固定占用課表的課，按「清除篩選」可取消所有勾選，但不會清掉搜尋文字。</li>
             <li>按「詳細」會在該課程下方展開完整詳細資料；同時間只會展開一門，避免畫面互相遮住。</li>
             <li>完整資料包含課名、課號、授課教師、學分、上課時間、上課形式、修課資格、資料來源、官方備註與班別時段。</li>
-            <li>按「課綱」或詳細區底部的「開啟官方課綱」，可前往政大官方課綱。若公開資料沒有安全連結，系統會明確標示無法開啟。</li>
+            <li>課綱會顯示三種狀態：「可以查看課綱」可直接開啟政大官方頁面；「老師尚未上傳課綱」代表官方查詢成功，但老師目前還沒有提供課綱連結。</li>
+            <li>「課綱狀態暫時無法確認」代表這次沒有完成官方查詢，不等於沒有課綱；按「重新查詢官方資料」即可再試。</li>
           </ol>
         </section>
         <section id="guide-conditions">
@@ -217,9 +345,9 @@
           <h3>加入、鎖定、刪除與清空</h3>
           <ol class="guide-steps">
             <li>點候選課程的主要區塊，可將課程加入左側課表；再點一次可移出。資格不符合或時段尚未選定時，請先處理提示。</li>
-            <li>按「鎖定」可鎖定任何課程，不限必修。鎖定課會留在目前課表，也會在 AI 方案中保留。</li>
-            <li>按「刪除」會移除該候選課程，也會一併移除它在課表中的區塊與鎖定狀態。</li>
-            <li>「清空目前課表」只清除已排課程，候選清單仍在；「清空候選課程」會清除整份候選清單與相關排課狀態。</li>
+            <li>每門候選課右側保留「詳細」；按「•••」可查看課綱、鎖定／解鎖或刪除。鎖定課會留在目前課表，也會在 AI 方案中保留。</li>
+            <li>刪除會移除候選課程，也會一併移除課表區塊與鎖定狀態；執行後右下角會提供 15 秒「復原」。</li>
+            <li>頁首「更多操作」內的「清空目前課表」只清除已排課程；「清空候選課程」則清除整份候選與相關排課狀態。兩者都可在 15 秒內復原。</li>
           </ol>
         </section>
         <section id="guide-attendance">
@@ -236,28 +364,33 @@
           <ol class="guide-steps">
             <li>到「實習設定」輸入目標天數與每天希望保留的開始、結束時間。</li>
             <li>選擇自動模式時，系統會從無衝堂時段找可實習日；選擇固定模式時，可指定每週的固定實習時段。</li>
-            <li>實習區塊會畫在課表上，與課程重疊時會出現排課提醒；半天與整天會依實際可用時數計算。</li>
+            <li>實習區塊會畫在課表上，與課程重疊時會出現提醒；摘要會分開顯示「已確認」與因另約課程而「待確認」的天數。</li>
             <li>到「匯入／新增」可加入社團、課外組織、打工、自修或其他個人行程，這些行程也會參與衝堂檢查。</li>
           </ol>
         </section>
         <section id="guide-ai">
-          <h3>取得 API Key 並使用 AI 推薦</h3>
+          <h3>選擇 AI 功能並安全使用自己的 API Key</h3>
           <ol class="guide-steps">
             <li>前往 Google AI Studio，使用 Google 帳號建立 Gemini API Key；學校帳號受限時請改用個人帳號。</li>
             <li>回到網站按「API Key 未設定」，貼上 Key 並驗證。API Key 等同使用者自己的額度，請不要傳給別人。</li>
-            <li>在「AI 推薦」填寫自我介紹、學期目標與排課偏好，明確寫出最低學分、實習天數、想修的領域、語文偏好或不想考試等需求。</li>
+            <li>打開「AI 功能」，選擇「AI 排課推薦」或「AI 課綱比較」。兩項工具分開顯示，但會共用你已填寫的目標與偏好。</li>
+            <li>使用「AI 排課推薦」時，填寫自我介紹、學期目標與排課偏好，明確寫出最低學分、實習天數、想修的領域、語文偏好或不想考試等需求。</li>
             <li>系統會提供三個推薦方案。先按「預覽」檢查課程、學分、實習與提醒，再按「套用此方案」。鎖定課會保留，非同步課可補學分，但仍須符合資格。</li>
+            <li><strong>比較衝堂或內容相近的課：</strong>回到「候選課程」，勾選 2 至 5 門的「比較」，再按「AI 比較」。結果會分開顯示確定性衝堂、內容重疊、各課獨有內容、評量、負擔與資料限制。</li>
+            <li><strong>選填個人資料：</strong>學期目標、未來方向與排課偏好都是選填；未填仍可取得客觀比較，填寫後才會加入更精準的個人化取捨建議。</li>
+            <li><strong>不用網站內 AI：</strong>可按「帶到 ChatGPT」。網站會準備並嘗試複製提示詞，再開啟 ChatGPT；不會替你自動送出訊息，你可以先檢查內容再貼上送出。</li>
           </ol>
-          <p class="guide-note"><strong>Key 安全：</strong>Key 只保留在目前分頁記憶體，不會寫入伺服器、資料庫、網址或瀏覽器長期儲存；關閉或重新整理分頁即清除。GitHub Pages 分享版可使用一般排課與桌布匯出，AI 功能請使用完整 Live Demo。</p>
+          <p id="tutorial-deployment-note" class="guide-note"></p>
         </section>
         <section id="guide-export-faq">
           <h3>匯出手機桌布與常見問題</h3>
           <ol class="guide-steps">
-            <li>排完後按課表上方的「匯出手機桌布」，下載包含課表、非同步與時間未定課程及排課提醒的直式圖片。</li>
+            <li>手機預設使用「行程」模式依星期與時間排列；要核對政大節次時切到「方格」。排完後可匯出包含非同步、時間未定與提醒的手機桌布。</li>
             <li><strong>AI 顯示未設定：</strong>目前分頁沒有有效 Key，請重新貼上；重新整理後也必須重新設定。</li>
             <li><strong>課程待確認：</strong>代表無法從公開資料找到唯一結果或資料不足，請用課號與官方課綱核對。</li>
-            <li><strong>換手機沒有資料：</strong>資料只存在原本瀏覽器與網址，不會跨裝置或跨網站同步。</li>
-            <li><strong>清除錯誤內容：</strong>使用「清空目前課表」保留候選課，或使用「清空候選課程」重新建立清單。</li>
+            <li><strong>官方資料更新：</strong>重新查詢失敗時，原有候選課程與排課資料會保留，請稍後再按「重新查詢官方資料」。更新成功後，重新整理網頁仍會保留新的官方資料。</li>
+            <li><strong>換手機或網址沒有資料：</strong>資料只存在原本瀏覽器。從頁首「更多操作」匯出排課 JSON，在另一台裝置用「從檔案匯入」預覽並確認；檔案不含 Key、AI 自我介紹或截圖。</li>
+            <li><strong>清除錯誤內容：</strong>在「更多操作」清空課表或候選清單；誤按時立刻使用 15 秒復原。</li>
           </ol>
         </section>
       </div>
@@ -270,6 +403,7 @@
       <ol><li>Google Assistant／Gemini App 不等於 Gemini API；一般排課不需要 Key。</li><li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">前往 Google AI Studio 建立 API Key</a>，學校帳號受限時請改用個人帳號。</li><li>貼上後只供本分頁使用，關閉或重新整理即清除。</li></ol>
       <label>Gemini API Key<div class="secret-field"><input id="api-key-input" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"><button id="api-key-reveal" type="button" aria-pressed="false">顯示</button></div></label>
       <p class="privacy-note">Key 僅供本分頁使用，關閉或重新整理即清除。網站不要求啟用付費帳務。</p>
+      <p id="api-key-deployment-note" class="privacy-note"></p>
       <p id="api-key-status" class="form-status" role="status" aria-live="polite"></p>
       <div class="api-key-actions"><button class="button button-primary" type="submit">驗證並開始使用</button><button id="api-key-skip" class="button button-quiet" type="button">先使用一般排課功能</button><button id="api-key-clear" class="button button-quiet" type="button" hidden>立即清除 Key</button></div>
     </form>

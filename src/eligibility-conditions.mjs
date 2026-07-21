@@ -69,17 +69,20 @@ export function buildConditionDefinitions(courses = [], customConditions = []) {
   ];
 }
 
-function impactConsequence(rule, selected) {
-  if (selected) return '符合後可直接選';
+function impactConsequence(rule, state) {
+  if (state === 'accepted') return '符合後可直接選';
+  if (state === 'unknown') return '尚未回答，加入前需確認資格';
   return rule.enforcement === 'review'
-    ? '沒有也能選，但需教師／系所確認'
-    : '沒有時無法直接加入';
+    ? '不符合仍可選，但需教師／系所確認'
+    : '不符合時無法直接加入';
 }
 
 export function buildConditionImpacts(courses = [], definitions = [], profile = {}) {
   const selectedIds = new Set(profileConditionIds(profile));
+  const rejectedIds = new Set(profile.rejectedConditionIds || []);
   return definitions.map((definition) => {
     const selected = selectedIds.has(definition.id);
+    const state = selected ? 'accepted' : rejectedIds.has(definition.id) ? 'rejected' : 'unknown';
     const affectedCourses = courses.flatMap((course) => (
       rulesForCourse(course)
         .filter((rule) => rule.conditionId === definition.id)
@@ -88,12 +91,13 @@ export function buildConditionImpacts(courses = [], definitions = [], profile = 
           title: course.title,
           enforcement: rule.enforcement,
           rationale: rule.rationale,
-          consequence: impactConsequence(rule, selected),
+          consequence: impactConsequence(rule, state),
         }))
     ));
     return {
       ...definition,
       selected,
+      state,
       summary: affectedCourses.length
         ? `影響 ${affectedCourses.length} 門候選課`
         : '目前不影響候選課，可安全移除',

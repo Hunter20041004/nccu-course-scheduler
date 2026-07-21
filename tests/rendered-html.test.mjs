@@ -9,6 +9,10 @@ async function render() {
   return worker.fetch(new Request('http://localhost/'));
 }
 
+function tutorialDialog(html) {
+  return html.match(/<dialog id="tutorial-center"[\s\S]*?<dialog id="api-key-dialog"/)?.[0] ?? '';
+}
+
 test('serves the private NCCU course scheduler with schedule before catalog', async () => {
   const response = await render();
   const html = await response.text();
@@ -32,6 +36,38 @@ test('starts a new browser with an empty personal workspace', async () => {
   assert.doesNotMatch(html, /let selected = applyPreset/);
 });
 
+test('renders an accessible expandable multi-select candidate filter panel', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="catalog-filter-toggle"[^>]*aria-expanded="false"[^>]*aria-controls="catalog-filter-panel"/);
+  assert.match(html, /id="catalog-filter-count"/);
+  assert.match(html, /id="catalog-filter-panel"[^>]*hidden/);
+  for (const status of ['selected', 'remote', 'review']) {
+    assert.match(html, new RegExp(`data-catalog-status-filter="${status}"`));
+  }
+  for (const day of [1, 2, 3, 4, 5, 6, 7]) {
+    assert.match(html, new RegExp(`data-catalog-day-filter="${day}"`));
+  }
+  for (const daypart of ['morning', 'afternoon', 'evening', 'flexible']) {
+    assert.match(html, new RegExp(`data-catalog-daypart-filter="${daypart}"`));
+  }
+  assert.match(html, /id="clear-catalog-filters"/);
+});
+
+test('wires multi-select candidate filters and adapts the panel for phones', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /filterCandidateCourses\(courseStore, filters\)/);
+  assert.match(html, /countActiveCatalogFilters\(filters\)/);
+  assert.match(html, /data-catalog-status-filter[^\n]+:checked/);
+  assert.match(html, /data-catalog-day-filter[^\n]+:checked/);
+  assert.match(html, /data-catalog-daypart-filter[^\n]+:checked/);
+  assert.match(html, /byId\('catalog-filter-toggle'\)\.addEventListener\('click'/);
+  assert.match(html, /byId\('clear-catalog-filters'\)\.addEventListener\('click'/);
+  assert.match(html, /\.catalog-filter-groups\s*\{[^}]*grid-template-columns:\s*repeat\(3,/);
+  assert.match(html, /@media[^}]+max-width:\s*640px[\s\S]*?\.catalog-filter-groups\s*\{[^}]*grid-template-columns:\s*1fr/);
+});
+
 test('build emits a GitHub Pages static fallback', () => {
   const html = readFileSync(new URL('../dist/static/index.html', import.meta.url), 'utf8');
 
@@ -47,6 +83,16 @@ test('static fallback warns that AI features require the full live demo', () => 
   assert.match(html, /GitHub Pages 分享版可測試一般排課與桌布匯出/);
   assert.match(html, /AI 匯入與推薦請改用完整 Live Demo/);
   assert.match(html, /isStaticFallbackHost/);
+});
+
+test('shows deployment-aware guidance without sending full-site users back to the full site', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="deployment-ai-note"/);
+  assert.match(html, /id="tutorial-deployment-note"/);
+  assert.match(html, /function renderDeploymentCopy\(\)/);
+  assert.match(html, /if \(isStaticFallbackHost\)/);
+  assert.match(html, /完整版：AI 會使用你在本分頁設定的 Gemini Key/);
 });
 
 test('renders secure Gemini API key setup without first-load auto prompt', async () => {
@@ -124,6 +170,46 @@ test('teaches the complete current scheduling workflow in nine task-based chapte
   assert.match(html, /byId\('open-tutorial-center'\)\.addEventListener\('click', openTutorialCenter\)/);
 });
 
+test('teaches that refreshing an existing candidate preserves personal scheduling decisions', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  assert.match(tutorial, /更新官方資料/);
+  assert.match(tutorial, /保留你目前的選課、鎖定、上課方式與班別安排/);
+});
+
+test('explains all three official syllabus states and the retry action', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  for (const copy of [
+    '可以查看課綱',
+    '老師尚未上傳課綱',
+    '課綱狀態暫時無法確認',
+    '重新查詢官方資料',
+  ]) {
+    assert.match(tutorial, new RegExp(copy));
+  }
+});
+
+test('explains safe recovery when an official refresh fails or succeeds', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  assert.match(tutorial, /重新查詢失敗時，原有候選課程與排課資料會保留/);
+  assert.match(tutorial, /更新成功後，重新整理網頁仍會保留新的官方資料/);
+});
+
+test('teaches the expandable weekday and daypart candidate filters', async () => {
+  const html = await (await render()).text();
+  const tutorial = tutorialDialog(html);
+
+  assert.match(tutorial, /展開「篩選」/);
+  assert.match(tutorial, /星期與上課時段可複選/);
+  assert.match(tutorial, /非同步／時間未定/);
+  assert.match(tutorial, /清除篩選/);
+});
+
 test('marks quick tour skipped or completed without changing planner data', async () => {
   const html = await (await render()).text();
 
@@ -153,6 +239,8 @@ test('aligns the first-use message and eight-step tour with the current workflow
   for (const copy of [
     '課名、教師、課號、學分、時間與資格狀態',
     '完整詳細資料',
+    '更新官方資料',
+    '保留選課、鎖定、上課方式與班別安排',
     '實體／同步／非同步',
     '最低學分',
     '手動新增課程',
@@ -170,10 +258,11 @@ test('defines a native eight-step quick tour that can switch tabs without mutati
   assert.match(html, /id="quick-tour-next"/);
   assert.match(html, /id="quick-tour-end"/);
   assert.match(html, /const quickTourSteps = \[/);
-  for (const target of ['schedule-panel', 'workspace-panel-catalog', 'course-actions', 'workspace-panel-conditions', 'workspace-panel-internship', 'workspace-panel-ai', 'workspace-panel-add', 'schedule-grid']) {
+  for (const target of ['schedule-panel', 'workspace-panel-catalog', 'catalog-list', 'workspace-panel-conditions', 'workspace-panel-internship', 'ai-feature-hub', 'workspace-panel-add', 'schedule-grid']) {
     assert.match(html, new RegExp(`target: '${target}'`));
   }
   assert.match(html, /setWorkspaceTab\(step\.tab\)/);
+  assert.match(html, /setAiTool\(step\.aiTool\)/);
   assert.match(html, /setCompactView\(step\.compactView\)/);
   assert.match(html, /targetElement\.scrollIntoView\(\{ block: 'nearest', inline: 'nearest' \}\)/);
   assert.doesNotMatch(html, /renderQuickTourStep[\s\S]{0,1600}persistState\(\)/);
@@ -242,13 +331,15 @@ test('shows the NCCU schedule summary inside every candidate row', async () => {
   assert.match(html, /class="catalog-time"/);
 });
 
-test('offers safe syllabus actions only for course candidates', async () => {
+test('renders available, not-uploaded, and unverified syllabus actions', async () => {
   const html = await (await render()).text();
 
-  assert.match(html, /trustedOfficialSyllabusUrl\(course\)/);
+  assert.match(html, /function syllabusAction\(course\)/);
   assert.match(html, /course\.source !== 'manual' \|\| course\.itemType === 'course'/);
-  assert.match(html, /class="catalog-syllabus"[^>]*target="_blank" rel="noopener noreferrer"[^>]*>課綱<\/a>/);
-  assert.match(html, /class="catalog-syllabus"[^>]*disabled[^>]*>無課綱<\/button>/);
+  assert.match(html, /class="catalog-syllabus"[^>]*target="_blank" rel="noopener noreferrer"[^>]*>查看課綱<\/a>/);
+  assert.match(html, /老師尚未上傳課綱/);
+  assert.match(html, /課綱狀態暫時無法確認/);
+  assert.match(html, /重新查詢官方資料/);
 });
 
 test('renders complete course details as an inline panel', async () => {
@@ -306,6 +397,18 @@ test('renders detail lock and delete controls for every candidate type', async (
   assert.doesNotMatch(html, /course\.required\s*\?\s*`<button class="catalog-lock/);
 });
 
+test('keeps details visible and moves secondary candidate actions into one accessible menu', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /class="catalog-details-trigger"/);
+  assert.match(html, /class="catalog-more"/);
+  assert.match(html, /class="catalog-more-trigger"[^>]*aria-label="更多操作/);
+  assert.match(html, /class="catalog-more-menu" role="menu"/);
+  assert.match(html, /data-close-catalog-menus/);
+  assert.match(html, /event\.key === 'Escape'/);
+  assert.match(html, /document\.addEventListener\('pointerdown'/);
+});
+
 test('locks unselected courses and confirms deletion of core candidates', async () => {
   const html = await (await render()).text();
   assert.match(html, /lockCandidateCourse\(selected, lockedCourseIds, course, profile\)/);
@@ -354,7 +457,27 @@ test('searches and imports official NCCU 115-1 courses without an AI key', async
   assert.match(html, /id="nccu-course-results"/);
   assert.match(html, /searchNccuCourses\(\{ term: '115-1', keyword: query \}\)/);
   assert.match(html, /data-add-nccu-course/);
-  assert.match(html, /nccuCourseToCandidate/);
+  assert.match(html, /const addedAt = new Date\(\)\.toISOString\(\);\s*const candidate = nccuCourseToCandidate\(officialCourse, \{ checkedAt: addedAt \}\)/);
+});
+
+test('lets an existing official candidate refresh instead of disabling the result', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-refresh-nccu-course/);
+  assert.match(html, /reconcileOfficialCandidate\(existingCourse, candidate\)/);
+  assert.match(html, /selected = selected\.map/);
+  assert.match(html, /const \{[^}]*persistedCourseAdditions[^}]*\} = __plannerStorage/);
+  assert.match(html, /更新官方資料/);
+});
+
+test('shows the official term and last successful NCCU query without hiding it after an error', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="nccu-data-freshness"[^>]*>資料學期 115-1 · 尚未成功查詢/);
+  assert.match(html, /let lastSuccessfulNccuQueryAt = null/);
+  assert.match(html, /lastSuccessfulNccuQueryAt = new Date\(\)/);
+  assert.match(html, /function renderNccuDataFreshness\(\)/);
+  assert.match(html, /最後成功查詢/);
 });
 
 test('keeps the NCCU search form reference valid after the async request', async () => {
@@ -427,13 +550,65 @@ test('collects the student profile and goals for AI planning', async () => {
   assert.match(html, /id="ai-advisor-status"[^>]*aria-live="polite"/);
 });
 
+test('presents AI tools through a dedicated feature hub', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-workspace-tab="ai">AI 功能</);
+  assert.match(html, /id="ai-feature-hub"/);
+  assert.match(html, /data-ai-tool="advisor"[\s\S]*AI 排課推薦/);
+  assert.match(html, /data-ai-tool="comparison"[\s\S]*AI 課綱比較/);
+  assert.match(html, /id="ai-tool-advisor"[^>]*hidden/);
+  assert.match(html, /id="ai-tool-comparison"[^>]*hidden/);
+});
+
+test('switches AI tools in memory without clearing their state', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /let activeAiTool = 'hub'/);
+  assert.match(html, /function setAiTool\(name, \{ focus = false \} = \{\}\)/);
+  assert.match(html, /hub\.hidden = name !== 'hub'/);
+  assert.match(html, /advisor\.hidden = name !== 'advisor'/);
+  assert.match(html, /comparison\.hidden = name !== 'comparison'/);
+  assert.match(html, /setAiTool\('hub'/);
+  assert.doesNotMatch(html, /localStorage\.setItem\([^)]*activeAiTool/);
+});
+
+test('routes candidate comparison actions to the matching AI tool', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /byId\('open-comparison-profile'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('advisor'\)/);
+  assert.match(html, /byId\('run-ai-comparison'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('comparison'\);[\s\S]*?fetch\('\/api\/ai\/compare-courses'/);
+  assert.match(html, /byId\('open-chatgpt-comparison'\)\.addEventListener[\s\S]*?setWorkspaceTab\('ai'\);\s*setAiTool\('comparison'\);[\s\S]*?fetch\('\/api\/course-comparison\/prompt'/);
+  assert.match(html, /比較完成，結果已顯示在「AI 功能」/);
+});
+
+test('styles and teaches the AI feature hub on desktop and phones', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.ai-feature-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
+  assert.match(html, /\.ai-feature-card\s*\{[^}]*min-height:\s*210px/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.ai-feature-grid\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /title: 'AI 功能'/);
+  assert.match(html, /選擇「AI 排課推薦」或「AI 課綱比較」/);
+  assert.match(html, /href="#guide-ai">AI 功能</);
+});
+
 test('sends current courses locks and internship settings to the advisor API', async () => {
   const html = await (await render()).text();
   assert.match(html, /fetch\('\/api\/ai\/recommend-plans'/);
   assert.match(html, /internshipSettings,/);
   assert.match(html, /lockedCourseIds,/);
-  assert.match(html, /events:\s*course\.events/);
-  assert.match(html, /eligibility:\s*evaluateEligibility\(course, profile\)\.status/);
+  assert.match(html, /events:\s*effectiveCourse\.events/);
+  assert.match(html, /eligibility:\s*evaluateEligibility\(effectiveCourse, profile\)\.status/);
+});
+
+test('sends the resolved selected section and attendance to deterministic AI validation', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const effectiveCourse = selected\.find\(\(item\) => item\.id === course\.id\) \|\| course/);
+  assert.match(html, /schedule: effectiveCourse\.schedule/);
+  assert.match(html, /meetings: effectiveCourse\.meetings/);
+  assert.match(html, /attendance: effectiveCourse\.attendance/);
 });
 
 test('renders exactly three actionable recommendation cards', async () => {
@@ -469,6 +644,25 @@ test('does not render locally conflicting AI routes', async () => {
   assert.doesNotMatch(html, /方案有衝堂/);
 });
 
+test('explains when deterministic validation returns fewer than three AI routes', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /let recommendationShortfall = ''/);
+  assert.match(html, /payload\.shortfallReason/);
+  assert.match(html, /class="route-shortfall"/);
+});
+
+test('offers retryable AI errors without clearing the student inputs or planner state', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="retry-ai-advisor"[^>]*hidden/);
+  assert.match(html, /id="retry-screenshot-import"[^>]*hidden/);
+  assert.match(html, /error\.retryable = Boolean\(payload\?\.error\?\.retryable\)/);
+  assert.match(html, /requestId/);
+  assert.match(html, /byId\('ai-advisor-form'\)\.requestSubmit\(\)/);
+  assert.match(html, /byId\('import-screenshot'\)\.click\(\)/);
+});
+
 test('clears the current timetable while preserving the candidate catalog', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="clear-schedule"/);
@@ -476,6 +670,38 @@ test('clears the current timetable while preserving the candidate catalog', asyn
   assert.match(html, /id="planner-status"[^>]*aria-live="polite"/);
   assert.match(html, /已清空目前課表/);
   assert.match(html, /persistState\(\);\s*renderAll\(\)/);
+});
+
+test('exports and previews portable planner data from the header More menu', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="header-more-menu"/);
+  assert.match(html, /id="export-planner-data"/);
+  assert.match(html, /id="import-planner-data"/);
+  assert.match(html, /id="planner-transfer-status"[^>]*aria-live="polite"/);
+  assert.match(html, /exportPlannerTransfer\(plannerStateSnapshot\(\)\)/);
+  assert.match(html, /previewPlannerTransfer\(raw, plannerStateSnapshot\(\)\)/);
+  assert.match(html, /URL\.revokeObjectURL/);
+  assert.match(html, /id="export-and-open-full"/);
+});
+
+test('closes the header More menu after any menu action on compact screens', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /byId\('header-more-menu'\)\.addEventListener\('click', \(event\) => \{/);
+  assert.match(html, /event\.target\.closest\('\[role="menuitem"\]'\)/);
+  assert.match(html, /byId\('header-more-menu'\)\.open = false/);
+});
+
+test('offers a fifteen-second undo after destructive planner changes', async () => {
+  const html = await (await render()).text();
+  assert.match(html, /id="planner-undo-toast"[^>]*role="status"/);
+  assert.match(html, /id="restore-planner-change"/);
+  assert.match(html, /createPlannerUndo\(\{ ttlMs: 15_000 \}\)/);
+  assert.match(html, /capturePlannerUndo\('已清空目前課表'\)/);
+  assert.match(html, /capturePlannerUndo\(`已刪除「\$\{course\.title\}」`\)/);
+  assert.match(html, /capturePlannerUndo\(`已套用「\$\{plan\.title\}」`\)/);
+  assert.match(html, /undo\.restore\(\)/);
 });
 
 test('exports the current timetable as a phone wallpaper PNG', async () => {
@@ -536,6 +762,12 @@ test('renders course-driven eligibility conditions with reasons and affected cou
   assert.match(html, /buildConditionImpacts\(courseStore, definitions, profile\)/);
   assert.match(html, /impact\.summary/);
   assert.match(html, /impact\.affectedCourses/);
+  assert.match(html, /data-profile-condition-state/);
+  assert.match(html, /option value="unknown"[^>]*>待確認<\/option>/);
+  assert.match(html, /option value="accepted"[^>]*>符合<\/option>/);
+  assert.match(html, /option value="rejected"[^>]*>不符合<\/option>/);
+  assert.match(html, /profile\.rejectedConditionIds/);
+  assert.doesNotMatch(html, /type="checkbox" data-profile-condition/);
   assert.doesNotMatch(html, /id="profile-innovation"/);
   assert.doesNotMatch(html, /id="profile-statistics"/);
 });
@@ -593,6 +825,16 @@ test('labels syllabus-defined project arrangements instead of treating every opt
   assert.match(html, /variant\.selectionLabel \|\| '指導老師'/);
 });
 
+test('selects atomic NCCU sections and their arrangements in separate controls', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-course-section/);
+  assert.match(html, /data-course-arrangement/);
+  assert.match(html, /selectedSectionId/);
+  assert.match(html, /section\.arrangements/);
+  assert.match(html, /section\.advisorOptions/);
+});
+
 test('offers automatic and fixed internship controls and paints reservations on the grid', async () => {
   const html = await (await render()).text();
   assert.match(html, /id="internship-form"/);
@@ -627,6 +869,24 @@ test('updates the Sunbreak internship progress line from the current target', as
   assert.match(html, /internshipProgress\.setAttribute\('aria-valuenow', String\(progressPercent\)\)/);
 });
 
+test('distinguishes confirmed internship time from time pending unresolved courses', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="internship-confirmed-value"/);
+  assert.match(html, /id="internship-pending-value"/);
+  assert.match(html, /byId\('internship-confirmed-value'\)\.textContent = String\(internshipPlan\.confirmedDays\)/);
+  assert.match(html, /byId\('internship-pending-value'\)\.textContent = String\(internshipPlan\.pendingDays\)/);
+  assert.match(html, /\.header-metrics strong\s*\{[^}]*display:\s*flex;[^}]*flex-wrap:\s*wrap;/s);
+  assert.match(html, /\.header-metrics strong > span\s*\{[^}]*white-space:\s*nowrap;/s);
+  assert.match(html, /internshipPlan\.confirmedDays \/ internshipSettings\.targetDays/);
+});
+
+test('stacks header metric labels before the compact desktop layout can overflow', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /@media \(max-width:\s*1199px\)\s*\{[\s\S]*?\.header-metrics div\s*\{[^}]*display:\s*grid;[^}]*gap:\s*2px;/);
+});
+
 test('reveals a newly added course in the official timetable', async () => {
   const html = await (await render()).text();
   assert.match(html, /data-grid-course="\$\{escapeHtml\(course\.id\)\}"/);
@@ -638,8 +898,10 @@ test('reveals a newly added course in the official timetable', async () => {
 
 test('uses plain-language eligibility labels in compact course rows', async () => {
   const html = await (await render()).text();
+  assert.match(html, /review: '資格待確認，請看詳細。'/);
   assert.match(html, /blocked: '條件不符合，請看詳細。'/);
   assert.match(html, /unavailable: '本學期未開課'/);
+  assert.match(html, /data-catalog-status-filter="review"><span>資格待確認/);
   assert.doesNotMatch(html, /blocked: '條件不符合'/);
 });
 
@@ -655,6 +917,21 @@ test('contains the wide NCCU timetable inside the mobile schedule panel', async 
 
   assert.match(html, /\.panel\s*\{[^}]*min-width:\s*0/s);
   assert.match(html, /\.planner-layout\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s);
+});
+
+test('defaults compact screens to a readable agenda while preserving the official grid', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="schedule-view-switch"/);
+  assert.match(html, /data-schedule-view="agenda"/);
+  assert.match(html, /data-schedule-view="grid"/);
+  assert.match(html, /id="schedule-agenda"[^>]*aria-live="polite"/);
+  assert.match(html, /buildScheduleAgenda\(selected\)/);
+  assert.match(html, /matchMedia\('\(max-width: 640px\)'\)/);
+  assert.match(html, /\.schedule-panel\[data-schedule-view="agenda"\] \.schedule-scroll/);
+  assert.match(html, /\.schedule-panel\[data-schedule-view="grid"\] \.schedule-agenda/);
+  assert.match(html, /sunbreak:schedule-view:v1/);
+  assert.match(html, /localStorage\.setItem\(SCHEDULE_VIEW_KEY, view\)/);
 });
 
 test('keeps compact course detail disclosure targets at least 44 pixels tall', async () => {
@@ -688,4 +965,96 @@ test('presents tutorial tasks as readable cards on desktop and one column on mob
   assert.match(html, /\.guide-steps\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.guide-steps\s*\{[^}]*grid-template-columns:\s*1fr/s);
   assert.match(html, /\.tutorial-center-nav a\s*\{[^}]*min-height:\s*44px/s);
+});
+test('renders accessible candidate comparison controls and a two-to-five course tray', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-compare-course="\$\{escapeHtml\(course\.id\)\}"/);
+  assert.match(html, /aria-label="將 \$\{escapeHtml\(course\.title\)\}加入比較"/);
+  assert.match(html, /id="course-comparison-tray"[^>]*hidden/);
+  assert.match(html, /id="comparison-selected-count"/);
+  assert.match(html, /id="clear-course-comparison"/);
+  assert.match(html, /id="run-ai-comparison"/);
+  assert.match(html, /id="open-chatgpt-comparison"/);
+  assert.match(html, /建議先填寫目標與偏好，比對會更精準/);
+});
+
+test('keeps comparison selection at five courses and explains the limit', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const MAX_COMPARISON_COURSES = 5/);
+  assert.match(html, /comparisonCourseIds\.length >= MAX_COMPARISON_COURSES/);
+  assert.match(html, /一次最多比較 \$\{MAX_COMPARISON_COURSES\} 門課，請先移除一門/);
+});
+
+test('renders a complete syllabus comparison with optional profile context and evidence limits', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="ai-comparison-status"[^>]*aria-live="polite"/);
+  assert.match(html, /id="ai-comparison-results"[^>]*aria-live="polite"/);
+  assert.match(html, /function comparisonRequestBody\(\)/);
+  assert.match(html, /profileText:\s*byId\('ai-profile'\)\.value/);
+  assert.match(html, /futureDirection:\s*byId\('ai-future'\)\.value/);
+  assert.match(html, /semesterGoals:\s*byId\('ai-goals'\)\.value/);
+  assert.match(html, /preferences:\s*byId\('ai-preferences'\)\.value/);
+  assert.match(html, /function renderCourseComparison\(payload\)/);
+  assert.match(html, /客觀比較/);
+  assert.match(html, /個人化建議/);
+  assert.match(html, /確定性衝堂/);
+  assert.match(html, /內容重疊/);
+  assert.match(html, /各課獨有價值/);
+  assert.match(html, /資料限制/);
+});
+
+test('provides a resilient copy-and-open ChatGPT comparison fallback', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="chatgpt-comparison-recovery"[^>]*hidden/);
+  assert.match(html, /id="chatgpt-comparison-prompt"[^>]*readonly/);
+  assert.match(html, /id="copy-chatgpt-comparison-prompt"/);
+  assert.match(html, /href="https:\/\/chatgpt\.com\/"[^>]*target="_blank"/);
+  assert.match(html, /function showChatGptComparisonRecovery\(prompt/);
+  assert.match(html, /navigator\.clipboard\.writeText\(payload\.prompt\)/);
+  assert.match(html, /fetch\('\/api\/course-comparison\/prompt'/);
+  assert.match(html, /window\.open\('about:blank', '_blank'\)/);
+  assert.match(html, /已複製比較提示詞/);
+});
+
+test('does not let a stalled clipboard permission block the ChatGPT handoff', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /Promise\.race\(\[/);
+  assert.match(html, /setTimeout\(\(\) => resolve\(false\), 1_500\)/);
+  assert.match(html, /showChatGptComparisonRecovery\(payload\.prompt, '提示詞已準備完成/);
+});
+
+test('caches repaired official syllabus links after a comparison request succeeds', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /function cacheComparisonSources\(sources\)/);
+  assert.match(html, /courseStore = courseStore\.map/);
+  assert.match(html, /status:\s*'available'/);
+  assert.match(html, /source:\s*isSeedCourse \? 'nccu-verified-import' : course\.source/);
+  assert.match(html, /cacheComparisonSources\(payload\.sources\)/);
+});
+
+test('teaches first-time users how optional profile-aware course comparison works', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /AI 課綱比較/);
+  assert.match(html, /勾選 2 至 5 門/);
+  assert.match(html, /學期目標、未來方向與排課偏好都是選填/);
+  assert.match(html, /未填仍可取得客觀比較/);
+  assert.match(html, /帶到 ChatGPT/);
+  assert.match(html, /不會替你自動送出訊息/);
+  assert.match(html, /title: 'AI 功能'/);
+});
+
+test('keeps course comparison readable and actionable on phones', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.comparison-course-card dl\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.chatgpt-comparison-recovery > div\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.course-comparison-actions\s*\{[^}]*grid-template-columns:\s*1fr 1fr/s);
+  assert.match(html, /\.course-comparison-actions \.button:disabled/);
 });

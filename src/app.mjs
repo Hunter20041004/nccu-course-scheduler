@@ -1,6 +1,7 @@
 const byId = (id) => document.getElementById(id);
 const FIRST_USE_TUTORIAL_SEEN_KEY = 'sunbreak:first-use-tutorial-seen:v1';
-const FULL_LIVE_DEMO_URL = 'https://nccu-internship-scheduler.abuzz-teal-2691.chatgpt.site';
+const SCHEDULE_VIEW_KEY = 'sunbreak:schedule-view:v1';
+const FULL_LIVE_DEMO_URL = 'https://nccu-course-planner-1151.huntertseng.chatgpt.site';
 const isStaticFallbackHost = location.hostname.endsWith('github.io');
 const apiKeySession = createApiKeySession();
 const defaultProfile = {
@@ -9,6 +10,7 @@ const defaultProfile = {
   programs: [],
   prerequisites: [],
   conditionIds: ['program:innovation'],
+  rejectedConditionIds: [],
 };
 
 let profile = { ...defaultProfile };
@@ -20,20 +22,24 @@ let internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
 let pendingCourses = [];
 let lastImportedCourses = [];
 let recommendedPlans = [];
+let recommendationShortfall = '';
 let previewedPlanId = null;
 let customConditions = [];
 let quickTourIndex = 0;
 let expandedCourseId = null;
+const MAX_COMPARISON_COURSES = 5;
+let comparisonCourseIds = [];
+let activeAiTool = 'hub';
 
 const quickTourSteps = [
   { target: 'schedule-panel', compactView: 'schedule', title: '課表總覽', body: '左側使用政大官方節次，會顯示週一到週日、實習保留、課程衝堂、非同步工作區與排課提醒。' },
   { target: 'workspace-panel-catalog', tab: 'catalog', compactView: 'tools', title: '候選課程', body: '每列會顯示課名、教師、課號、學分、時間與資格狀態；點課程主區塊可加入或移出左側課表。' },
-  { target: 'course-actions', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」展開完整詳細資料，按「課綱」前往官方內容；任何課都可以鎖定或刪除。' },
-  { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '勾選你符合的系所、雙主修、學程、年級或先修條件，並查看每個條件為什麼需要及影響哪些課。' },
+  { target: 'catalog-list', tab: 'catalog', compactView: 'tools', title: '查看與管理課程', body: '按「詳細」查看完整詳細資料並切換實體／同步／非同步；已在候選的課可用「更新官方資料」補齊最新官方欄位，並保留選課、鎖定、上課方式與班別安排。課綱與其他管理操作在「•••」。' },
+  { target: 'workspace-panel-conditions', tab: 'conditions', compactView: 'tools', title: '選課條件', body: '逐項標記符合、不符合或待確認的系所、雙主修、學程、年級與先修條件，並查看每個條件會影響哪些課。' },
   { target: 'workspace-panel-internship', tab: 'internship', compactView: 'tools', title: '實習設定', body: '設定目標天數與每日時段，再選擇自動找可用時段或指定固定實習時段。' },
-  { target: 'workspace-panel-ai', tab: 'ai', compactView: 'tools', title: 'AI 推薦', body: '輸入背景、學期目標、最低學分、實習天數與課程偏好，產生三個可預覽的無衝堂方案；使用時才需要 API Key。' },
+  { target: 'ai-feature-hub', tab: 'ai', aiTool: 'hub', compactView: 'tools', title: 'AI 功能', body: '先選擇「AI 排課推薦」或「AI 課綱比較」。推薦會依最低學分與實習偏好產生三個無衝堂方案；比較會分析 2 至 5 門候選課程。個人資料皆為選填，未填仍可客觀比較。' },
   { target: 'workspace-panel-add', tab: 'add', compactView: 'tools', title: '匯入與新增', body: '可搜尋政大 115-1 課程庫、使用 AI 截圖辨識或手動新增課程，也能加入社團、課外組織與個人行程。' },
-  { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '確認學分、資格、實體／同步／非同步、衝堂與排課提醒，再按「匯出手機桌布」保存課表。' },
+  { target: 'schedule-grid', compactView: 'schedule', title: '最後檢查與匯出', body: '手機可切換「行程／方格」；確認學分、資格、出席方式、衝堂與提醒後，再匯出手機桌布。' },
 ];
 
 function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
@@ -49,6 +55,21 @@ function requireApiKeyForAi(status) {
   openApiKeyDialog();
   return null;
 }
+function renderDeploymentCopy() {
+  const aiNote = byId('deployment-ai-note');
+  const tutorialNote = byId('tutorial-deployment-note');
+  const apiKeyNote = byId('api-key-deployment-note');
+  if (isStaticFallbackHost) {
+    aiNote.textContent = 'GitHub Pages 分享版可測試一般排課與桌布匯出；AI 匯入與推薦請改用完整 Live Demo。';
+    tutorialNote.innerHTML = '<strong>Key 安全：</strong>靜態分享版不會接收 Key。一般排課可直接使用；需要 AI 時，請先匯出排課資料，再前往完整版匯入。';
+    apiKeyNote.textContent = '目前是靜態分享版，不會接收或驗證 API Key。';
+  } else {
+    aiNote.textContent = '完整版：AI 會使用你在本分頁設定的 Gemini Key；現有表單與課表在重試時都會保留。';
+    tutorialNote.innerHTML = '<strong>Key 安全：</strong>Key 只保留在目前分頁記憶體，不會寫入伺服器、資料庫、網址或瀏覽器長期儲存；關閉或重新整理分頁即清除。';
+    apiKeyNote.textContent = '此完整版可以驗證 Key；Key 仍只保留於目前分頁記憶體。';
+  }
+}
+renderDeploymentCopy();
 function openFirstUseWelcome() {
   const dialog = byId('first-use-dialog');
   if (!dialog.open) dialog.showModal();
@@ -103,6 +124,7 @@ function positionQuickTourSpotlight(targetElement) {
 function renderQuickTourStep() {
   const step = quickTourSteps[quickTourIndex];
   if (step.tab) setWorkspaceTab(step.tab);
+  if (step.aiTool) setAiTool(step.aiTool);
   if (step.compactView) setCompactView(step.compactView);
   const overlay = byId('quick-tour-overlay');
   const targetElement = document.getElementById(step.target) || document.querySelector(`.${step.target}`);
@@ -196,13 +218,19 @@ function restoreState() {
 
 function persistState() {
   try {
-    const officialIds = new Set(courses.map((course) => course.id));
-    const addedCourses = courseStore.filter((course) => !officialIds.has(course.id));
+    localStorage.setItem(STORAGE_KEY, serializePlannerState(plannerStateSnapshot()));
+  } catch {
+    // The planner still works when browser storage is unavailable.
+  }
+}
+
+function plannerStateSnapshot() {
+    const addedCourses = persistedCourseAdditions(courseStore, courses);
     const retainedIds = new Set(courseStore.map((course) => course.id));
     const deletedCourseIds = courses
       .filter((course) => !retainedIds.has(course.id))
       .map((course) => course.id);
-    localStorage.setItem(STORAGE_KEY, serializePlannerState({
+    return {
       selectedIds: selected.map((course) => course.id),
       attendance: Object.fromEntries(selected.map((course) => [course.id, course.attendance])),
       courseOptions,
@@ -213,19 +241,118 @@ function persistState() {
       pendingCourses,
       customConditions,
       deletedCourseIds,
-    }));
-  } catch {
-    // The planner still works when browser storage is unavailable.
-  }
+    };
 }
+
+function replacePlannerState(snapshot) {
+  localStorage.setItem(STORAGE_KEY, serializePlannerState(snapshot));
+  profile = { ...defaultProfile };
+  courseStore = [];
+  selected = [];
+  courseOptions = {};
+  lockedCourseIds = [];
+  internshipSettings = { ...DEFAULT_INTERNSHIP_SETTINGS, fixedDays: {} };
+  pendingCourses = [];
+  customConditions = [];
+  restoreState();
+  syncProfileForm();
+  syncInternshipForm();
+  renderAll();
+  renderImportResults();
+}
+
+const undo = createPlannerUndo({ ttlMs: 15_000 });
+let undoHideTimer;
+
+function hidePlannerUndo() {
+  byId('planner-undo-toast').hidden = true;
+  clearTimeout(undoHideTimer);
+}
+
+function capturePlannerUndo(label) {
+  undo.capture(plannerStateSnapshot(), label);
+  byId('planner-undo-message').textContent = `${label}。可在 15 秒內復原。`;
+  byId('planner-undo-toast').hidden = false;
+  clearTimeout(undoHideTimer);
+  undoHideTimer = setTimeout(hidePlannerUndo, 15_000);
+}
+
+byId('restore-planner-change').addEventListener('click', () => {
+  const snapshot = undo.restore();
+  if (!snapshot) {
+    byId('planner-status').textContent = '復原期限已過，無法回復上一個狀態。';
+    hidePlannerUndo();
+    return;
+  }
+  replacePlannerState(snapshot);
+  byId('planner-status').textContent = '已復原上一個排課變更。';
+  hidePlannerUndo();
+});
+
+byId('export-and-open-full').hidden = !isStaticFallbackHost;
+
+function downloadPlannerTransfer() {
+  const blob = new Blob([exportPlannerTransfer(plannerStateSnapshot())], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `sunbreak-planner-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  byId('planner-transfer-status').textContent = '已下載排課資料；檔案不含 API Key、AI 自我介紹或截圖。';
+}
+
+byId('export-planner-data').addEventListener('click', downloadPlannerTransfer);
+byId('export-and-open-full').addEventListener('click', downloadPlannerTransfer);
+byId('header-more-menu').addEventListener('click', (event) => {
+  if (event.target.closest('[role="menuitem"]')) byId('header-more-menu').open = false;
+});
+byId('import-planner-data').addEventListener('change', async (event) => {
+  const [file] = event.target.files;
+  if (!file) return;
+  const status = byId('planner-transfer-status');
+  const raw = await file.text();
+  const preview = previewPlannerTransfer(raw, plannerStateSnapshot());
+  if (!preview.valid) {
+    status.textContent = preview.error.message;
+    event.target.value = '';
+    return;
+  }
+  const { summary } = preview;
+  const message = `將匯入 ${summary.addedCourses} 門新課、更新 ${summary.replacedCourses} 門，並略過 ${summary.skippedCourses} 筆重複資料。這會取代目前排課，是否繼續？`;
+  if (!window.confirm(message)) {
+    status.textContent = '已取消匯入，現在的排課沒有變更。';
+    event.target.value = '';
+    return;
+  }
+  capturePlannerUndo('已匯入另一份排課資料');
+  const applied = applyPlannerTransfer(preview, plannerStateSnapshot());
+  replacePlannerState(applied);
+  status.textContent = `匯入完成；目前課表有 ${selected.length} 個項目。`;
+  event.target.value = '';
+  byId('header-more-menu').open = false;
+});
 
 function eligibilityLabel(status) {
   return {
     eligible: '條件符合',
-    conditional: '資格需確認',
+    review: '資格待確認，請看詳細。',
     blocked: '條件不符合，請看詳細。',
     unavailable: '本學期未開課',
   }[status];
+}
+
+function errorFromPayload(payload, fallbackMessage) {
+  const error = new Error(payload?.error?.message || fallbackMessage);
+  error.retryable = Boolean(payload?.error?.retryable);
+  error.requestId = payload?.error?.requestId || '';
+  return error;
+}
+
+function showAiError(status, retryButton, error) {
+  const requestReference = error.requestId ? `（編號：${error.requestId}）` : '';
+  status.textContent = `${error.message || 'AI 服務暫時無法使用。'}${requestReference}`;
+  retryButton.hidden = !error.retryable;
 }
 
 function renderStats() {
@@ -233,14 +360,15 @@ function renderStats() {
   const internshipPlan = calculateInternshipPlan(selected, internshipSettings);
   const progressPercent = internshipSettings.targetDays === 0
     ? 100
-    : Math.min(100, Math.round((internshipPlan.availableDays / internshipSettings.targetDays) * 100));
+    : Math.min(100, Math.round((internshipPlan.confirmedDays / internshipSettings.targetDays) * 100));
   const internshipProgress = byId('internship-progress');
   const conflicts = findConflicts(selected);
   const eligibilityWarnings = selected.filter((course) => evaluateEligibility(course, profile).status !== 'eligible');
   const specialEvents = selected.reduce((total, course) => total + (course.events || []).length, 0);
   const optionWarnings = selected.filter((course) => course.optionStatus === 'pending' || course.optionStatus === 'flexible').length;
   byId('credit-value').textContent = `${credits} 學分`;
-  byId('internship-value').textContent = `${internshipPlan.tentative ? '暫估 ' : ''}${internshipPlan.availableDays} / ${internshipSettings.targetDays} 天`;
+  byId('internship-confirmed-value').textContent = String(internshipPlan.confirmedDays);
+  byId('internship-pending-value').textContent = String(internshipPlan.pendingDays);
   byId('warning-value').textContent = String(conflicts.length + eligibilityWarnings.length + specialEvents + optionWarnings + internshipPlan.conflicts.length);
   internshipProgress.style.setProperty('--internship-progress', `${progressPercent}%`);
   internshipProgress.setAttribute('aria-valuenow', String(progressPercent));
@@ -306,11 +434,46 @@ function renderSchedule() {
     .map((window) => internshipBlock(window, conflictedWindows.has(window))).join('');
   byId('schedule-grid').innerHTML = headers + periodRows + internshipBlocks + courseBlocks;
 
+  const agenda = buildScheduleAgenda(selected);
+  byId('schedule-agenda').innerHTML = agenda.days.length
+    ? agenda.days.map(({ day, items }) => `<section class="agenda-day">
+        <h3><span>${escapeHtml(dayLabels[day])}</span><small>${items.length} 個時段</small></h3>
+        <div class="agenda-day-items">${items.map((item) => {
+          const locked = lockedCourseIds.includes(item.courseId);
+          return `<button type="button" data-remove-course="${escapeHtml(item.courseId)}" ${locked ? 'disabled' : ''} aria-label="${locked ? '已鎖定' : '移除'} ${escapeHtml(item.title)}">
+            <time>${escapeHtml(formatMinutes(item.start))}<small>${escapeHtml(formatMinutes(item.end))}</small></time>
+            <span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.sectionCode || item.label || '固定時段')}${locked ? ' · 已鎖定' : ' · 點擊移除'}</small></span>
+          </button>`;
+        }).join('')}</div>
+      </section>`).join('')
+    : '<div class="agenda-empty"><strong>這週還沒有固定時段</strong><p>從右側候選課程加入課表後，會依星期與時間排列在這裡。</p></div>';
+
   const asynchronous = selected.filter((course) => course.attendance === 'async' || !meetingsForCourse(course).length);
   byId('async-lane').innerHTML = asynchronous.length
     ? `<div class="async-list">${asynchronous.map((course) => `<button type="button" data-remove-course="${escapeHtml(course.id)}">${escapeHtml(course.title)} · ${course.attendance === 'async' ? '非同步' : '時間未定'}</button>`).join('')}</div>`
     : '<p class="empty">目前沒有非同步或時間未定課程</p>';
 }
+
+const compactScheduleMedia = window.matchMedia('(max-width: 640px)');
+function setScheduleView(view, { persist = false } = {}) {
+  const panel = document.querySelector('.schedule-panel');
+  panel.dataset.scheduleView = view;
+  byId('schedule-view-switch').querySelectorAll('[data-schedule-view]').forEach((button) => {
+    button.setAttribute('aria-pressed', String(button.dataset.scheduleView === view));
+  });
+  if (persist) {
+    try { localStorage.setItem(SCHEDULE_VIEW_KEY, view); } catch {}
+  }
+}
+let savedScheduleView;
+try { savedScheduleView = localStorage.getItem(SCHEDULE_VIEW_KEY); } catch {}
+setScheduleView(['agenda', 'grid'].includes(savedScheduleView)
+  ? savedScheduleView
+  : compactScheduleMedia.matches ? 'agenda' : 'grid');
+byId('schedule-view-switch').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-schedule-view]');
+  if (button) setScheduleView(button.dataset.scheduleView, { persist: true });
+});
 
 function collectScheduleReminders() {
   const items = findConflicts(selected).map((conflict) => conflict.message);
@@ -621,20 +784,193 @@ function exportScheduleWallpaper() {
   byId('planner-status').textContent = '手機桌布已匯出。';
 }
 
+function syllabusStateForCourse(course) {
+  if (course.syllabus) return course.syllabus;
+  const legacyUrl = trustedOfficialSyllabusUrl(course);
+  return officialSyllabusState({
+    sourceUrl: legacyUrl,
+    lookupStatus: legacyUrl ? 'success' : 'legacy',
+    checkedAt: null,
+  });
+}
+
+function syllabusAction(course) {
+  if (course.source === 'manual') {
+    return '<button class="catalog-syllabus" type="button" role="menuitem" disabled>手動課程沒有連結官方課綱</button>';
+  }
+  const syllabus = syllabusStateForCourse(course);
+  if (syllabus.status === 'available') {
+    return `<a class="catalog-syllabus" href="${escapeHtml(syllabus.url)}" target="_blank" rel="noopener noreferrer" role="menuitem">查看課綱</a>`;
+  }
+  if (syllabus.status === 'not_uploaded') {
+    return '<button class="catalog-syllabus" type="button" role="menuitem" disabled>老師尚未上傳課綱</button>';
+  }
+  return `<button class="catalog-syllabus" type="button" role="menuitem" data-refresh-nccu-course="${escapeHtml(course.sectionCode || '')}">課綱狀態暫時無法確認 · 重新查詢官方資料</button>`;
+}
+
+function currentCatalogFilters() {
+  return {
+    query: byId('catalog-search').value,
+    statuses: [...document.querySelectorAll('[data-catalog-status-filter]:checked')]
+      .map((input) => input.dataset.catalogStatusFilter),
+    weekdays: [...document.querySelectorAll('[data-catalog-day-filter]:checked')]
+      .map((input) => Number(input.dataset.catalogDayFilter)),
+    dayparts: [...document.querySelectorAll('[data-catalog-daypart-filter]:checked')]
+      .map((input) => input.dataset.catalogDaypartFilter),
+    selectedIds: selected.map(({ id }) => id),
+    attendanceByCourse: Object.fromEntries(selected.map(({ id, attendance }) => [id, attendance])),
+    eligibilityStatuses: Object.fromEntries(courseStore.map((course) => [
+      course.id,
+      evaluateEligibility(course, profile).status,
+    ])),
+  };
+}
+
+function renderCourseComparisonTray() {
+  const availableIds = new Set(courseStore.map(({ id }) => id));
+  comparisonCourseIds = comparisonCourseIds.filter((id) => availableIds.has(id));
+  const count = comparisonCourseIds.length;
+  const tray = byId('course-comparison-tray');
+  tray.hidden = count === 0;
+  byId('comparison-selected-count').textContent = `${count} / ${MAX_COMPARISON_COURSES}`;
+  byId('course-comparison-status').textContent = count < 2
+    ? `再選 ${2 - count} 門就能開始比較。`
+    : `已選 ${count} 門，可以比較課綱內容與衝堂。`;
+  byId('run-ai-comparison').disabled = count < 2;
+  byId('open-chatgpt-comparison').disabled = count < 2;
+}
+
+function comparisonRequestBody() {
+  return {
+    profileText: byId('ai-profile').value,
+    futureDirection: byId('ai-future').value,
+    semesterGoals: byId('ai-goals').value,
+    preferences: byId('ai-preferences').value,
+    courses: comparisonCourseIds.map((id) => {
+      const course = selected.find((item) => item.id === id)
+        || courseStore.find((item) => item.id === id);
+      const syllabus = syllabusStateForCourse(course);
+      return {
+        id: course.id,
+        sectionCode: course.sectionCode,
+        title: course.title,
+        teacher: course.teacher,
+        credits: course.credits,
+        syllabusUrl: syllabus.status === 'available' ? syllabus.url : '',
+        schedule: course.schedule,
+        meetings: meetingsForCourse(course),
+        conditions: (course.conditions || []).map((condition) => (
+          typeof condition === 'string' ? condition : condition.label || condition.description || condition.id
+        )).filter(Boolean),
+      };
+    }),
+  };
+}
+
+function comparisonCourseTitle(id) {
+  return courseStore.find((course) => course.id === id)?.title || id;
+}
+
+function comparisonConflictText(conflict) {
+  const titles = (conflict.courseIds || []).map(comparisonCourseTitle).join(' × ');
+  return [titles, conflict.label || conflict.message || '固定時段重疊'].filter(Boolean).join(' · ');
+}
+
+function renderCourseComparison(payload) {
+  const results = byId('ai-comparison-results');
+  const personalized = payload.profileMode === 'personalized' && payload.personalized?.used;
+  const profileNotice = personalized
+    ? `<section class="comparison-context is-personalized"><strong>個人化建議</strong><p>已讀取你選填的學期目標、未來方向與排課偏好。${escapeHtml(payload.personalized?.reason || '')}</p></section>`
+    : '<section class="comparison-context"><strong>客觀比較</strong><p>這次未使用個人資料，只根據官方課綱與固定時段比較。建議填寫上方選填資料，取捨建議會更精準。</p></section>';
+  const conflicts = payload.conflicts?.length
+    ? `<section class="comparison-conflicts" role="alert"><h4>確定性衝堂</h4><ul>${payload.conflicts.map((conflict) => `<li>${escapeHtml(comparisonConflictText(conflict))}</li>`).join('')}</ul></section>`
+    : '<section class="comparison-no-conflict"><strong>固定時段沒有衝堂</strong><span>仍請核對特殊日期與考試資訊。</span></section>';
+  const sharedTopics = payload.overlap?.sharedTopics?.length
+    ? `<ul class="comparison-topic-list">${payload.overlap.sharedTopics.map((topic) => `<li>${escapeHtml(topic)}</li>`).join('')}</ul>`
+    : '<p>課綱未提供足夠共同主題。</p>';
+  const courseCards = (payload.courses || []).map((item) => {
+    const source = payload.sources?.find(({ id }) => id === item.id);
+    const sourceLink = source?.status === 'available' && source.url
+      ? `<a href="${escapeHtml(source.url)}" target="_blank" rel="noopener noreferrer">查看官方課綱</a>`
+      : '<span>官方課綱暫時無法讀取</span>';
+    return `<article class="comparison-course-card">
+      <header><h4>${escapeHtml(comparisonCourseTitle(item.id))}</h4>${sourceLink}</header>
+      <dl>
+        <div><dt>課程重點</dt><dd>${escapeHtml(item.focus)}</dd></div>
+        <div><dt>獨有價值</dt><dd>${escapeHtml(item.uniqueValue)}</dd></div>
+        <div><dt>評量方式</dt><dd>${escapeHtml(item.assessment)}</dd></div>
+        <div><dt>預估負擔</dt><dd>${escapeHtml(item.workload)}</dd></div>
+      </dl>
+    </article>`;
+  }).join('');
+  const recommendedTitles = (payload.recommendation?.courseIds || []).map(comparisonCourseTitle);
+  const recommendation = recommendedTitles.length
+    ? `<strong>建議優先：${escapeHtml(recommendedTitles.join('、'))}</strong>`
+    : '<strong>目前證據不足，不替你硬選</strong>';
+  const limitations = payload.limitations?.length
+    ? `<ul>${payload.limitations.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`
+    : '<p>目前沒有額外資料限制。</p>';
+  results.innerHTML = `${profileNotice}
+    ${conflicts}
+    <section class="comparison-overlap">
+      <div><p class="eyebrow">內容重疊</p><strong>${escapeHtml(payload.overlap?.level || '未判定')} · ${Number(payload.overlap?.score || 0)}%</strong></div>
+      <div class="comparison-meter" role="progressbar" aria-label="課程內容重疊程度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Number(payload.overlap?.score || 0)}"><span style="--comparison-score:${Number(payload.overlap?.score || 0)}%"></span></div>
+      ${sharedTopics}
+    </section>
+    <section class="comparison-course-section"><h4>各課獨有價值</h4><div class="comparison-course-grid">${courseCards}</div></section>
+    <section class="comparison-recommendation">${recommendation}<p>${escapeHtml(payload.recommendation?.reason || payload.summary || '')}</p><small>信心程度：${escapeHtml(payload.recommendation?.confidence || 'low')}</small></section>
+    <section class="comparison-limitations"><h4>資料限制</h4>${limitations}</section>`;
+}
+
+function showChatGptComparisonRecovery(prompt, message) {
+  const recovery = byId('chatgpt-comparison-recovery');
+  recovery.hidden = false;
+  byId('chatgpt-comparison-prompt').value = prompt;
+  byId('chatgpt-comparison-status').textContent = message;
+}
+
+function cacheComparisonSources(sources) {
+  const available = new Map((sources || [])
+    .filter((source) => source.status === 'available' && source.url)
+    .map((source) => [source.id, source.url]));
+  if (!available.size) return;
+  const enrich = (courseList) => courseList.map((course) => {
+    const url = available.get(course.id);
+    if (!url) return course;
+    const isSeedCourse = courses.some((seedCourse) => seedCourse.id === course.id);
+    return {
+      ...course,
+      source: isSeedCourse ? 'nccu-verified-import' : course.source,
+      sourceUrl: url,
+      syllabus: {
+        status: 'available',
+        url,
+        lookupStatus: 'success',
+        checkedAt: new Date().toISOString(),
+      },
+    };
+  });
+  courseStore = enrich(courseStore);
+  selected = enrich(selected);
+  persistState();
+}
+
+function renderCatalogFilterCount(filters) {
+  const count = countActiveCatalogFilters(filters);
+  const badge = byId('catalog-filter-count');
+  const toggle = byId('catalog-filter-toggle');
+  badge.textContent = String(count);
+  badge.hidden = count === 0;
+  badge.setAttribute('aria-label', count ? `目前套用 ${count} 個複選條件` : '目前沒有套用複選條件');
+  toggle.classList.toggle('has-active-filters', count > 0);
+}
+
 function renderCatalog() {
   const catalogList = byId('catalog-list');
-  const query = byId('catalog-search').value.trim().toLowerCase();
-  const filter = byId('catalog-filter').value;
-  const visible = courseStore.filter((course) => {
-    const eligibility = evaluateEligibility(course, profile);
-    const selectedNow = selected.some((item) => item.id === course.id);
-    const haystack = `${course.title} ${course.teacher} ${course.sectionCode}`.toLowerCase();
-    if (query && !haystack.includes(query)) return false;
-    if (filter === 'selected' && !selectedNow) return false;
-    if (filter === 'remote' && !course.asyncAllowed) return false;
-    if (filter === 'conditional' && eligibility.status !== 'conditional') return false;
-    return true;
-  });
+  const filters = currentCatalogFilters();
+  const visible = filterCandidateCourses(courseStore, filters);
+  renderCatalogFilterCount(filters);
+  renderCourseComparisonTray();
   byId('catalog-count').textContent = `${visible.length} / ${courseStore.length}`;
   if (!visible.length) {
     catalogList.innerHTML = courseStore.length
@@ -647,13 +983,10 @@ function renderCatalog() {
     const selectedNow = selected.some((item) => item.id === course.id);
     const selectedCourse = selected.find((item) => item.id === course.id);
     const scheduleSummary = candidateScheduleSummary(selectedCourse || course, dayLabels);
-    const syllabusUrl = trustedOfficialSyllabusUrl(course);
+    const syllabus = syllabusStateForCourse(course);
+    const syllabusUrl = syllabus.status === 'available' ? syllabus.url : '';
     const showsSyllabus = course.source !== 'manual' || course.itemType === 'course';
-    const syllabusAction = !showsSyllabus
-      ? ''
-      : syllabusUrl
-        ? `<a class="catalog-syllabus" href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">課綱</a>`
-        : '<button class="catalog-syllabus" type="button" disabled>無課綱</button>';
+    const syllabusMenuAction = showsSyllabus ? syllabusAction(course) : '';
     const locked = lockedCourseIds.includes(course.id);
     const blocked = eligibility.status === 'blocked' || eligibility.status === 'unavailable';
     const attendance = selectedNow && course.asyncAllowed
@@ -661,6 +994,9 @@ function renderCatalog() {
       : '';
     const conditions = course.conditions || [];
     const sections = course.sections || [];
+    const sectionLabels = sections.map((section) => typeof section === 'string'
+      ? section
+      : `${section.sectionCode || section.id}｜${section.teacher || '教師待確認'}｜${section.schedule?.label || '依選定安排'}`);
     const expanded = expandedCourseId === course.id;
     const detailTrigger = `<button class="catalog-details-trigger" type="button" data-details-course="${escapeHtml(course.id)}" aria-expanded="${expanded}" aria-controls="course-details-${escapeHtml(course.id)}" aria-label="查看 ${escapeHtml(course.title)} 的完整資料">詳細</button>`;
     const sourceLabel = course.source === 'nccu-verified-import'
@@ -697,15 +1033,38 @@ function renderCatalog() {
         </section>
         <section>
           <h4>官方班別與時段</h4>
-          ${sections.length ? `<ul class="course-sections">${sections.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : `<p>${escapeHtml(scheduleSummary)}</p>`}
+          ${sectionLabels.length ? `<ul class="course-sections">${sectionLabels.map((section) => `<li>${escapeHtml(section)}</li>`).join('')}</ul>` : `<p>${escapeHtml(scheduleSummary)}</p>`}
         </section>
       </div>
       <footer class="course-details-footer">
-        ${syllabusUrl ? `<a href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">開啟官方課綱</a>` : '<span>目前沒有可用的官方課綱</span>'}
+        ${syllabusUrl
+          ? `<a href="${escapeHtml(syllabusUrl)}" target="_blank" rel="noopener noreferrer">開啟官方課綱</a>`
+          : syllabus.status === 'not_uploaded'
+            ? '<span>老師尚未上傳課綱</span>'
+            : course.source === 'manual'
+              ? '<span>手動課程沒有連結官方課綱</span>'
+              : `<button class="course-details-refresh" type="button" data-refresh-nccu-course="${escapeHtml(course.sectionCode || '')}">課綱狀態暫時無法確認 · 重新查詢官方資料</button>`}
       </footer>
     </section>` : '';
+    const atomicSections = sections.filter((section) => section && typeof section === 'object');
+    const selectedSection = atomicSections.find(({ id }) => id === selectedCourse?.selectedSectionId);
+    const sectionChoices = selectedSection?.arrangements || selectedSection?.advisorOptions || [];
+    const choiceKind = selectedSection?.arrangements?.length ? 'arrangement' : 'advisor';
     const selectedVariant = selectedCourse?.variants?.find(({ id }) => id === selectedCourse.selectedVariantId);
-    const optionControls = selectedNow && course.variants?.length
+    const atomicOptionControls = selectedNow && atomicSections.length
+      ? `<div class="course-option-controls">
+          <label>正式課號<select data-course-section="${escapeHtml(course.id)}">
+            <option value="">請選擇</option>
+            ${atomicSections.map((section) => `<option value="${escapeHtml(section.id)}" ${selectedCourse?.selectedSectionId === section.id ? 'selected' : ''}>${escapeHtml(section.sectionCode || section.id)} · ${escapeHtml(section.teacher || '教師待確認')}</option>`).join('')}
+          </select></label>
+          ${sectionChoices.length ? `<label>${escapeHtml(selectedSection.selectionLabel || (choiceKind === 'arrangement' ? '時間安排' : '指導老師與時段'))}<select data-course-${choiceKind}="${escapeHtml(course.id)}">
+            <option value="">請選擇</option>
+            ${sectionChoices.map((choice) => `<option value="${escapeHtml(choice.id)}" ${(choiceKind === 'arrangement' ? selectedCourse.selectedArrangementId : selectedCourse.selectedAdvisorId) === choice.id ? 'selected' : ''}>${escapeHtml(choice.optionLabel || `${choice.teacher || '彈性安排'} · ${choice.schedule?.label || '時間待確認'}`)}</option>`).join('')}
+          </select></label>` : ''}
+          <p>${escapeHtml(selectedCourse?.optionMessage || '選定後會把整個班別的課號、教師與時段一起放進左側課表。')}</p>
+        </div>`
+      : '';
+    const legacyOptionControls = selectedNow && !atomicSections.length && course.variants?.length
       ? `<div class="course-option-controls">
           <label>正式課號<select data-course-variant="${escapeHtml(course.id)}">
             <option value="">請選擇</option>
@@ -718,16 +1077,27 @@ function renderCatalog() {
           <p>${escapeHtml(selectedCourse?.optionMessage || '選定後會把對應時段放進左側課表。')}</p>
         </div>`
       : '';
-    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
+    const optionControls = atomicOptionControls || legacyOptionControls;
+    const comparing = comparisonCourseIds.includes(course.id);
+    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''} ${comparing ? 'is-comparing' : ''}">
+      <label class="catalog-compare-control" title="加入課綱比較">
+        <input type="checkbox" data-compare-course="${escapeHtml(course.id)}" aria-label="將 ${escapeHtml(course.title)}加入比較" ${comparing ? 'checked' : ''}>
+        <span>比較</span>
+      </label>
       <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small><small class="catalog-time">${escapeHtml(scheduleSummary)}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>
       </button>
       <div class="course-actions">
         ${detailTrigger}
-        ${syllabusAction}
-        <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}" aria-label="${locked ? '解鎖' : '鎖定'} ${escapeHtml(course.title)}">${locked ? '解鎖' : '鎖定'}</button>
-        <button class="catalog-delete" type="button" data-delete-course="${escapeHtml(course.id)}" aria-label="刪除候選課程 ${escapeHtml(course.title)}">刪除</button>
+        <details class="catalog-more">
+          <summary class="catalog-more-trigger" aria-label="更多操作 ${escapeHtml(course.title)}" aria-haspopup="menu">•••</summary>
+          <div class="catalog-more-menu" role="menu" data-close-catalog-menus>
+            ${syllabusMenuAction}
+            <button class="catalog-lock ${locked ? 'is-active' : ''}" type="button" role="menuitem" data-lock-course="${escapeHtml(course.id)}" aria-pressed="${locked}">${locked ? '解除鎖定' : '鎖定課程'}</button>
+            <button class="catalog-delete" type="button" role="menuitem" data-delete-course="${escapeHtml(course.id)}">刪除候選課程</button>
+          </div>
+        </details>
       </div>
       ${detailPanel}
       ${optionControls}
@@ -766,10 +1136,144 @@ function setWorkspaceTab(name) {
   });
 }
 
+function setAiTool(name, { focus = false } = {}) {
+  if (!['hub', 'advisor', 'comparison'].includes(name)) return;
+  activeAiTool = name;
+  const hub = byId('ai-feature-hub');
+  const advisor = byId('ai-tool-advisor');
+  const comparison = byId('ai-tool-comparison');
+  hub.hidden = name !== 'hub';
+  advisor.hidden = name !== 'advisor';
+  comparison.hidden = name !== 'comparison';
+  if (!focus) return;
+  const heading = name === 'hub'
+    ? byId('ai-feature-hub-title')
+    : name === 'advisor'
+      ? byId('ai-advisor-title')
+      : byId('ai-comparison-title');
+  heading.focus();
+}
+
 byId('workspace-tabs').addEventListener('click', (event) => {
   const button = event.target.closest('[data-workspace-tab]');
   if (!button) return;
   setWorkspaceTab(button.dataset.workspaceTab);
+});
+
+byId('workspace-panel-ai').addEventListener('click', (event) => {
+  const tool = event.target.closest('[data-ai-tool]');
+  if (tool) {
+    setAiTool(tool.dataset.aiTool, { focus: true });
+    return;
+  }
+  if (event.target.closest('[data-ai-tool-back]')) setAiTool('hub', { focus: true });
+});
+
+byId('clear-course-comparison').addEventListener('click', () => {
+  comparisonCourseIds = [];
+  byId('catalog-status').textContent = '已清除課程比較清單。';
+  renderCatalog();
+});
+
+byId('open-comparison-profile').addEventListener('click', () => {
+  setWorkspaceTab('ai');
+  setAiTool('advisor');
+  byId('ai-future').focus();
+  byId('ai-advisor-form').scrollIntoView({ block: 'start' });
+});
+
+byId('run-ai-comparison').addEventListener('click', async () => {
+  const trayStatus = byId('course-comparison-status');
+  const resultStatus = byId('ai-comparison-status');
+  const button = byId('run-ai-comparison');
+  const apiKey = requireApiKeyForAi(trayStatus);
+  if (!apiKey) return;
+  setWorkspaceTab('ai');
+  setAiTool('comparison');
+  setCompactView('tools');
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  trayStatus.textContent = '正在讀取官方課綱並比較…';
+  resultStatus.textContent = '正在分析共同主題、獨有內容、評量與負擔…';
+  try {
+    const response = await fetch('/api/ai/compare-courses', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ apiKey, ...comparisonRequestBody() }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw errorFromPayload(payload, '課綱比較失敗，請稍後重試。');
+    cacheComparisonSources(payload.sources);
+    renderCourseComparison(payload);
+    resultStatus.textContent = payload.profileMode === 'personalized'
+      ? '比較完成，已加入你選填的個人目標與偏好。'
+      : '比較完成；這次未填個人資料，因此只提供客觀比較。';
+    byId('ai-course-comparison').scrollIntoView({ block: 'start' });
+    trayStatus.textContent = '比較完成，結果已顯示在「AI 功能」。';
+  } catch (error) {
+    const message = error?.message || '課綱比較失敗，請稍後重試。';
+    trayStatus.textContent = message;
+    resultStatus.textContent = message;
+  } finally {
+    button.disabled = comparisonCourseIds.length < 2;
+    button.removeAttribute('aria-busy');
+  }
+});
+
+byId('open-chatgpt-comparison').addEventListener('click', async () => {
+  const trayStatus = byId('course-comparison-status');
+  const button = byId('open-chatgpt-comparison');
+  const chatWindow = window.open('about:blank', '_blank');
+  setWorkspaceTab('ai');
+  setAiTool('comparison');
+  setCompactView('tools');
+  button.disabled = true;
+  button.setAttribute('aria-busy', 'true');
+  trayStatus.textContent = '正在讀取官方課綱並準備提示詞…';
+  try {
+    const response = await fetch('/api/course-comparison/prompt', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(comparisonRequestBody()),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw errorFromPayload(payload, '無法產生 ChatGPT 比較提示詞。');
+    cacheComparisonSources(payload.sources);
+    showChatGptComparisonRecovery(payload.prompt, '提示詞已準備完成；正在嘗試自動複製…');
+    if (chatWindow) {
+      chatWindow.opener = null;
+      chatWindow.location.href = 'https://chatgpt.com/';
+    }
+    const copied = await Promise.race([
+      Promise.resolve().then(() => navigator.clipboard.writeText(payload.prompt)).then(() => true).catch(() => false),
+      new Promise((resolve) => setTimeout(() => resolve(false), 1_500)),
+    ]);
+    const message = copied
+      ? `已複製比較提示詞${chatWindow ? '並開啟 ChatGPT' : ''}，請貼上後自行送出。`
+      : '瀏覽器未允許自動複製，請使用下方按鈕手動複製後開啟 ChatGPT。';
+    showChatGptComparisonRecovery(payload.prompt, message);
+    byId('chatgpt-comparison-recovery').scrollIntoView({ block: 'start' });
+    trayStatus.textContent = message;
+  } catch (error) {
+    if (chatWindow && !chatWindow.closed) chatWindow.close();
+    trayStatus.textContent = error?.message || '無法產生 ChatGPT 比較提示詞。';
+  } finally {
+    button.disabled = comparisonCourseIds.length < 2;
+    button.removeAttribute('aria-busy');
+  }
+});
+
+byId('copy-chatgpt-comparison-prompt').addEventListener('click', async () => {
+  const prompt = byId('chatgpt-comparison-prompt').value;
+  try {
+    await navigator.clipboard.writeText(prompt);
+    byId('chatgpt-comparison-status').textContent = '已複製提示詞，請到 ChatGPT 貼上並送出。';
+  } catch {
+    const textarea = byId('chatgpt-comparison-prompt');
+    textarea.focus();
+    textarea.select();
+    byId('chatgpt-comparison-status').textContent = '請長按或使用鍵盤複製選取的提示詞。';
+  }
 });
 
 function setCompactView(name) {
@@ -806,10 +1310,14 @@ function renderConditions() {
   const definitions = buildConditionDefinitions(courseStore, customConditions);
   const impacts = buildConditionImpacts(courseStore, definitions, profile);
   byId('condition-list').innerHTML = impacts.map((impact) => `
-    <article class="condition-item ${impact.selected ? 'is-selected' : ''}">
+    <article class="condition-item is-${impact.state}">
       <label class="condition-toggle">
-        <input type="checkbox" data-profile-condition="${escapeHtml(impact.id)}" ${impact.selected ? 'checked' : ''}>
         <span><strong>${escapeHtml(impact.label)}</strong><small>${escapeHtml(impact.summary)}</small></span>
+        <select data-profile-condition-state="${escapeHtml(impact.id)}" aria-label="${escapeHtml(impact.label)}的符合狀態">
+          <option value="unknown" ${impact.state === 'unknown' ? 'selected' : ''}>待確認</option>
+          <option value="accepted" ${impact.state === 'accepted' ? 'selected' : ''}>符合</option>
+          <option value="rejected" ${impact.state === 'rejected' ? 'selected' : ''}>不符合</option>
+        </select>
       </label>
       <details class="condition-impact">
         <summary>為什麼需要這個條件？</summary>
@@ -824,12 +1332,17 @@ function renderConditions() {
 }
 
 byId('condition-list').addEventListener('change', (event) => {
-  const input = event.target.closest('[data-profile-condition]');
+  const input = event.target.closest('[data-profile-condition-state]');
   if (!input) return;
   const selectedIds = new Set(profileConditionIds(profile));
-  if (input.checked) selectedIds.add(input.dataset.profileCondition);
-  else selectedIds.delete(input.dataset.profileCondition);
+  const rejectedIds = new Set(profile.rejectedConditionIds || []);
+  const conditionId = input.dataset.profileConditionState;
+  selectedIds.delete(conditionId);
+  rejectedIds.delete(conditionId);
+  if (input.value === 'accepted') selectedIds.add(conditionId);
+  if (input.value === 'rejected') rejectedIds.add(conditionId);
   profile.conditionIds = [...selectedIds];
+  profile.rejectedConditionIds = [...rejectedIds];
   profile.programs = [];
   profile.prerequisites = [];
   persistState();
@@ -841,8 +1354,10 @@ byId('condition-list').addEventListener('click', (event) => {
   if (!button) return;
   const condition = customConditions.find((item) => item.id === button.dataset.deleteCondition);
   if (!condition || !window.confirm(`確定刪除自訂條件「${condition.label}」嗎？`)) return;
+  capturePlannerUndo(`已刪除條件「${condition.label}」`);
   customConditions = customConditions.filter((item) => item.id !== condition.id);
   profile.conditionIds = profileConditionIds(profile).filter((id) => id !== condition.id);
+  profile.rejectedConditionIds = (profile.rejectedConditionIds || []).filter((id) => id !== condition.id);
   persistState();
   renderAll();
 });
@@ -872,6 +1387,7 @@ byId('custom-condition-form').addEventListener('submit', (event) => {
   customConditions.push(condition);
   const selectedIds = profileConditionIds(profile).filter((id) => id !== condition.id);
   profile.conditionIds = [...selectedIds, condition.id];
+  profile.rejectedConditionIds = (profile.rejectedConditionIds || []).filter((id) => id !== condition.id);
   event.currentTarget.reset();
   status.textContent = `已新增「${condition.label}」並標記為符合。`;
   persistState();
@@ -916,13 +1432,52 @@ byId('internship-form').addEventListener('change', () => {
 });
 
 const catalogList = byId('catalog-list');
-catalogList.addEventListener('click', (event) => {
+function closeCatalogMenus(except = null) {
+  catalogList.querySelectorAll('.catalog-more[open]').forEach((menu) => {
+    if (menu !== except) menu.open = false;
+  });
+}
+
+document.addEventListener('pointerdown', (event) => {
+  if (!event.target.closest('.catalog-more')) closeCatalogMenus();
+});
+
+catalogList.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    const menu = event.target.closest('.catalog-more[open]');
+    if (!menu) return;
+    menu.open = false;
+    menu.querySelector('.catalog-more-trigger')?.focus();
+  }
+});
+
+catalogList.addEventListener('click', async (event) => {
+  const moreTrigger = event.target.closest('.catalog-more-trigger');
+  if (moreTrigger) {
+    closeCatalogMenus(moreTrigger.closest('.catalog-more'));
+    return;
+  }
   const detailButton = event.target.closest('[data-details-course]');
   if (detailButton) {
     expandedCourseId = expandedCourseId === detailButton.dataset.detailsCourse
       ? null
       : detailButton.dataset.detailsCourse;
     renderCatalog();
+    return;
+  }
+  const refreshButton = event.target.closest('[data-refresh-nccu-course]');
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    const previousText = refreshButton.textContent;
+    refreshButton.textContent = '更新中…';
+    try {
+      const candidate = await refreshOfficialCandidateByCode(refreshButton.dataset.refreshNccuCourse);
+      byId('catalog-status').textContent = `已更新「${candidate.title}」的官方資料。`;
+    } catch {
+      refreshButton.disabled = false;
+      refreshButton.textContent = previousText;
+      byId('catalog-status').textContent = '官方資料暫時無法更新，已保留目前資料。請稍後再試。';
+    }
     return;
   }
   const lockButton = event.target.closest('[data-lock-course]');
@@ -944,6 +1499,7 @@ catalogList.addEventListener('click', (event) => {
       ? `這是你標記為一定要修的課程。仍要刪除「${course.title}」嗎？`
       : `要從候選課程刪除「${course.title}」嗎？`;
     if (!window.confirm(warning)) return;
+    capturePlannerUndo(`已刪除「${course.title}」`);
     const result = deleteCandidateCourse(courseStore, selected, lockedCourseIds, course.id);
     courseStore = result.courseStore;
     selected = result.selected;
@@ -972,13 +1528,39 @@ catalogList.addEventListener('click', (event) => {
 });
 
 catalogList.addEventListener('change', (event) => {
-  const optionSelect = event.target.closest('[data-course-variant], [data-course-advisor]');
+  const compareInput = event.target.closest('[data-compare-course]');
+  if (compareInput) {
+    const courseId = compareInput.dataset.compareCourse;
+    if (compareInput.checked && !comparisonCourseIds.includes(courseId)) {
+      if (comparisonCourseIds.length >= MAX_COMPARISON_COURSES) {
+        compareInput.checked = false;
+        byId('catalog-status').textContent = `一次最多比較 ${MAX_COMPARISON_COURSES} 門課，請先移除一門。`;
+        return;
+      }
+      comparisonCourseIds = [...comparisonCourseIds, courseId];
+    } else if (!compareInput.checked) {
+      comparisonCourseIds = comparisonCourseIds.filter((id) => id !== courseId);
+    }
+    renderCatalog();
+    return;
+  }
+  const optionSelect = event.target.closest('[data-course-section], [data-course-arrangement], [data-course-variant], [data-course-advisor]');
   if (optionSelect) {
-    const courseId = optionSelect.dataset.courseVariant || optionSelect.dataset.courseAdvisor;
+    const courseId = optionSelect.dataset.courseSection
+      || optionSelect.dataset.courseArrangement
+      || optionSelect.dataset.courseVariant
+      || optionSelect.dataset.courseAdvisor;
     const current = courseOptions[courseId] || {};
-    const selection = optionSelect.dataset.courseVariant
-      ? { variantId: optionSelect.value, advisorId: null }
-      : { ...current, advisorId: optionSelect.value };
+    let selection;
+    if (optionSelect.dataset.courseSection) {
+      selection = { sectionId: optionSelect.value, advisorId: null, arrangementId: null };
+    } else if (optionSelect.dataset.courseArrangement) {
+      selection = { ...current, arrangementId: optionSelect.value, advisorId: null };
+    } else if (optionSelect.dataset.courseVariant) {
+      selection = { variantId: optionSelect.value, advisorId: null };
+    } else {
+      selection = { ...current, advisorId: optionSelect.value, arrangementId: null };
+    }
     courseOptions[courseId] = selection;
     selected = applyCourseOption(selected, courseId, selection);
     persistState();
@@ -995,6 +1577,7 @@ catalogList.addEventListener('change', (event) => {
 });
 
 byId('schedule-grid').addEventListener('click', removeFromSchedule);
+byId('schedule-agenda').addEventListener('click', removeFromSchedule);
 byId('async-lane').addEventListener('click', removeFromSchedule);
 function removeFromSchedule(event) {
   const button = event.target.closest('[data-remove-course]');
@@ -1006,19 +1589,35 @@ function removeFromSchedule(event) {
 }
 
 byId('catalog-search').addEventListener('input', renderCatalog);
-byId('catalog-filter').addEventListener('change', renderCatalog);
+byId('catalog-filter-toggle').addEventListener('click', () => {
+  const toggle = byId('catalog-filter-toggle');
+  const panel = byId('catalog-filter-panel');
+  const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+  toggle.setAttribute('aria-expanded', String(expanded));
+  panel.hidden = !expanded;
+});
+byId('catalog-filter-panel').addEventListener('change', (event) => {
+  if (!event.target.matches('[data-catalog-status-filter], [data-catalog-day-filter], [data-catalog-daypart-filter]')) return;
+  renderCatalog();
+});
+byId('clear-catalog-filters').addEventListener('click', () => {
+  byId('catalog-filter-panel').querySelectorAll('input[type="checkbox"]').forEach((input) => { input.checked = false; });
+  renderCatalog();
+});
 byId('clear-candidates').addEventListener('click', () => {
   if (!courseStore.length) {
     byId('catalog-status').textContent = '候選課程目前已經是空的。';
     return;
   }
   if (!window.confirm('確定清空全部候選課程嗎？已排入課表與鎖定的課程也會移除。')) return;
+  capturePlannerUndo('已清空全部候選課程');
   ({ courseStore, selected, lockedCourseIds, courseOptions } = clearCandidateCatalog());
   byId('catalog-status').textContent = '已清空候選課程；你的選課條件與實習設定仍保留。';
   persistState();
   renderAll();
 });
 byId('clear-schedule').addEventListener('click', () => {
+  capturePlannerUndo('已清空目前課表');
   const cleared = clearPlannerSelection();
   selected = cleared.selected;
   lockedCourseIds = cleared.lockedCourseIds;
@@ -1030,14 +1629,24 @@ byId('clear-schedule').addEventListener('click', () => {
 byId('export-wallpaper').addEventListener('click', exportScheduleWallpaper);
 
 let nccuSearchResults = [];
+let lastSuccessfulNccuQueryAt = null;
+
+function renderNccuDataFreshness() {
+  byId('nccu-data-freshness').textContent = lastSuccessfulNccuQueryAt
+    ? `資料學期 115-1 · 最後成功查詢 ${lastSuccessfulNccuQueryAt.toLocaleString('zh-TW', { hour12: false })}`
+    : '資料學期 115-1 · 尚未成功查詢';
+}
 
 function renderNccuSearchResults() {
   const results = byId('nccu-course-results');
   results.innerHTML = nccuSearchResults.map((course) => {
-    const added = candidateIncludesCourseCode(courseStore, course.courseCode);
-    const outlineUrl = String(course.sourceUrl || '').startsWith('https://')
-      ? `<a href="${escapeHtml(course.sourceUrl)}" target="_blank" rel="noreferrer">查看官方課綱</a>`
+    const existing = courseStore.find((candidate) => candidate.sectionCode === course.courseCode);
+    const outlineUrl = trustedOfficialSyllabusUrl(course)
+      ? `<a href="${escapeHtml(trustedOfficialSyllabusUrl(course))}" target="_blank" rel="noopener noreferrer">查看官方課綱</a>`
       : '';
+    const action = existing
+      ? `<button class="button button-quiet" type="button" data-refresh-nccu-course="${escapeHtml(course.courseCode)}">更新官方資料</button>`
+      : `<button class="button button-primary" type="button" data-add-nccu-course="${escapeHtml(course.courseCode)}">加入候選</button>`;
     return `<article class="nccu-course-result">
       <div class="nccu-course-result-main">
         <strong>${escapeHtml(course.title)}</strong>
@@ -1045,9 +1654,32 @@ function renderNccuSearchResults() {
         ${course.restrictionText ? `<p>限制：${escapeHtml(course.restrictionText)}</p>` : '<p>官方資料未列額外修課限制。</p>'}
         ${outlineUrl}
       </div>
-      <button class="button ${added ? 'button-quiet' : 'button-primary'}" type="button" data-add-nccu-course="${escapeHtml(course.courseCode)}" ${added ? 'disabled' : ''}>${added ? '已加入' : '加入候選'}</button>
+      ${action}
     </article>`;
   }).join('');
+}
+
+async function refreshOfficialCandidateByCode(courseCode) {
+  const officialCourse = nccuSearchResults.find((course) => course.courseCode === courseCode)
+    || (await searchNccuCourses({ term: '115-1', keyword: courseCode }))
+      .find((course) => course.courseCode === courseCode);
+  const existingIndex = courseStore.findIndex((course) => course.sectionCode === officialCourse?.courseCode);
+  if (!officialCourse || existingIndex < 0) throw new Error('official-course-not-found');
+
+  const existingCourse = courseStore[existingIndex];
+  const candidate = nccuCourseToCandidate(officialCourse, { checkedAt: new Date().toISOString() });
+  courseStore = courseStore.map((course, index) => (
+    index === existingIndex ? reconcileOfficialCandidate(existingCourse, candidate) : course
+  ));
+  selected = selected.map((course) => (
+    course.id === existingCourse.id ? reconcileOfficialCandidate(course, candidate) : course
+  ));
+  lastSuccessfulNccuQueryAt = new Date();
+  persistState();
+  renderAll();
+  renderNccuSearchResults();
+  renderNccuDataFreshness();
+  return candidate;
 }
 
 byId('nccu-course-search-form').addEventListener('submit', async (event) => {
@@ -1066,6 +1698,8 @@ byId('nccu-course-search-form').addEventListener('submit', async (event) => {
   status.textContent = '正在查詢政大 115-1 課程庫…';
   try {
     nccuSearchResults = await searchNccuCourses({ term: '115-1', keyword: query });
+    lastSuccessfulNccuQueryAt = new Date();
+    renderNccuDataFreshness();
     status.textContent = nccuSearchResults.length
       ? `找到 ${nccuSearchResults.length} 門課。`
       : '找不到符合的課程，請改用較短的課名或教師姓名。';
@@ -1078,14 +1712,29 @@ byId('nccu-course-search-form').addEventListener('submit', async (event) => {
   }
 });
 
-byId('nccu-course-results').addEventListener('click', (event) => {
+byId('nccu-course-results').addEventListener('click', async (event) => {
+  const refreshButton = event.target.closest('[data-refresh-nccu-course]');
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    refreshButton.textContent = '更新中…';
+    try {
+      const candidate = await refreshOfficialCandidateByCode(refreshButton.dataset.refreshNccuCourse);
+      byId('nccu-course-search-status').textContent = `已更新「${candidate.title}」的官方資料。`;
+    } catch {
+      refreshButton.disabled = false;
+      refreshButton.textContent = '重新更新';
+      byId('nccu-course-search-status').textContent = '官方資料暫時無法更新，已保留目前資料。請稍後再試。';
+    }
+    return;
+  }
   const button = event.target.closest('[data-add-nccu-course]');
   if (!button) return;
   const officialCourse = nccuSearchResults.find(
     (course) => course.courseCode === button.dataset.addNccuCourse,
   );
   if (!officialCourse || candidateIncludesCourseCode(courseStore, officialCourse.courseCode)) return;
-  const candidate = nccuCourseToCandidate(officialCourse);
+  const addedAt = new Date().toISOString();
+  const candidate = nccuCourseToCandidate(officialCourse, { checkedAt: addedAt });
   courseStore = [...courseStore, candidate];
   persistState();
   renderAll();
@@ -1200,7 +1849,9 @@ function toggleRecommendedPlanPreview(planId) {
 function renderRecommendedPlans() {
   const results = byId('ai-plan-results');
   if (!recommendedPlans.length) {
-    results.innerHTML = '';
+    results.innerHTML = recommendationShortfall
+      ? `<p class="route-shortfall" role="status">${escapeHtml(recommendationShortfall)}</p>`
+      : '';
     return;
   }
   const previewedPlans = recommendedPlans.map((plan) => ({
@@ -1216,13 +1867,16 @@ function renderRecommendedPlans() {
   const hiddenNotice = hiddenConflictCount
     ? `<p class="form-status" role="status">已隱藏 ${hiddenConflictCount} 個衝堂方案。</p>`
     : '';
-  results.innerHTML = hiddenNotice + safePlans.map(({ plan, preview }, index) => {
+  const shortfallNotice = recommendationShortfall
+    ? `<p class="route-shortfall" role="status">${escapeHtml(recommendationShortfall)}</p>`
+    : '';
+  results.innerHTML = shortfallNotice + hiddenNotice + safePlans.map(({ plan, preview }, index) => {
     const expanded = previewedPlanId === plan.id;
     return `<article class="ai-route-board" data-route-id="${escapeHtml(plan.id)}">
       <div class="route-index"><span>路線 ${String(index + 1).padStart(2, '0')}</span><b>${escapeHtml(plan.attendance || '彈性安排')}</b></div>
       <h3>${escapeHtml(plan.title)}</h3>
       <p class="route-strategy">${escapeHtml(plan.reason)}</p>
-      <dl class="route-metrics"><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.availableDays} 天</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
+      <dl class="route-metrics"><div><dt>學分</dt><dd>${preview.credits}</dd></div><div><dt>可實習</dt><dd>${preview.internshipPlan.confirmedDays} 天${preview.internshipPlan.pendingDays ? `＋${preview.internshipPlan.pendingDays} 待確認` : ''}</dd></div><div><dt>提醒</dt><dd>${preview.warningCount}</dd></div></dl>
       ${renderRouteWeekPreview(preview.planCourses)}
       <ul class="ai-plan-courses">${preview.planCourses.map((course) => `<li><span>${escapeHtml(course.title)}</span><span class="route-course-flags">${plan.asyncCourseIds?.includes(course.id) ? '<b>非同步</b>' : ''}${lockedCourseIds.includes(course.id) ? '<b>鎖定保留</b>' : ''}</span></li>`).join('')}</ul>
       ${plan.tradeoffs?.length ? `<p class="ai-plan-tradeoffs">取捨：${escapeHtml(plan.tradeoffs.join('、'))}</p>` : ''}
@@ -1240,8 +1894,10 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
   const form = event.currentTarget;
   const submit = form.querySelector('button[type="submit"]');
   const status = byId('ai-advisor-status');
+  const retryButton = byId('retry-ai-advisor');
   const apiKey = requireApiKeyForAi(status);
   if (!apiKey) return;
+  retryButton.hidden = true;
   submit.disabled = true;
   form.setAttribute('aria-busy', 'true');
   status.textContent = '正在分析你的目標與候選課程…';
@@ -1256,33 +1912,42 @@ byId('ai-advisor-form').addEventListener('submit', async (event) => {
         semesterGoals: byId('ai-goals').value,
         preferences: byId('ai-preferences').value,
         internshipSettings,
-        courses: courseStore.map((course) => ({
-          id: course.id,
-          title: course.title,
-          credits: course.credits,
-          teacher: course.teacher,
-          schedule: course.schedule,
-          meetings: course.meetings,
-          events: course.events,
-          asyncAllowed: course.asyncAllowed,
-          conditions: course.conditions,
-          eligibility: evaluateEligibility(course, profile).status,
-        })),
+        courses: courseStore.map((course) => {
+          const effectiveCourse = selected.find((item) => item.id === course.id) || course;
+          return {
+            id: effectiveCourse.id,
+            title: effectiveCourse.title,
+            credits: effectiveCourse.credits,
+            teacher: effectiveCourse.teacher,
+            schedule: effectiveCourse.schedule,
+            meetings: effectiveCourse.meetings,
+            events: effectiveCourse.events,
+            attendance: effectiveCourse.attendance,
+            asyncAllowed: effectiveCourse.asyncAllowed,
+            conditions: effectiveCourse.conditions,
+            eligibility: evaluateEligibility(effectiveCourse, profile).status,
+          };
+        }),
         selectedCourseIds: selected.map((course) => course.id),
         lockedCourseIds,
       }),
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload?.error?.message || '無法產生推薦，請稍後重試。');
+    if (!response.ok) throw errorFromPayload(payload, '無法產生推薦，請稍後重試。');
     recommendedPlans = payload.plans || [];
-    status.textContent = payload.summary || '已產生三個推薦方案。';
+    recommendationShortfall = payload.shortfallReason || '';
+    status.textContent = payload.summary || (recommendedPlans.length ? '已產生可安全套用的推薦方案。' : recommendationShortfall);
     renderRecommendedPlans();
   } catch (error) {
-    status.textContent = error.message || '無法產生推薦，請稍後重試。';
+    showAiError(status, retryButton, error);
   } finally {
     submit.disabled = false;
     form.removeAttribute('aria-busy');
   }
+});
+
+byId('retry-ai-advisor').addEventListener('click', () => {
+  byId('ai-advisor-form').requestSubmit();
 });
 
 byId('ai-plan-results').addEventListener('click', (event) => {
@@ -1301,6 +1966,7 @@ byId('ai-plan-results').addEventListener('click', (event) => {
     return;
   }
   if (preview.warningCount && !window.confirm(`此方案有 ${preview.warningCount} 個待處理提醒，仍要套用嗎？`)) return;
+  capturePlannerUndo(`已套用「${plan.title}」`);
   selected = preview.planCourses;
   persistState();
   renderAll();
@@ -1313,6 +1979,7 @@ byId('screenshot-handoff').innerHTML = `<div class="screenshot-handoff">
   <p class="privacy-note">截圖會以你的 Key 傳送給 Gemini 3.1 Flash-Lite，網站不會長期保存原始圖片。辨識後仍會核對政大 115-1 公開課程資料。</p>
   <button id="import-screenshot" class="button button-primary" type="button">開始辨識並匯入</button>
   <p id="screenshot-status" class="form-status" aria-live="polite"></p>
+  <button id="retry-screenshot-import" class="button button-quiet" type="button" hidden>重試辨識</button>
   <div class="ai-import-layout">
     <section><h3>已匯入</h3><div id="imported-courses" class="import-result-list"></div></section>
     <section><h3>待確認</h3><div id="pending-courses" class="import-result-list"></div></section>
@@ -1332,6 +1999,10 @@ byId('screenshot-input').addEventListener('change', (event) => {
   preview.src = screenshotUrl;
   preview.hidden = false;
   byId('screenshot-status').textContent = '截圖已就緒，尚未傳送。';
+});
+
+byId('retry-screenshot-import').addEventListener('click', () => {
+  byId('import-screenshot').click();
 });
 
 function readFileAsDataUrl(file) {
@@ -1370,8 +2041,10 @@ byId('pending-courses').addEventListener('click', (event) => {
 
 byId('import-screenshot').addEventListener('click', async () => {
   const status = byId('screenshot-status');
+  const retryButton = byId('retry-screenshot-import');
   const apiKey = requireApiKeyForAi(status);
   if (!apiKey) return;
+  retryButton.hidden = true;
   const [file] = byId('screenshot-input').files;
   if (!file) {
     status.textContent = '請先選擇一張課程備選清單截圖。';
@@ -1396,7 +2069,7 @@ byId('import-screenshot').addEventListener('click', async () => {
       body: JSON.stringify({ apiKey, imageDataUrl, term: '115-1' }),
     });
     const payload = await response.json();
-    if (!response.ok) throw new Error(payload?.error?.message || '辨識失敗，請稍後重試。');
+    if (!response.ok) throw errorFromPayload(payload, '辨識失敗，請稍後重試。');
     const merged = mergeImportedCourses(courseStore, payload.importedCourses || []);
     courseStore = merged.courseStore;
     lastImportedCourses = (payload.importedCourses || []).filter((course) => !merged.duplicateIds.includes(course.id));
@@ -1407,7 +2080,7 @@ byId('import-screenshot').addEventListener('click', async () => {
     renderAll();
     renderImportResults();
   } catch (error) {
-    status.textContent = error.message || '辨識失敗，請稍後重試。';
+    showAiError(status, retryButton, error);
   } finally {
     button.disabled = false;
     button.removeAttribute('aria-busy');
