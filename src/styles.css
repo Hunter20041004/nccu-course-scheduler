@@ -213,11 +213,7 @@ input, select, textarea { width: 100%; border: 1px solid var(--line-strong); bor
 input:hover, select:hover, textarea:hover { border-color: #8E8998; }
 textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 1.45; }
 .catalog-list { --catalog-row-height: 48px; display: block; min-height: 0; flex: 1 1 auto; overflow: auto; scrollbar-gutter: stable; }
-.catalog-course { position: relative; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: start; min-height: var(--catalog-row-height); border-bottom: 1px solid var(--line); }
-.catalog-compare-control { display: grid; width: 44px; min-height: 47px; place-items: center; align-content: center; gap: 1px; color: var(--muted); cursor: pointer; }
-.catalog-compare-control input { width: 18px; min-height: 18px; accent-color: var(--violet); cursor: pointer; }
-.catalog-compare-control span { font-size: .54rem; font-weight: 850; }
-.catalog-course.is-comparing .catalog-compare-control { background: var(--violet-soft); color: var(--violet); }
+.catalog-course { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; min-height: var(--catalog-row-height); border-bottom: 1px solid var(--line); }
 .catalog-select { display: flex; width: 100%; min-width: 0; min-height: 47px; justify-content: space-between; gap: 7px; align-items: center; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--ink); padding: 3px 7px; text-align: left; cursor: pointer; transition: background-color 140ms ease, border-color 140ms ease, transform 120ms var(--ease-out); }
 .catalog-select:hover:not(:disabled) { border-left-color: var(--sun); background: var(--sun-soft); }
 .catalog-course.is-selected .catalog-select { border-left-color: var(--blue); background: var(--blue-soft); color: #142D9A; }
@@ -270,14 +266,32 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .catalog-more-menu .catalog-delete:hover:not(:disabled) { background: var(--danger-soft); }
 .catalog-more-menu .catalog-lock.is-active { color: var(--violet); }
 .catalog-lock:disabled { cursor: not-allowed; opacity: .42; }
-.course-comparison-tray { flex: 0 0 auto; display: grid; gap: 8px; margin-top: 8px; border: 1px solid #C8BCE0; border-top: 3px solid var(--violet); border-radius: var(--radius-control); background: linear-gradient(135deg, var(--surface), var(--violet-soft)); padding: 10px; box-shadow: 0 -10px 28px rgb(73 52 116 / 8%); }
-.course-comparison-tray header, .course-comparison-tray header > div { display: flex; align-items: center; gap: 8px; }
-.course-comparison-tray header { justify-content: space-between; }
-.course-comparison-tray header strong { font-family: Georgia, "Noto Serif TC", serif; font-size: .9rem; }
-.course-comparison-tray header span { color: var(--violet); font-size: .65rem; font-weight: 850; font-variant-numeric: tabular-nums; }
-.course-comparison-tray header button, .comparison-profile-hint button { min-height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--violet); padding: 0 8px; cursor: pointer; font-size: .65rem; font-weight: 850; }
-.course-comparison-tray header button:hover, .comparison-profile-hint button:hover { background: rgb(255 255 255 / 72%); }
-.course-comparison-tray .form-status { min-height: 0; margin: 0; }
+.course-comparison-picker { display: grid; gap: 10px; border: 1px solid #C8BCE0; border-top: 3px solid var(--violet); border-radius: var(--radius-control); background: linear-gradient(145deg, var(--surface), var(--violet-soft)); padding: 12px; box-shadow: 0 12px 28px rgb(73 52 116 / 7%); }
+.course-comparison-picker > header, .course-comparison-picker > header > div { display: flex; align-items: center; gap: 8px; }
+.course-comparison-picker > header { justify-content: space-between; }
+.course-comparison-picker > header strong { font-family: Georgia, "Noto Serif TC", serif; font-size: .9rem; }
+.course-comparison-picker > header span { color: var(--violet); font-size: .68rem; font-weight: 850; font-variant-numeric: tabular-nums; }
+.course-comparison-picker > header button, .comparison-profile-hint button { min-height: 44px; border: 0; border-radius: 6px; background: transparent; color: var(--violet); padding: 0 8px; cursor: pointer; font-size: .65rem; font-weight: 850; transition: transform 120ms var(--ease-out), background-color 160ms ease; }
+.course-comparison-picker > header button:active, .comparison-profile-hint button:active { transform: scale(.97); }
+.course-comparison-picker > header button:hover:not(:disabled), .comparison-profile-hint button:hover { background: rgb(255 255 255 / 72%); }
+.course-comparison-picker > header button:disabled { cursor: not-allowed; opacity: .45; }
+.course-comparison-picker .form-status { min-height: 0; margin: 0; }
+.comparison-search { gap: 6px; }
+.comparison-search input { min-height: 44px; background: rgb(255 255 255 / 88%); }
+.comparison-course-list { display: grid; max-height: min(42vh, 360px); overflow: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--surface); scrollbar-gutter: stable; overscroll-behavior: contain; }
+.comparison-picker-course { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; min-height: 56px; align-items: center; gap: 8px; border-bottom: 1px solid var(--line); padding: 7px 9px; color: var(--ink); cursor: pointer; transition: background-color 150ms ease, color 150ms ease; }
+.comparison-picker-course:last-child { border-bottom: 0; }
+.comparison-picker-course input { width: 20px; min-height: 20px; accent-color: var(--violet); cursor: pointer; }
+.comparison-picker-course span { display: grid; min-width: 0; gap: 2px; }
+.comparison-picker-course strong, .comparison-picker-course small { overflow-wrap: anywhere; }
+.comparison-picker-course strong { font-size: .76rem; line-height: 1.3; }
+.comparison-picker-course small { color: var(--muted); font-size: .62rem; font-weight: 650; line-height: 1.35; }
+.comparison-picker-course > b { align-self: start; color: var(--muted); padding-top: 4px; font-size: .64rem; white-space: nowrap; }
+.comparison-picker-course.is-selected { background: var(--violet-soft); color: #4D2A8A; }
+.comparison-picker-course.is-selected > b { color: var(--violet); }
+.comparison-picker-course.is-disabled { cursor: not-allowed; opacity: .48; }
+.comparison-picker-empty { display: grid; place-items: center; gap: 6px; min-height: 128px; margin: 0; padding: 18px; color: var(--muted); font-size: .72rem; line-height: 1.5; text-align: center; }
+.comparison-picker-empty p { margin: 0; }
 .ai-comparison { display: grid; gap: 12px; margin: 18px 0; border-top: 1px solid var(--line); padding-top: 18px; }
 .ai-comparison > header { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
 .ai-comparison > header h3 { margin-top: 3px; font-family: Georgia, "Noto Serif TC", serif; font-size: 1.15rem; }
@@ -481,7 +495,7 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
   .course-actions { grid-template-columns: repeat(2, 44px); }
   .catalog-details-trigger, .catalog-more-trigger { width: 44px; }
   .course-details-panel { margin-inline: 3px; padding: 12px; }
-  .course-comparison-actions { grid-template-columns: 1fr 1fr; }
+  .course-comparison-actions { grid-template-columns: 1fr; }
   .comparison-course-card dl { grid-template-columns: 1fr; }
   .chatgpt-comparison-recovery > div { grid-template-columns: 1fr; }
   .first-use-actions { display: grid; }
