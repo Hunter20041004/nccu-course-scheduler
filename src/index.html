@@ -130,6 +130,18 @@
           </section>
           <p id="catalog-status" class="form-status catalog-status" aria-live="polite"></p>
           <div id="catalog-list" class="catalog-list"></div>
+          <section id="course-comparison-tray" class="course-comparison-tray" aria-labelledby="course-comparison-title" hidden>
+            <header>
+              <div><strong id="course-comparison-title">比較課程</strong><span id="comparison-selected-count">0 / 5</span></div>
+              <button id="clear-course-comparison" type="button">清除</button>
+            </header>
+            <p id="course-comparison-status" class="form-status" aria-live="polite">請選擇至少兩門課。</p>
+            <p class="comparison-profile-hint">建議先填寫目標與偏好，比對會更精準。<button id="open-comparison-profile" type="button">前往填寫</button></p>
+            <div class="course-comparison-actions">
+              <button id="open-chatgpt-comparison" class="button button-quiet" type="button" disabled>帶到 ChatGPT</button>
+              <button id="run-ai-comparison" class="button button-primary" type="button" disabled>AI 比較</button>
+            </div>
+          </section>
         </section>
 
         <section id="workspace-panel-ai" class="workspace-tab-panel ai-advisor" role="tabpanel" data-workspace-panel="ai" hidden>
@@ -146,6 +158,25 @@
             <p id="ai-advisor-status" class="form-status" aria-live="polite"></p>
             <button id="retry-ai-advisor" class="button button-quiet" type="button" hidden>重試產生方案</button>
           </form>
+          <section id="ai-course-comparison" class="ai-comparison" aria-labelledby="ai-comparison-title">
+            <header>
+              <div><p class="eyebrow">COMPARE · SYLLABUS</p><h3 id="ai-comparison-title">課綱比較</h3></div>
+              <span>2–5 門</span>
+            </header>
+            <p class="section-helper">從候選課程勾選要比較的課。上方資料皆為選填；填寫後會多一層個人化建議，未填仍會提供客觀比較。</p>
+            <p id="ai-comparison-status" class="form-status" aria-live="polite">尚未產生比較。</p>
+            <div id="ai-comparison-results" class="ai-comparison-results" aria-live="polite"></div>
+            <section id="chatgpt-comparison-recovery" class="chatgpt-comparison-recovery" aria-labelledby="chatgpt-comparison-recovery-title" hidden>
+              <h4 id="chatgpt-comparison-recovery-title">ChatGPT 比較提示詞</h4>
+              <p>網站無法替你送出訊息。請確認內容後複製，開啟 ChatGPT 再貼上送出。</p>
+              <textarea id="chatgpt-comparison-prompt" rows="8" readonly aria-label="可複製的課綱比較提示詞"></textarea>
+              <div>
+                <button id="copy-chatgpt-comparison-prompt" class="button button-quiet" type="button">複製提示詞</button>
+                <a class="button button-primary" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">開啟 ChatGPT</a>
+              </div>
+              <p id="chatgpt-comparison-status" class="form-status" aria-live="polite"></p>
+            </section>
+          </section>
           <div id="ai-plan-results" class="ai-plan-grid" aria-live="polite"></div>
         </section>
 
@@ -307,12 +338,15 @@
           </ol>
         </section>
         <section id="guide-ai">
-          <h3>取得 API Key 並使用 AI 推薦</h3>
+          <h3>取得 API Key、使用 AI 推薦與 AI 課綱比較</h3>
           <ol class="guide-steps">
             <li>前往 Google AI Studio，使用 Google 帳號建立 Gemini API Key；學校帳號受限時請改用個人帳號。</li>
             <li>回到網站按「API Key 未設定」，貼上 Key 並驗證。API Key 等同使用者自己的額度，請不要傳給別人。</li>
             <li>在「AI 推薦」填寫自我介紹、學期目標與排課偏好，明確寫出最低學分、實習天數、想修的領域、語文偏好或不想考試等需求。</li>
             <li>系統會提供三個推薦方案。先按「預覽」檢查課程、學分、實習與提醒，再按「套用此方案」。鎖定課會保留，非同步課可補學分，但仍須符合資格。</li>
+            <li><strong>比較衝堂或內容相近的課：</strong>回到「候選課程」，勾選 2 至 5 門的「比較」，再按「AI 比較」。結果會分開顯示確定性衝堂、內容重疊、各課獨有內容、評量、負擔與資料限制。</li>
+            <li><strong>選填個人資料：</strong>學期目標、未來方向與排課偏好都是選填；未填仍可取得客觀比較，填寫後才會加入更精準的個人化取捨建議。</li>
+            <li><strong>不用網站內 AI：</strong>可按「帶到 ChatGPT」。網站會準備並嘗試複製提示詞，再開啟 ChatGPT；不會替你自動送出訊息，你可以先檢查內容再貼上送出。</li>
           </ol>
           <p id="tutorial-deployment-note" class="guide-note"></p>
         </section>

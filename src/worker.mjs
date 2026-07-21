@@ -1,4 +1,9 @@
-import { importCoursesFromScreenshot, recommendCoursePlans } from './ai-service.mjs';
+import {
+  compareCourseSyllabi,
+  importCoursesFromScreenshot,
+  prepareCourseComparison,
+  recommendCoursePlans,
+} from './ai-service.mjs';
 import { validateGeminiKey } from './gemini-client.mjs';
 
 const jsonResponse = (body, status = 200, requestId = '') => new Response(JSON.stringify(body), {
@@ -45,6 +50,8 @@ export function createWorker({
   catalog = [],
   importService = importCoursesFromScreenshot,
   recommendationService = recommendCoursePlans,
+  comparisonService = compareCourseSyllabi,
+  comparisonPromptService = prepareCourseComparison,
   validateKey = validateGeminiKey,
   createRequestId = () => crypto.randomUUID(),
 } = {}) {
@@ -77,6 +84,19 @@ export function createWorker({
           return jsonResponse(await recommendationService(serviceInput, {
             apiKey,
           }), 200, requestId);
+        }
+        if (request.method === 'POST' && url.pathname === '/api/ai/compare-courses') {
+          const { apiKey, serviceInput } = takeUserApiKey(await readJson(request));
+          return jsonResponse(await comparisonService(serviceInput, { apiKey }), 200, requestId);
+        }
+        if (request.method === 'POST' && url.pathname === '/api/course-comparison/prompt') {
+          const prepared = await comparisonPromptService(await readJson(request));
+          return jsonResponse({
+            prompt: prepared.prompt,
+            sources: prepared.sources,
+            profileMode: prepared.profileMode,
+            conflicts: prepared.conflicts,
+          }, 200, requestId);
         }
         return jsonResponse({ error: { code: 'NOT_FOUND', message: '找不到此路徑。' } }, 404, requestId);
       } catch (error) {

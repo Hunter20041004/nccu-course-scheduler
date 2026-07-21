@@ -922,3 +922,96 @@ test('presents tutorial tasks as readable cards on desktop and one column on mob
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.guide-steps\s*\{[^}]*grid-template-columns:\s*1fr/s);
   assert.match(html, /\.tutorial-center-nav a\s*\{[^}]*min-height:\s*44px/s);
 });
+
+test('renders accessible candidate comparison controls and a two-to-five course tray', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-compare-course="\$\{escapeHtml\(course\.id\)\}"/);
+  assert.match(html, /aria-label="將 \$\{escapeHtml\(course\.title\)\}加入比較"/);
+  assert.match(html, /id="course-comparison-tray"[^>]*hidden/);
+  assert.match(html, /id="comparison-selected-count"/);
+  assert.match(html, /id="clear-course-comparison"/);
+  assert.match(html, /id="run-ai-comparison"/);
+  assert.match(html, /id="open-chatgpt-comparison"/);
+  assert.match(html, /建議先填寫目標與偏好，比對會更精準/);
+});
+
+test('keeps comparison selection at five courses and explains the limit', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const MAX_COMPARISON_COURSES = 5/);
+  assert.match(html, /comparisonCourseIds\.length >= MAX_COMPARISON_COURSES/);
+  assert.match(html, /一次最多比較 \$\{MAX_COMPARISON_COURSES\} 門課，請先移除一門/);
+});
+
+test('renders a complete syllabus comparison with optional profile context and evidence limits', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="ai-comparison-status"[^>]*aria-live="polite"/);
+  assert.match(html, /id="ai-comparison-results"[^>]*aria-live="polite"/);
+  assert.match(html, /function comparisonRequestBody\(\)/);
+  assert.match(html, /profileText:\s*byId\('ai-profile'\)\.value/);
+  assert.match(html, /futureDirection:\s*byId\('ai-future'\)\.value/);
+  assert.match(html, /semesterGoals:\s*byId\('ai-goals'\)\.value/);
+  assert.match(html, /preferences:\s*byId\('ai-preferences'\)\.value/);
+  assert.match(html, /function renderCourseComparison\(payload\)/);
+  assert.match(html, /客觀比較/);
+  assert.match(html, /個人化建議/);
+  assert.match(html, /確定性衝堂/);
+  assert.match(html, /內容重疊/);
+  assert.match(html, /各課獨有價值/);
+  assert.match(html, /資料限制/);
+});
+
+test('provides a resilient copy-and-open ChatGPT comparison fallback', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /id="chatgpt-comparison-recovery"[^>]*hidden/);
+  assert.match(html, /id="chatgpt-comparison-prompt"[^>]*readonly/);
+  assert.match(html, /id="copy-chatgpt-comparison-prompt"/);
+  assert.match(html, /href="https:\/\/chatgpt\.com\/"[^>]*target="_blank"/);
+  assert.match(html, /function showChatGptComparisonRecovery\(prompt/);
+  assert.match(html, /navigator\.clipboard\.writeText\(payload\.prompt\)/);
+  assert.match(html, /fetch\('\/api\/course-comparison\/prompt'/);
+  assert.match(html, /window\.open\('about:blank', '_blank'\)/);
+  assert.match(html, /已複製比較提示詞/);
+});
+
+test('does not let a stalled clipboard permission block the ChatGPT handoff', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /Promise\.race\(\[/);
+  assert.match(html, /setTimeout\(\(\) => resolve\(false\), 1_500\)/);
+  assert.match(html, /showChatGptComparisonRecovery\(payload\.prompt, '提示詞已準備完成/);
+});
+
+test('caches repaired official syllabus links after a comparison request succeeds', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /function cacheComparisonSources\(sources\)/);
+  assert.match(html, /courseStore = courseStore\.map/);
+  assert.match(html, /status:\s*'available'/);
+  assert.match(html, /source:\s*isSeedCourse \? 'nccu-verified-import' : course\.source/);
+  assert.match(html, /cacheComparisonSources\(payload\.sources\)/);
+});
+
+test('teaches first-time users how optional profile-aware course comparison works', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /AI 課綱比較/);
+  assert.match(html, /勾選 2 至 5 門/);
+  assert.match(html, /學期目標、未來方向與排課偏好都是選填/);
+  assert.match(html, /未填仍可取得客觀比較/);
+  assert.match(html, /帶到 ChatGPT/);
+  assert.match(html, /不會替你自動送出訊息/);
+  assert.match(html, /title: 'AI 推薦與課綱比較'/);
+});
+
+test('keeps course comparison readable and actionable on phones', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.comparison-course-card dl\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.chatgpt-comparison-recovery > div\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.course-comparison-actions\s*\{[^}]*grid-template-columns:\s*1fr 1fr/s);
+  assert.match(html, /\.course-comparison-actions \.button:disabled/);
+});
