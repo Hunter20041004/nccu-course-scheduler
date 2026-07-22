@@ -1082,10 +1082,20 @@ test('teaches first-time users how optional profile-aware course comparison work
   assert.match(html, /AI 課綱比較/);
   assert.match(html, /勾選 2 至 5 門/);
   assert.match(html, /兩項 AI 功能共用同一份個人資料/);
-  assert.match(html, /重新整理或關閉分頁即清除/);
+  assert.match(html, /重新整理或關閉分頁後.*都會清除/);
   assert.match(html, /帶到 ChatGPT/);
   assert.match(html, /不會替你自動送出訊息/);
   assert.match(html, /title: 'AI 功能'/);
+});
+
+test('teaches AI comparison prerequisites and official syllabus evidence limits', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /先加入候選清單/);
+  assert.match(html, /搜尋課名、教師或課號/);
+  assert.match(html, /勾選 2 至 5 門/);
+  assert.match(html, /不會由 AI 補造課程內容/);
+  assert.match(html, /重新整理.*API Key.*個人資料.*清除/s);
 });
 
 test('keeps course comparison readable and actionable on phones', async () => {
@@ -1104,7 +1114,7 @@ test('keeps the AI comparison picker readable and actionable on phones', async (
   assert.match(html, /\.comparison-picker-course input\s*\{[^}]*min-height:\s*20px/s);
   assert.match(html, /\.comparison-course-list\s*\{[^}]*overflow:\s*auto/s);
   assert.match(html, /@media \(max-width: 640px\)[\s\S]*\.course-comparison-actions\s*\{[^}]*grid-template-columns:\s*1fr/s);
-  assert.match(html, /AI 課綱比較[\s\S]*在比較頁搜尋並勾選 2 至 5 門候選課程/);
+  assert.match(html, /AI 課綱比較[\s\S]*先加入候選清單[\s\S]*勾選 2 至 5 門/);
 });
 
 test('styles and teaches the private shared AI profile', async () => {
