@@ -1098,6 +1098,14 @@ test('teaches AI comparison prerequisites and official syllabus evidence limits'
   assert.match(html, /重新整理.*API Key.*個人資料.*清除/s);
 });
 
+test('teaches how to move planner data back to the canonical URL', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /另一個部署網址.*不會自動搬移/s);
+  assert.match(html, /匯出排課 JSON.*舊正式網址.*從檔案匯入/s);
+  assert.match(html, /不含.*API Key.*AI 個人資料.*原始截圖/s);
+});
+
 test('keeps course comparison readable and actionable on phones', async () => {
   const html = await (await render()).text();
 
