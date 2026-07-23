@@ -41,3 +41,6 @@ next-env.d.ts
 /.wrangler/
 /outputs/
 /work/
+
+# Codex 工作區周邊檔案（非專案原始碼）
+_workspace/
