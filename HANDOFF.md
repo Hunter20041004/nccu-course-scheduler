@@ -161,8 +161,10 @@ Node/JS，無外部套件。指令：`npm run test:unit`、`npm test`（含 buil
   呼叫已證實 Claude 推測的主因**；診斷與防護仍已補齊。
 - ✅ 補修後完整驗證：208 unit、104 rendered HTML、build、lint、6 NCCU live
   contract 全部 0 失敗；真實瀏覽器三態流程也全綠。
-- ℹ️ Git 分支：`codex/fix-legacy-blocked-prerequisites`。正式站尚未重新發布，所以
-  `https://nccu-course-planner-1151.huntertseng.chatgpt.site/` 目前仍是舊程式。
+- ✅ 修正已合併至 `main` 並推送 GitHub；Sites 正式站已沿用原網址重新發布：
+  `https://nccu-course-planner-1151.huntertseng.chatgpt.site/`。
+- ✅ 正式站以修正前的舊 localStorage 高會資料完成線上驗收：HTTP 200、console
+  0 error、高會顯示「資格待確認」，條件頁出現「我修過中會(二)」。
 
 ---
 
