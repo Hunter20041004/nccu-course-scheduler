@@ -54,6 +54,20 @@ export function classifyOfficialNotes({ courseCode, restrictionText } = {}) {
         )),
     )];
     result.eligibilityRules.push(...blockedPrerequisites.map(blockedPrerequisiteRule));
+    const exclusiveAudience = normalized.match(/^僅供(.+?)修習(?:[，,](.+))?$/);
+    if (exclusiveAudience) {
+      const audience = exclusiveAudience[1];
+      const rationale = `僅供${audience}修習`;
+      result.eligibilityRules.push(requiredRule(
+        courseCode,
+        rationale,
+        `我是${audience.replaceAll('與', '或')}`,
+      ));
+      if (exclusiveAudience[2]?.trim()) {
+        result.informationNotes.push(exclusiveAudience[2].trim());
+      }
+      return;
+    }
     const restrictedAudience = normalized.match(/^僅限(.+?)學生修讀$/)?.[1];
     if (restrictedAudience) {
       result.eligibilityRules.push(requiredRule(

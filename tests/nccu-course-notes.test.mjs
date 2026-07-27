@@ -48,6 +48,28 @@ test('creates a concise required rule only for an explicit enrollment restrictio
   }]);
 });
 
+test('turns an exclusive audience note into one condition while preserving course policies', () => {
+  const classified = classifyOfficialNotes({
+    courseCode: '088E54011',
+    restrictionText: '1.僅供外籍交換生與外籍學位生修習，外籍學位生修此課學分不予以採計。2.第一堂課務必出席，否則將予以退選。3.課堂抽點名未到逾12小時，該科將以零分計算。',
+  });
+
+  assert.deepEqual(classified.eligibilityRules, [{
+    conditionId: 'official-restriction:088E54011',
+    conditionLabel: '我是外籍交換生或外籍學位生',
+    conditionDescription: '政大官方限制：僅供外籍交換生與外籍學位生修習',
+    enforcement: 'required',
+    rationale: '僅供外籍交換生與外籍學位生修習',
+    source: 'nccu-official',
+    confidence: 'high',
+  }]);
+  assert.deepEqual(classified.informationNotes, [
+    '外籍學位生修此課學分不予以採計',
+    '第一堂課務必出席，否則將予以退選',
+    '課堂抽點名未到逾12小時，該科將以零分計算',
+  ]);
+});
+
 test('keeps a direct department limit as a required rule', () => {
   const [rule] = classifyOfficialNotes({
     courseCode: '123456001',

@@ -84,16 +84,19 @@ export function sanitizeOfficialEligibilityRules(course = {}) {
   const officialRules = currentRules.filter(
     (rule) => String(rule.conditionId || '').startsWith('official-restriction:') && rule.rationale,
   );
-  const legacyBlockedNotes = course.source === 'nccu-verified-import'
-    ? (course.informationNotes || []).filter((note) => String(note).includes('擋修'))
+  const legacyRestrictionNotes = course.source === 'nccu-verified-import'
+    ? (course.informationNotes || []).filter((note) => (
+      String(note).includes('擋修')
+      || /^僅供.+?修習/.test(String(note))
+    ))
     : [];
-  if (!officialRules.length && !legacyBlockedNotes.length) return course;
+  if (!officialRules.length && !legacyRestrictionNotes.length) return course;
   const customRules = currentRules.filter(
     (rule) => !String(rule.conditionId || '').startsWith('official-restriction:'),
   );
   const classified = [
     ...officialRules.map((rule) => rule.rationale),
-    ...legacyBlockedNotes,
+    ...legacyRestrictionNotes,
   ].map((restrictionText) => classifyOfficialNotes({
     courseCode: course.sectionCode || course.id,
     restrictionText,

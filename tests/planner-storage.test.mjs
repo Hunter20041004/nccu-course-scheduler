@@ -66,6 +66,33 @@ test('restores a previously saved blocked prerequisite as a reviewable condition
   assert.equal(condition.label, '我修過中會(二)');
 });
 
+test('restores a previously saved exclusive audience restriction as a reviewable condition', () => {
+  const saved = {
+    addedCourses: [{
+      id: 'ai-088E54011',
+      title: '精進華語：中級一',
+      sectionCode: '088E54011',
+      source: 'nccu-verified-import',
+      eligibilityRules: [],
+      informationNotes: [
+        '僅供外籍交換生與外籍學位生修習，外籍學位生修此課學分不予以採計',
+        '第一堂課務必出席，否則將予以退選',
+      ],
+    }],
+    deletedCourseIds: [],
+  };
+
+  const [restored] = createStartupCatalog(saved, []);
+  const [condition] = buildConditionDefinitions([restored]);
+
+  assert.equal(evaluateEligibility(restored, {
+    conditionIds: [],
+    rejectedConditionIds: [],
+  }).status, 'review');
+  assert.equal(condition.id, 'official-restriction:088E54011');
+  assert.equal(condition.label, '我是外籍交換生或外籍學位生');
+});
+
 test('persists and restores a refreshed official seed course as one authoritative candidate', () => {
   const seed = {
     id: 'hci',
