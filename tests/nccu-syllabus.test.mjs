@@ -15,6 +15,14 @@ test('extracts meaningful syllabus text without scripts, styles, or markup', () 
   );
 });
 
+test('normalizes CRLF and collapses repeated blank lines', () => {
+  const html = '<p>第一段</p>\r\n\r\n\r\n<p>第二段</p>';
+  const text = extractSyllabusText(html);
+
+  assert.equal(text.includes('\r'), false);
+  assert.equal(text, '第一段\n第二段');
+});
+
 test('fetches only a trusted official NCCU syllabus and returns cleaned text', async () => {
   let requestedUrl;
   const result = await fetchOfficialSyllabus({

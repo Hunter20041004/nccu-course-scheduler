@@ -104,7 +104,15 @@ export async function requestGeminiJson({
   }
   if (!response.ok) throw mapGeminiStatus(response.status);
   const payload = await response.json();
-  const content = payload?.candidates?.[0]?.content?.parts
+  const candidate = payload?.candidates?.[0];
+  if (candidate?.finishReason === 'MAX_TOKENS') {
+    throw new GeminiError(
+      'AI 回覆長度超出上限而被截斷，請稍後重試。',
+      502,
+      'AI_RESPONSE_TRUNCATED',
+    );
+  }
+  const content = candidate?.content?.parts
     ?.map((part) => part.text)
     .filter((part) => typeof part === 'string')
     .join('');

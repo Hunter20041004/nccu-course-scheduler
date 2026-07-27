@@ -103,3 +103,21 @@ test('rejects a Gemini response without candidate text', async () => {
     status: 502, code: 'INVALID_AI_RESPONSE', message: 'Gemini 回覆格式不正確。',
   });
 });
+
+test('reports when Gemini truncates a response at the token limit', async () => {
+  await assert.rejects(requestGeminiJson({
+    apiKey: 'test-key',
+    model: GEMINI_RECOMMENDATION_MODEL,
+    messages: [],
+    fetchImpl: async () => Response.json({
+      candidates: [{
+        finishReason: 'MAX_TOKENS',
+        content: { parts: [{ text: '{"summary":"被截斷' }] },
+      }],
+    }),
+  }), {
+    status: 502,
+    code: 'AI_RESPONSE_TRUNCATED',
+    message: 'AI 回覆長度超出上限而被截斷，請稍後重試。',
+  });
+});

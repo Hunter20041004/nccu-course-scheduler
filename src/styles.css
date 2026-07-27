@@ -225,6 +225,7 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .catalog-main .catalog-time { color: var(--violet); font-weight: 800; opacity: 1; }
 .catalog-meta { flex: 0 0 auto; text-align: right; }
 .catalog-meta b { font-size: .68rem; }
+.catalog-course[data-eligibility-status="review"] .catalog-meta small { justify-self: end; border: 1px solid #EAC46F; border-radius: 999px; background: var(--sun-soft); color: #6B4917; padding: 2px 6px; font-weight: 800; opacity: 1; }
 .course-actions { position: relative; display: grid; grid-template-columns: repeat(2, 44px); gap: 0; align-items: start; }
 .catalog-details-trigger, .catalog-more-trigger { display: grid; width: 44px; min-height: 44px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: .66rem; font-weight: 850; cursor: pointer; text-decoration: none; }
 .catalog-details-trigger:hover, .catalog-details-trigger[aria-expanded="true"] { background: var(--blue-soft); color: var(--blue); }
@@ -245,6 +246,8 @@ textarea { min-height: 96px; padding-block: 9px; resize: vertical; line-height: 
 .course-details-heading p { margin: 0 0 3px; color: var(--violet); font-size: .58rem; font-weight: 850; letter-spacing: .13em; }
 .course-details-heading h3 { font-family: Georgia, "Noto Serif TC", serif; font-size: 1.02rem; line-height: 1.25; }
 .course-details-heading > span { flex: 0 0 auto; border: 1px solid #C8BCE0; border-radius: 999px; background: var(--surface); color: var(--violet); padding: 5px 8px; font-size: .62rem; font-weight: 850; }
+.catalog-course[data-eligibility-status="review"] .course-details-panel { border-left-color: var(--sun); }
+.catalog-course[data-eligibility-status="review"] .course-details-heading > span { border-color: #EAC46F; background: var(--sun-soft); color: #6B4917; }
 .course-details-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0; }
 .course-details-facts div { min-width: 0; padding: 9px; border: 1px solid rgb(185 180 196 / 70%); border-radius: 6px; background: rgb(255 255 255 / 70%); }
 .course-details-facts dt { margin-bottom: 3px; color: var(--muted); font-size: .6rem; font-weight: 750; }
