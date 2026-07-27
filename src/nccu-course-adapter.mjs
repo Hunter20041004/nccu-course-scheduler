@@ -84,21 +84,33 @@ export function sanitizeOfficialEligibilityRules(course = {}) {
   const officialRules = currentRules.filter(
     (rule) => String(rule.conditionId || '').startsWith('official-restriction:') && rule.rationale,
   );
-  if (!officialRules.length) return course;
+  const legacyBlockedNotes = course.source === 'nccu-verified-import'
+    ? (course.informationNotes || []).filter((note) => String(note).includes('擋修'))
+    : [];
+  if (!officialRules.length && !legacyBlockedNotes.length) return course;
   const customRules = currentRules.filter(
     (rule) => !String(rule.conditionId || '').startsWith('official-restriction:'),
   );
-  const classified = officialRules.map((rule) => classifyOfficialNotes({
-      courseCode: course.sectionCode || course.id,
-      restrictionText: rule.rationale,
-    }));
+  const classified = [
+    ...officialRules.map((rule) => rule.rationale),
+    ...legacyBlockedNotes,
+  ].map((restrictionText) => classifyOfficialNotes({
+    courseCode: course.sectionCode || course.id,
+    restrictionText,
+  }));
   const unique = (values) => [...new Set(values)];
+  const seenRuleIds = new Set();
+  const eligibilityRules = [
+    ...customRules,
+    ...classified.flatMap(({ eligibilityRules: rules }) => rules),
+  ].filter((rule) => {
+    if (seenRuleIds.has(rule.conditionId)) return false;
+    seenRuleIds.add(rule.conditionId);
+    return true;
+  });
   return {
     ...course,
-    eligibilityRules: [
-      ...customRules,
-      ...classified.flatMap(({ eligibilityRules }) => eligibilityRules),
-    ],
+    eligibilityRules,
     scheduleNotes: unique([...(course.scheduleNotes || []), ...classified.flatMap(({ scheduleNotes }) => scheduleNotes)]),
     deliveryNotes: unique([...(course.deliveryNotes || []), ...classified.flatMap(({ deliveryNotes }) => deliveryNotes)]),
     examEvents: [

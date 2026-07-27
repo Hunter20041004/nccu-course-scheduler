@@ -139,24 +139,30 @@ Node/JS，無外部套件。指令：`npm run test:unit`、`npm test`（含 buil
 
 ## 本輪狀態（2026-07-26／Codex 實作）
 
-- ✅ **Bug A 已修復**：`classifyOfficialNotes()` 會把單門／多門「擋修」轉成
+- ✅ **Bug A 已修復，並補上舊資料升級路徑**：`classifyOfficialNotes()` 會把單門／多門「擋修」轉成
   `prerequisite-course:<課名>` 的 required 條件，統一全形括號並排除「擋修者」、
   「擋修程序」、「擋修後」等流程文字；同句的英語授課等既有分類仍會保留。
-- ✅ `303033011` 已用函式與真實瀏覽器各驗收三種狀態：未回答為「資格待確認」、
+  2026-07-26 晚間依使用者正式站截圖發現，先前只修到新匯入課程；既有瀏覽器資料
+  仍把「擋修中會(二)」留在 `informationNotes`。現在
+  `sanitizeOfficialEligibilityRules()` 會在啟動時自動把這種政大舊資料重建成先修條件，
+  不需使用者刪課重加。
+- ✅ `303033011` 已用「修正前正式站的舊 localStorage 資料形狀」在真實瀏覽器驗收三種狀態：
+  未回答為「資格待確認」、
   回答修過為「條件符合」、回答沒修過為「條件不符合」且無法加入。
-- ✅ 待確認狀態改用既有黃色 `sun` 設計代幣；完成兩輪 1280×800 與 375×812
+- ✅ 待確認狀態使用既有黃色 `sun` 設計代幣；補修完成兩輪 1280×800 與 375×812
   截圖自檢，手機無橫向捲動。最終截圖：
-  `.screenshots/round-2/desktop.png`、`.screenshots/round-2/mobile.png`。
+  `.screenshots/legacy-blocked-prereq/round-2/desktop.png`、
+  `.screenshots/legacy-blocked-prereq/round-2/mobile.png`。
 - ✅ **Bug B 可靠性修復完成**：Gemini `MAX_TOKENS` 會回
   `AI_RESPONSE_TRUNCATED`；比較 schema 失敗會帶驗證回饋重試一次；課綱 CRLF
   會正規化；比較預算提高到 8,000 token，並限制各欄位篇幅。
 - ✅ 新增 `tests/gemini-live-contract.test.mjs`，使用兩門真實政大課程端到端呼叫
   Gemini。修前與修後各跑一次都通過，因此**本次沒有重現截斷，也不能宣稱真實
   呼叫已證實 Claude 推測的主因**；診斷與防護仍已補齊。
-- ✅ 最新完整驗證：207 unit、104 rendered HTML、build、lint、6 NCCU live
-  contract、1 Gemini live contract 全部 0 失敗。
-- ℹ️ Git 分支：`codex/fix-blocked-prerequisites-ai-comparison`。尚未 commit 或 push；
-  Claude 產出的 `STATUS.md`、`HANDOFF.md` 與設計文件仍保留在工作區。
+- ✅ 補修後完整驗證：208 unit、104 rendered HTML、build、lint、6 NCCU live
+  contract 全部 0 失敗；真實瀏覽器三態流程也全綠。
+- ℹ️ Git 分支：`codex/fix-legacy-blocked-prerequisites`。正式站尚未重新發布，所以
+  `https://nccu-course-planner-1151.huntertseng.chatgpt.site/` 目前仍是舊程式。
 
 ---
 
