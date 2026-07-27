@@ -60,6 +60,39 @@ test('compares official syllabi with optional profile context and deterministic 
   assert.deepEqual(result.recommendation.courseIds, ['b']);
 });
 
+test('retries one invalid course comparison response with validation feedback', async () => {
+  const requests = [];
+  const validResponse = JSON.stringify({
+    summary: '兩課部分重疊',
+    overlap: { score: 55, level: '中度重疊', sharedTopics: ['AI'] },
+    courses: [
+      { id: 'a', focus: '基礎', uniqueValue: '方法', assessment: '專題', workload: '中' },
+      { id: 'b', focus: '應用', uniqueValue: '產品', assessment: '報告', workload: '中' },
+    ],
+    recommendation: { courseIds: ['b'], reason: '應用較完整', confidence: 'medium' },
+    personalized: { used: false, reason: '' },
+    limitations: [],
+  });
+
+  const result = await compareCourseSyllabi({
+    courses: [
+      { id: 'a', title: '課程 A', syllabusUrl: 'https://newdoc.nccu.edu.tw/a.html' },
+      { id: 'b', title: '課程 B', syllabusUrl: 'https://newdoc.nccu.edu.tw/b.html' },
+    ],
+  }, {
+    apiKey: 'test-only',
+    syllabusLoader: async ({ url }) => ({ url, text: `${url} 課綱` }),
+    aiRequest: async (request) => {
+      requests.push(request);
+      return requests.length === 1 ? '{"summary":"被截斷' : validResponse;
+    },
+  });
+
+  assert.equal(requests.length, 2);
+  assert.match(requests[1].messages.at(-1).content, /未通過驗證/);
+  assert.equal(result.summary, '兩課部分重疊');
+});
+
 test('does not call AI when fewer than two official syllabi are readable', async () => {
   let aiCalls = 0;
   const courses = [

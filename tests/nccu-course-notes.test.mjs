@@ -68,3 +68,59 @@ test('summarizes alternative language prerequisites as one required rule', () =>
   assert.equal(rule.conditionLabel, '我符合本課程任一項日文先修資格');
   assert.equal(rule.rationale, restrictionText);
 });
+
+test('turns one blocked prerequisite course into a required condition', () => {
+  const classified = classifyOfficialNotes({
+    courseCode: '303033011',
+    restrictionText: '擋修中會(二)。',
+  });
+
+  assert.deepEqual(classified.eligibilityRules, [{
+    conditionId: 'prerequisite-course:中會(二)',
+    conditionLabel: '我修過中會(二)',
+    conditionDescription: '政大官方擋修：沒修過中會(二)的話，選課系統會擋下這門課。',
+    enforcement: 'required',
+    rationale: '官方擋修：須先修過中會(二)',
+    source: 'nccu-official',
+    confidence: 'high',
+  }]);
+});
+
+test('turns multiple blocked courses into normalized prerequisite conditions', () => {
+  const classified = classifyOfficialNotes({
+    courseCode: '303002071',
+    restrictionText: '會二甲，擋修初會(一)、初會（二），擋修者請勿選修，不簽同意修課單。',
+  });
+
+  assert.deepEqual(
+    classified.eligibilityRules.map(({ conditionId }) => conditionId),
+    ['prerequisite-course:初會(一)', 'prerequisite-course:初會(二)'],
+  );
+});
+
+test('does not turn blocked-enrollment process notes into course conditions', () => {
+  const classified = classifyOfficialNotes({
+    courseCode: '000000001',
+    restrictionText: '如被擋修，請於加退選結束前將證明寄給助教，設定允許擋修後，方得於系統上選課',
+  });
+
+  assert.equal(
+    classified.eligibilityRules.some(({ conditionId }) => (
+      conditionId.startsWith('prerequisite-course:')
+    )),
+    false,
+  );
+});
+
+test('keeps classifying other information in a blocked prerequisite note', () => {
+  const classified = classifyOfficialNotes({
+    courseCode: '303002091',
+    restrictionText: '擋修初會（二）,英語授課，ETP優先。',
+  });
+
+  assert.deepEqual(
+    classified.eligibilityRules.map(({ conditionId }) => conditionId),
+    ['prerequisite-course:初會(二)'],
+  );
+  assert.deepEqual(classified.deliveryNotes, ['擋修初會（二）,英語授課，ETP優先']);
+});

@@ -931,6 +931,15 @@ test('uses plain-language eligibility labels in compact course rows', async () =
   assert.doesNotMatch(html, /blocked: '條件不符合'/);
 });
 
+test('uses the sun warning treatment for reviewable course eligibility', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /data-eligibility-status="\$\{escapeHtml\(eligibility\.status\)\}"/);
+  assert.match(html, /\.catalog-course\[data-eligibility-status="review"\] \.catalog-meta small\s*\{[^}]*background:\s*var\(--sun-soft\)[^}]*color:\s*#6B4917/s);
+  assert.match(html, /\.catalog-course\[data-eligibility-status="review"\] \.course-details-panel\s*\{[^}]*border-left-color:\s*var\(--sun\)/s);
+  assert.match(html, /\.catalog-course\[data-eligibility-status="review"\] \.course-details-heading > span\s*\{[^}]*border-color:\s*#EAC46F[^}]*background:\s*var\(--sun-soft\)[^}]*color:\s*#6B4917/s);
+});
+
 test('exposes the actual eligibility reasons in every non-eligible course detail', async () => {
   const html = await (await render()).text();
   assert.match(html, /eligibility\.reasons\.length/);

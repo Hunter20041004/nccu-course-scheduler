@@ -24,6 +24,7 @@ export function extractSyllabusText(html, { maxChars = 24_000 } = {}) {
     .replace(/<(br|hr)\s*\/?\s*>/gi, '\n')
     .replace(/<\/(p|div|section|article|header|footer|li|tr|h[1-6]|table|ul|ol)>/gi, '\n');
   return decodeHtmlEntities(withLineBreaks.replace(/<[^>]+>/g, ' '))
+    .replace(/\r\n?/g, '\n')
     .replace(/[ \t\f\v]+/g, ' ')
     .replace(/ *\n */g, '\n')
     .replace(/\n{2,}/g, '\n')

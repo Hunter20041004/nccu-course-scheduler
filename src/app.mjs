@@ -1092,7 +1092,7 @@ function renderCatalog() {
         </div>`
       : '';
     const optionControls = atomicOptionControls || legacyOptionControls;
-    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}">
+    return `<article class="catalog-course ${selectedNow ? 'is-selected' : ''}" data-eligibility-status="${escapeHtml(eligibility.status)}">
       <button class="catalog-select" type="button" data-course-id="${escapeHtml(course.id)}" aria-pressed="${selectedNow}" ${blocked ? 'disabled' : ''}>
         <span class="catalog-main"><strong>${escapeHtml(course.title)}</strong><small>${escapeHtml(course.sectionCode || '—')} · ${escapeHtml(course.teacher || '—')}</small><small class="catalog-time">${escapeHtml(scheduleSummary)}</small></span>
         <span class="catalog-meta"><b>${course.credits} 學分</b><small>${course.asyncAllowed ? '可非同步 · ' : ''}${eligibilityLabel(eligibility.status)}</small></span>

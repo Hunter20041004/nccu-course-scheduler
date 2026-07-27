@@ -17,6 +17,18 @@ function requiredRule(courseCode, rationale, conditionLabel) {
   };
 }
 
+function blockedPrerequisiteRule(courseTitle) {
+  return {
+    conditionId: `prerequisite-course:${courseTitle}`,
+    conditionLabel: `我修過${courseTitle}`,
+    conditionDescription: `政大官方擋修：沒修過${courseTitle}的話，選課系統會擋下這門課。`,
+    enforcement: 'required',
+    rationale: `官方擋修：須先修過${courseTitle}`,
+    source: 'nccu-official',
+    confidence: 'high',
+  };
+}
+
 export function classifyOfficialNotes({ courseCode, restrictionText } = {}) {
   const result = {
     eligibilityRules: [],
@@ -29,6 +41,19 @@ export function classifyOfficialNotes({ courseCode, restrictionText } = {}) {
 
   splitOfficialNotes(restrictionText).forEach((note) => {
     const normalized = note.replace(/^\d+\./, '').trim();
+    const blockedPrerequisites = [...new Set(
+      [...normalized.matchAll(/擋修([^，,。；;\n]+)/g)]
+        .flatMap((match) => match[1].split('、'))
+        .map((courseTitle) => courseTitle
+          .replaceAll('（', '(')
+          .replaceAll('）', ')')
+          .replaceAll(/\s+/g, ''))
+        .filter((courseTitle) => (
+          courseTitle
+          && !/^(?:者|程序|單|後|前|時|流程|規則|規定|資格|條件|名單|作業)/.test(courseTitle)
+        )),
+    )];
+    result.eligibilityRules.push(...blockedPrerequisites.map(blockedPrerequisiteRule));
     const restrictedAudience = normalized.match(/^僅限(.+?)學生修讀$/)?.[1];
     if (restrictedAudience) {
       result.eligibilityRules.push(requiredRule(
