@@ -181,7 +181,10 @@ Node/JS，無外部套件。指令：`npm run test:unit`、`npm test`（含 buil
   `.screenshots/exclusive-audience/round-2/mobile.png`。
 - ✅ 本次追加修復的完整驗證：210 unit、104 rendered HTML、build、lint、
   7 NCCU live contract 與 1 Gemini live contract 全部 0 失敗。
-- ⏳ 待本輪收尾完成合併 `main`、推送及正式站重新部署。
+- ✅ 本次追加修復已合併 `main` 並推送 GitHub；Sites 第 21 版完成正式發布。
+  正式站以修正前的舊 localStorage 資料完成線上驗收：HTTP 200、console 0 error、
+  初始為「資格待確認」，條件頁出現「我是外籍交換生或外籍學位生」，回答不符合後
+  `088E54011` 顯示「條件不符合」且無法加入。此狀態紀錄會隨收尾版再次同步部署。
 
 ---
 
