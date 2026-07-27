@@ -165,6 +165,23 @@ Node/JS，無外部套件。指令：`npm run test:unit`、`npm test`（含 buil
   `https://nccu-course-planner-1151.huntertseng.chatgpt.site/`。
 - ✅ 正式站以修正前的舊 localStorage 高會資料完成線上驗收：HTTP 200、console
   0 error、高會顯示「資格待確認」，條件頁出現「我修過中會(二)」。
+- ✅ **追加修復「僅供…修習」受眾限制**：使用者回報 `088E54011`
+  「精進華語：中級一」的「僅供外籍交換生與外籍學位生修習」沒有進入選課條件。
+  根因是分類器只認得「僅限…學生修讀」。現在新匯入課程會產生
+  `official-restriction:<課號>` 條件「我是外籍交換生或外籍學位生」；舊
+  localStorage 裡仍被歸為資訊備註的課程，也會在啟動時自動重建條件。
+- ✅ 真實政大 115-1 API 已驗證現行課號 `088F54011`：明確受眾限制會成為一條
+  required 條件；「學分不予採計」、第一堂出席與點名規則仍維持資訊備註。
+- ✅ 已用修正前的舊資料形狀完成瀏覽器三態驗收：未回答為黃色「資格待確認」，
+  回答不符合時課程停用，回答符合時恢復可選；console 0 error。
+- ✅ 兩輪 1280×800 與 375×812 截圖自檢完成。第一輪發現手機截圖停在課表、
+  無法作為條件流程證據；第二輪切到工具並把目標條件捲入畫面後，八項視覺檢查
+  全部通過，手機無橫向捲動。最終截圖：
+  `.screenshots/exclusive-audience/round-2/desktop.png`、
+  `.screenshots/exclusive-audience/round-2/mobile.png`。
+- ✅ 本次追加修復的完整驗證：210 unit、104 rendered HTML、build、lint、
+  7 NCCU live contract 與 1 Gemini live contract 全部 0 失敗。
+- ⏳ 待本輪收尾完成合併 `main`、推送及正式站重新部署。
 
 ---
 

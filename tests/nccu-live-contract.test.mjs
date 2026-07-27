@@ -52,6 +52,24 @@ test('live NCCU expanded-minor note stays informational', { timeout: 20_000 }, a
   assert.ok(candidate.conditions.includes('日文系擴大輔系課程'));
 });
 
+test('live NCCU exclusive audience note becomes one required condition', { timeout: 20_000 }, async () => {
+  const rows = await searchNccuCourses({ term: '115-1', keyword: '088F54011' });
+  const candidate = nccuCourseToCandidate(
+    rows.find((row) => row.courseCode === '088F54011'),
+  );
+
+  assert.deepEqual(candidate.eligibilityRules, [{
+    conditionId: 'official-restriction:088F54011',
+    conditionLabel: '我是外籍交換生或外籍學位生',
+    conditionDescription: '政大官方限制：僅供外籍交換生與外籍學位生修習',
+    enforcement: 'required',
+    rationale: '僅供外籍交換生與外籍學位生修習',
+    source: 'nccu-official',
+    confidence: 'high',
+  }]);
+  assert.ok(candidate.informationNotes.includes('外籍學位生修此課學分不予以採計'));
+});
+
 test('live comparison prompt route reads two official NCCU syllabi end to end', { timeout: 30_000 }, async () => {
   const [hciRows, aiRows] = await Promise.all([
     searchNccuCourses({ term: '115-1', keyword: '703055001' }),
