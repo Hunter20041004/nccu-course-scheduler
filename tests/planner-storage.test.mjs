@@ -7,6 +7,8 @@ import {
   persistedCourseAdditions,
   serializePlannerState,
 } from '../src/planner-storage.mjs';
+import { buildConditionDefinitions } from '../src/eligibility-conditions.mjs';
+import { evaluateEligibility } from '../src/planner-core.mjs';
 
 test('starts new visitors empty but rebuilds the legacy catalog for saved users', () => {
   const official = [{ id: 'hci', title: '人機互動' }];
@@ -37,6 +39,31 @@ test('repairs informational official rules while restoring saved courses', () =>
   const [restored] = createStartupCatalog(saved, []);
   assert.deepEqual(restored.eligibilityRules, []);
   assert.deepEqual(restored.conditions, ['日文系擴大輔系課程']);
+});
+
+test('restores a previously saved blocked prerequisite as a reviewable condition', () => {
+  const saved = {
+    addedCourses: [{
+      id: 'ai-303033011',
+      title: '高級會計學（一）',
+      sectionCode: '303033011',
+      source: 'nccu-verified-import',
+      conditions: ['由政大 115-1 公開課程資料匯入', '擋修中會(二)。'],
+      eligibilityRules: [],
+      informationNotes: ['擋修中會(二)'],
+    }],
+    deletedCourseIds: [],
+  };
+
+  const [restored] = createStartupCatalog(saved, []);
+  const [condition] = buildConditionDefinitions([restored]);
+
+  assert.equal(evaluateEligibility(restored, {
+    conditionIds: [],
+    rejectedConditionIds: [],
+  }).status, 'review');
+  assert.equal(condition.id, 'prerequisite-course:中會(二)');
+  assert.equal(condition.label, '我修過中會(二)');
 });
 
 test('persists and restores a refreshed official seed course as one authoritative candidate', () => {
