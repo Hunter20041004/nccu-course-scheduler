@@ -4,7 +4,7 @@ import test from 'node:test';
 
 const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
-test('README presents the course scheduler as a portfolio project', () => {
+test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
   for (const required of [
@@ -13,7 +13,7 @@ test('README presents the course scheduler as a portfolio project', () => {
     '**[Live Demo](https://nccu-course-planner-1151.huntertseng.chatgpt.site)**',
     'GitHub Pages 靜態版適合傳給朋友測試一般排課流程',
     '## Executive Summary',
-    '## 作品集重點',
+    '## 功能重點',
     '## 60 秒 Demo',
     '## 架構摘要',
     '## AI 與資料安全邊界',
@@ -22,6 +22,29 @@ test('README presents the course scheduler as a portfolio project', () => {
   ]) {
     assert.match(readme, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
+
+  // The public framing is "an open-source tool people use", not "a portfolio piece".
+  // Reviewers and prospective users read the first screen literally.
+  for (const forbidden of [/portfolio/i, /作品集/]) {
+    assert.doesNotMatch(readme, forbidden);
+  }
+});
+
+test('ships a security policy covering the key and data boundaries', () => {
+  const security = readText('SECURITY.md');
+
+  assert.match(security, /## Reporting a vulnerability/);
+  assert.match(security, /GitHub Security Advisories/);
+  // The two boundaries the project actually promises users.
+  assert.match(security, /bring-your-own-key/i);
+  assert.match(security, /not persisted/i);
+});
+
+test('keeps a changelog with a released version and an unreleased section', () => {
+  const changelog = readText('CHANGELOG.md');
+
+  assert.match(changelog, /## \[Unreleased\]/);
+  assert.match(changelog, /## \[0\.1\.0\]/);
 });
 
 test('points every live-demo reference at the canonical original Sites project', () => {
@@ -38,7 +61,7 @@ test('points every live-demo reference at the canonical original Sites project',
   }
 });
 
-test('portfolio release includes CI and a narrow MIT license', () => {
+test('release includes CI and a narrow MIT license', () => {
   const workflow = readText('.github/workflows/ci.yml');
   const pagesWorkflow = readText('.github/workflows/pages.yml');
   const license = readText('LICENSE');
