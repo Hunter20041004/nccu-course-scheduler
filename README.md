@@ -9,11 +9,24 @@
 
 ## Executive Summary
 
-NCCU Course Scheduler is a public portfolio version of a real course-planning workflow for National Chengchi University students. It supports click-to-schedule course blocks, NCCU period-grid rendering, eligibility-condition tracking, internship availability planning, screenshot-based course imports, AI-assisted route recommendations, and phone-wallpaper schedule export.
+NCCU Course Scheduler is an open-source course-planning tool for students at National
+Chengchi University, deployed and usable at the demo links above. It supports
+click-to-schedule course blocks, NCCU period-grid rendering, eligibility-condition
+tracking, internship availability planning, screenshot-based course imports, AI-assisted
+route recommendations, and phone-wallpaper schedule export.
 
-The project is intentionally privacy-aware: users bring their own Gemini API key for AI features, the key stays in the current browser session only, and the server does not persist uploaded screenshots or planning prompts.
+Beyond its own campus, the repository is a working reference for two patterns that are
+easy to describe and hard to find implemented in the open:
 
-## 作品集重點
+- **AI proposes, local rules decide.** The model generates candidate schedules; a
+  deterministic validator rejects any plan that breaks a time conflict, an eligibility
+  rule, a credit floor, a locked course, or an internship-day commitment. Plans that
+  fail validation are never shown. Hallucinated courses cannot reach the user.
+- **Bring-your-own-key with nothing persisted server-side.** Users supply their own
+  Gemini API key for AI features. The key stays in the current browser session, and the
+  server keeps neither uploaded screenshots nor planning prompts.
+
+## 功能重點
 
 - **完整學生決策流程**：候選課程 → 資格檢查 → 課表排入 → 衝堂提醒 → 實習空檔評估。
 - **空白且個人化的起點**：朋友第一次進站不會看到作者的課程；同一個網址、同一個瀏覽器會自動保留自己的候選清單與課表。
@@ -25,7 +38,7 @@ The project is intentionally privacy-aware: users bring their own Gemini API key
 - **實習友善規劃**：支援自動找實習空檔，也支援固定幾天、幾點到幾點的實習時段；未定課程會分成「已確認」與「待確認」，不會過度承諾可實習天數。
 - **跨裝置與可復原**：可匯出／匯入不含金鑰的排課 JSON；清空、刪除與套用方案後可在 15 秒內復原。
 - **手機優先閱讀**：窄螢幕預設為行程檢視，仍可切回完整政大方格；候選課程的次要動作集中於 More 選單。
-- **作品集級安全邊界**：不提交 API key、不保存使用者金鑰、不長期保存原始截圖。
+- **隱私與安全邊界**：不提交 API key、不保存使用者金鑰、不長期保存原始截圖。
 - **可驗證品質門檻**：unit tests、rendered HTML tests、NCCU live contract test 與 CI workflow。
 
 ## 60 秒 Demo
