@@ -46,7 +46,7 @@ test('lets clicks pass through the undo toast except its restore button', async 
 Run:
 
 ```bash
-node --test --test-name-pattern="lets clicks pass through the undo toast except its restore button" tests/rendered-html.test.mjs
+npm run build && node --test --test-name-pattern="lets clicks pass through the undo toast except its restore button" tests/rendered-html.test.mjs
 ```
 
 Expected: 只有新測試失敗，訊息指出 rendered HTML 找不到 `pointer-events: none`；這證明測試能抓到目前的遮擋行為。
@@ -65,7 +65,7 @@ Expected: 只有新測試失敗，訊息指出 rendered HTML 找不到 `pointer-
 Run:
 
 ```bash
-node --test --test-name-pattern="lets clicks pass through the undo toast except its restore button" tests/rendered-html.test.mjs
+npm run build && node --test --test-name-pattern="lets clicks pass through the undo toast except its restore button" tests/rendered-html.test.mjs
 ```
 
 Expected: 新測試通過，0 failure。
