@@ -730,6 +730,13 @@ test('offers a fifteen-second undo after destructive planner changes', async () 
   assert.match(html, /undo\.restore\(\)/);
 });
 
+test('lets clicks pass through the undo toast except its restore button', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.planner-undo-toast\s*\{[^}]*pointer-events:\s*none/);
+  assert.match(html, /\.planner-undo-toast button\s*\{[^}]*pointer-events:\s*auto/);
+});
+
 test('exports the current timetable as a phone wallpaper PNG', async () => {
   const html = await (await render()).text();
 
