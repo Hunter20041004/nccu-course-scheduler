@@ -348,9 +348,38 @@ test('adds a multi-option catalog course in a pending selection state', () => {
 
 test('rejects a manual course whose end is not after its start', () => {
   assert.deepEqual(
-    core.validateManualCourse({ title: '測試課', mode: 'physical', start: '12:00', end: '09:00' }),
+    core.validateManualCourse({
+      title: '測試課', credits: 3, mode: 'physical', start: '12:00', end: '09:00',
+    }),
     { field: 'end', message: '結束時間必須晚於開始時間。' },
   );
+});
+
+test('accepts only half-credit course values between zero and twelve', () => {
+  const base = {
+    title: '測試課', itemType: 'course', mode: 'async', start: '09:10', end: '12:00',
+  };
+  for (const credits of ['13', '-1', '0.3', '', 'not-a-number']) {
+    assert.deepEqual(core.validateManualCourse({ ...base, credits }), {
+      field: 'credits',
+      message: '課程學分必須是 0 到 12 之間，並以 0.5 學分為單位。',
+    }, `expected ${JSON.stringify(credits)} to be rejected`);
+  }
+  for (const credits of ['0', '0.5', '12']) {
+    assert.equal(core.validateManualCourse({ ...base, credits }), null,
+      `expected ${credits} to be accepted`);
+  }
+  assert.equal(core.validateManualCourse({ ...base, itemType: 'club', credits: '' }), null);
+});
+
+test('reports invalid course credits before an invalid meeting time', () => {
+  assert.deepEqual(core.validateManualCourse({
+    itemType: 'course', title: 'QA 課程', credits: 13,
+    mode: 'physical', start: '12:00', end: '10:00',
+  }), {
+    field: 'credits',
+    message: '課程學分必須是 0 到 12 之間，並以 0.5 學分為單位。',
+  });
 });
 
 test('resolves the AI project advisor to the correct mutually exclusive meeting', () => {

@@ -1,3 +1,5 @@
+import { validateInternshipSettings } from './internship-planner.mjs';
+
 const PORTABLE_STATE_FIELDS = [
   'selectedIds',
   'attendance',
@@ -43,6 +45,19 @@ function portableState(state = {}) {
   return result;
 }
 
+function invalidImportedInternship(settings) {
+  if (typeof settings.targetDays !== 'number'
+    || !['auto', 'fixed'].includes(settings.mode)
+    || validateInternshipSettings(settings)) return true;
+  if (settings.fixedDays === undefined) return false;
+  if (!settings.fixedDays || typeof settings.fixedDays !== 'object'
+    || Array.isArray(settings.fixedDays)) return true;
+  return Object.entries(settings.fixedDays).some(([day, mode]) => (
+    !/^[1-5]$/.test(day)
+    || !['none', 'full', 'morning', 'afternoon'].includes(mode)
+  ));
+}
+
 function invalidTransferState(state) {
   if (!state || typeof state !== 'object' || Array.isArray(state)) return true;
   for (const field of ['selectedIds', 'lockedCourseIds', 'deletedCourseIds']) {
@@ -58,6 +73,7 @@ function invalidTransferState(state) {
   for (const field of ['attendance', 'courseOptions', 'internshipSettings', 'profile']) {
     if (state[field] !== undefined && (!state[field] || typeof state[field] !== 'object' || Array.isArray(state[field]))) return true;
   }
+  if (state.internshipSettings && invalidImportedInternship(state.internshipSettings)) return true;
   if (state.customConditions !== undefined && !Array.isArray(state.customConditions)) return true;
   return false;
 }

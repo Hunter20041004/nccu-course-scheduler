@@ -35,7 +35,7 @@ test('the finished browser bundle has valid ES module syntax', async () => {
   workerUrl.searchParams.set('syntax-test', String(Date.now()));
   const { default: worker } = await import(workerUrl.href);
   const html = await (await worker.fetch(new Request('http://localhost/'))).text();
-  const script = html.match(/<script type="module">([\s\S]*?)<\/script>/)?.[1];
+  const script = html.match(/<script type="module"[^>]*>([\s\S]*?)<\/script>/)?.[1];
   assert.ok(script, 'expected an inline module script');
 
   const temporaryDirectory = await mkdtemp(join(tmpdir(), 'nccu-bundle-'));

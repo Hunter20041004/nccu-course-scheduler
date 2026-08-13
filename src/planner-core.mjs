@@ -340,6 +340,20 @@ function timeToMinutes(value) {
 
 export function validateManualCourse(input) {
   if (!input.title?.trim()) return { field: 'title', message: '請輸入名稱。' };
+  if ((input.itemType || 'course') === 'course') {
+    const credits = Number(input.credits);
+    const hasValidCredits = String(input.credits ?? '').trim()
+      && Number.isFinite(credits)
+      && credits >= 0
+      && credits <= 12
+      && Number.isInteger(credits * 2);
+    if (!hasValidCredits) {
+      return {
+        field: 'credits',
+        message: '課程學分必須是 0 到 12 之間，並以 0.5 學分為單位。',
+      };
+    }
+  }
   if (input.mode !== 'async' && timeToMinutes(input.end) <= timeToMinutes(input.start)) {
     return { field: 'end', message: '結束時間必須晚於開始時間。' };
   }
