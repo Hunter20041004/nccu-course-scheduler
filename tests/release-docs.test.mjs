@@ -40,6 +40,16 @@ test('ships a security policy covering the key and data boundaries', () => {
   assert.match(security, /not persisted/i);
 });
 
+test('documents the real API key route and the limits of the security promise', () => {
+  const security = readText('SECURITY.md');
+
+  assert.match(security, /same-origin Worker/i);
+  assert.match(security, /x-goog-api-key/i);
+  assert.match(security, /cannot guarantee zero risk/i);
+  assert.match(security, /browser extensions/i);
+  assert.match(security, /hosting infrastructure/i);
+});
+
 test('keeps a changelog with a released version and an unreleased section', () => {
   const changelog = readText('CHANGELOG.md');
 

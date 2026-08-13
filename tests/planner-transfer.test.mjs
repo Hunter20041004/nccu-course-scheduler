@@ -63,6 +63,68 @@ test('rejects invalid planner field types and unsafe ids', () => {
   assert.equal(unsafeId.error.code, 'INVALID_STATE');
 });
 
+test('rejects imported internship settings with an invalid target', () => {
+  const preview = previewPlannerTransfer(JSON.stringify({
+    format: 'sunbreak-planner',
+    version: 1,
+    state: {
+      internshipSettings: { targetDays: -1, start: '09:00', end: '18:00', mode: 'auto' },
+    },
+  }), {});
+
+  assert.equal(preview.valid, false);
+  assert.equal(preview.error.code, 'INVALID_STATE');
+});
+
+test('rejects imported internship settings with missing or malformed times without throwing', () => {
+  for (const internshipSettings of [
+    { targetDays: 2.5, end: '18:00', mode: 'auto' },
+    { targetDays: 2.5, start: '09:00', mode: 'auto' },
+    { targetDays: 2.5, start: true, end: '18:00', mode: 'auto' },
+    { targetDays: 2.5, start: '09:00', end: [], mode: 'auto' },
+  ]) {
+    const preview = previewPlannerTransfer(JSON.stringify({
+      format: 'sunbreak-planner', version: 1, state: { internshipSettings },
+    }), {});
+
+    assert.equal(preview.valid, false);
+    assert.equal(preview.error.code, 'INVALID_STATE');
+  }
+});
+
+test('rejects non-numeric imported internship targets instead of coercing them', () => {
+  for (const targetDays of [true, false, [2.5], '2.5']) {
+    const preview = previewPlannerTransfer(JSON.stringify({
+      format: 'sunbreak-planner',
+      version: 1,
+      state: {
+        internshipSettings: { targetDays, start: '09:00', end: '18:00', mode: 'auto' },
+      },
+    }), {});
+
+    assert.equal(preview.valid, false, `expected ${JSON.stringify(targetDays)} to be rejected`);
+    assert.equal(preview.error.code, 'INVALID_STATE');
+  }
+});
+
+test('rejects imported internship settings with an invalid mode or fixed-day shape', () => {
+  const base = { targetDays: 2.5, start: '09:00', end: '18:00' };
+  for (const internshipSettings of [
+    base,
+    { ...base, mode: 'sometimes' },
+    { ...base, mode: 'fixed', fixedDays: [] },
+    { ...base, mode: 'fixed', fixedDays: { 2: 'overnight' } },
+    { ...base, mode: 'fixed', fixedDays: { 8: 'full' } },
+  ]) {
+    const preview = previewPlannerTransfer(JSON.stringify({
+      format: 'sunbreak-planner', version: 1, state: { internshipSettings },
+    }), {});
+
+    assert.equal(preview.valid, false);
+    assert.equal(preview.error.code, 'INVALID_STATE');
+  }
+});
+
 test('previews added replaced and duplicate courses before replacing planner state', () => {
   const current = {
     selectedIds: ['course-a'],

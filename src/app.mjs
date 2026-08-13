@@ -44,6 +44,14 @@ const quickTourSteps = [
 ];
 
 function openApiKeyDialog() { const dialog = byId('api-key-dialog'); if (!dialog.open) dialog.showModal(); byId('api-key-input').focus(); }
+function resetApiKeyInput() {
+  const input = byId('api-key-input');
+  const reveal = byId('api-key-reveal');
+  input.value = '';
+  input.type = 'password';
+  reveal.textContent = '顯示';
+  reveal.setAttribute('aria-pressed', 'false');
+}
 function renderApiKeyState() { const ready = apiKeySession.hasKey(); byId('api-key-status-button').textContent = isStaticFallbackHost ? '靜態分享版' : ready ? '本分頁已連線' : 'API Key 未設定'; byId('api-key-clear').hidden = !ready; }
 function requireApiKeyForAi(status) {
   if (isStaticFallbackHost) {
@@ -175,9 +183,27 @@ document.addEventListener('keydown', (event) => {
 byId('api-key-status-button').addEventListener('click', openApiKeyDialog);
 byId('api-key-dialog-close').addEventListener('click', () => byId('api-key-dialog').close());
 byId('api-key-skip').addEventListener('click', () => byId('api-key-dialog').close());
+byId('api-key-dialog').addEventListener('close', resetApiKeyInput);
 byId('api-key-reveal').addEventListener('click', () => { const input = byId('api-key-input'); const reveal = input.type === 'password'; input.type = reveal ? 'text' : 'password'; byId('api-key-reveal').textContent = reveal ? '隱藏' : '顯示'; byId('api-key-reveal').setAttribute('aria-pressed', String(reveal)); });
 byId('api-key-clear').addEventListener('click', () => { apiKeySession.clearKey(); renderApiKeyState(); byId('api-key-status').textContent = '已清除本分頁的 API Key。'; });
-byId('api-key-form').addEventListener('submit', async (event) => { event.preventDefault(); const input = byId('api-key-input'); const status = byId('api-key-status'); try { await validateAndStoreApiKey({ apiKey: input.value, session: apiKeySession }); input.value = ''; renderApiKeyState(); byId('api-key-dialog').close(); } catch (error) { status.textContent = error.message; } });
+byId('api-key-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const input = byId('api-key-input');
+  const status = byId('api-key-status');
+  const apiKey = input.value;
+  input.value = '';
+  try {
+    await validateAndStoreApiKey({ apiKey, session: apiKeySession });
+    renderApiKeyState();
+    byId('api-key-dialog').close();
+  } catch (error) {
+    status.textContent = error.message;
+  }
+});
+addEventListener('pagehide', () => {
+  apiKeySession.clearKey();
+  resetApiKeyInput();
+});
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -299,7 +325,7 @@ function downloadPlannerTransfer() {
   link.href = url;
   link.download = `sunbreak-planner-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 0);
   byId('planner-transfer-status').textContent = '已下載排課資料；檔案不含 API Key、AI 自我介紹或截圖。';
 }
 
@@ -1463,7 +1489,7 @@ byId('internship-form').addEventListener('change', () => {
   const fixedDays = Object.fromEntries([...document.querySelectorAll('[data-internship-day]')]
     .map((select) => [select.dataset.internshipDay, select.value]));
   const candidate = {
-    targetDays: Number(byId('internship-target').value),
+    targetDays: byId('internship-target').value,
     start: byId('internship-start').value,
     end: byId('internship-end').value,
     mode: byId('internship-mode').value,
@@ -1476,6 +1502,7 @@ byId('internship-form').addEventListener('change', () => {
     byId(`internship-${validation.field}`).focus();
     return;
   }
+  candidate.targetDays = Number(candidate.targetDays);
   internshipSettings = candidate;
   byId('internship-status').textContent = candidate.mode === 'auto'
     ? '已自動優先保留完整工作日，再補半天。'
@@ -2077,9 +2104,6 @@ byId('pending-courses').addEventListener('click', (event) => {
 byId('import-screenshot').addEventListener('click', async () => {
   const status = byId('screenshot-status');
   const retryButton = byId('retry-screenshot-import');
-  const apiKey = requireApiKeyForAi(status);
-  if (!apiKey) return;
-  retryButton.hidden = true;
   const [file] = byId('screenshot-input').files;
   if (!file) {
     status.textContent = '請先選擇一張課程備選清單截圖。';
@@ -2092,6 +2116,9 @@ byId('import-screenshot').addEventListener('click', async () => {
     byId('screenshot-input').focus();
     return;
   }
+  const apiKey = requireApiKeyForAi(status);
+  if (!apiKey) return;
+  retryButton.hidden = true;
   const button = byId('import-screenshot');
   button.disabled = true;
   button.setAttribute('aria-busy', 'true');

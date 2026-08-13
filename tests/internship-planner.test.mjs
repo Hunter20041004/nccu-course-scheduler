@@ -51,6 +51,20 @@ test('rejects an internship window shorter than two hours', () => {
   });
 });
 
+test('accepts only half-day internship targets between zero and five', () => {
+  const base = { start: '09:00', end: '18:00' };
+  for (const targetDays of [6, -1, 0.3, Number.NaN, '']) {
+    assert.deepEqual(validateInternshipSettings({ ...base, targetDays }), {
+      field: 'target',
+      message: '每週實習目標必須是 0 到 5 天，並以半天為單位。',
+    }, `expected ${JSON.stringify(targetDays)} to be rejected`);
+  }
+  for (const targetDays of [0, 2.5, 5]) {
+    assert.equal(validateInternshipSettings({ ...base, targetDays }), null,
+      `expected ${targetDays} to be accepted`);
+  }
+});
+
 test('separates confirmed internship days from availability pending an unresolved physical course', () => {
   const result = calculateInternshipPlan([
     ...concentrated,

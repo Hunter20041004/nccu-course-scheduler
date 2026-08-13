@@ -9,6 +9,11 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Gemini BYOK now clears visible input on every dialog exit, clears page-memory state at
+  lifecycle boundaries, redacts submitted keys from Worker response names and values,
+  and serves the live app with a nonce-based CSP and defensive browser headers.
+- Manual course credits and internship targets now accept only their documented ranges
+  and half-unit increments; imported internship settings are validated before use.
 - README now describes the project as an open-source planning tool rather than a
   portfolio piece, and documents the two patterns the repository is a reference for:
   AI-proposes / local-rules-decide, and bring-your-own-key with nothing persisted
@@ -16,9 +21,18 @@ project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A keyboard skip link, one semantic page heading, and 44-pixel touch targets for the
+  previously undersized schedule and asynchronous-course controls.
 - `SECURITY.md` documenting the private reporting channel, the API-key and user-data
   boundaries, and what is out of scope.
 - This changelog.
+
+### Fixed
+
+- Screenshot import now validates the selected file before asking for an API key.
+- Planner JSON downloads no longer revoke their temporary URL before Chrome receives
+  the download.
+- Narrow phone layouts keep the schedule heading readable beside its actions.
 
 ## [0.1.0] — 2026-07-27
 

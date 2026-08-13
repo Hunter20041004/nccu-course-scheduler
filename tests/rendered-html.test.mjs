@@ -27,6 +27,29 @@ test('serves the private NCCU course scheduler with schedule before catalog', as
   assert.match(html, /候選課程/);
 });
 
+test('provides one page heading and a keyboard skip link to main content', async () => {
+  const html = await (await render()).text();
+
+  assert.equal((html.match(/<h1\b/g) || []).length, 1);
+  assert.match(html, /<a class="skip-link" href="#main-content">跳到主要內容<\/a>/);
+  assert.match(html, /<main id="main-content" tabindex="-1">/);
+  assert.match(html, /\.skip-link:focus-visible\s*\{/);
+});
+
+test('keeps schedule view and asynchronous course controls at least 44 pixels tall', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.schedule-view-switch button\s*\{[^}]*min-height:\s*44px/);
+  assert.match(html, /\.async-list button\s*\{[^}]*min-height:\s*44px/);
+});
+
+test('keeps the schedule eyebrow readable beside actions on narrow phones', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /@media[^}]+max-width:\s*640px[\s\S]*?\.section-heading\s*>\s*div:first-child\s*\{[^}]*min-width:\s*92px/);
+  assert.match(html, /@media[^}]+max-width:\s*640px[\s\S]*?\.section-heading\s+\.eyebrow\s*\{[^}]*white-space:\s*nowrap/);
+});
+
 test('starts a new browser with an empty personal workspace', async () => {
   const html = await (await render()).text();
 
@@ -112,6 +135,15 @@ test('renders secure Gemini API key setup without first-load auto prompt', async
   assert.doesNotMatch(html, /API_ONBOARDING_SEEN_KEY/);
   assert.doesNotMatch(html, /openApiKeyDialog\(\);[\s\S]{0,240}renderApiKeyState\(\)/);
   assert.doesNotMatch(html, /sessionStorage/);
+});
+
+test('clears API key DOM and memory at the earliest lifecycle boundaries', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const apiKey = input\.value;\s*input\.value = '';\s*try \{\s*await validateAndStoreApiKey\(\{ apiKey, session: apiKeySession \}\)/);
+  assert.match(html, /function resetApiKeyInput\(\)[\s\S]*?input\.value = '';[\s\S]*?input\.type = 'password';/);
+  assert.match(html, /byId\('api-key-dialog'\)\.addEventListener\('close', resetApiKeyInput\)/);
+  assert.match(html, /addEventListener\('pagehide',[\s\S]*?apiKeySession\.clearKey\(\);[\s\S]*?resetApiKeyInput\(\);/);
 });
 
 test('shows a first-use tutorial welcome instead of auto-opening API setup', async () => {
@@ -506,6 +538,8 @@ test('creates courses, clubs, organizations, and personal schedule items', async
   assert.match(html, /value="personal"/);
   assert.match(html, /itemType: byId\('manual-item-type'\)\.value/);
   assert.match(html, /creditInput\.disabled = itemType !== 'course'/);
+  assert.match(html, /byId\('manual-status'\)\.textContent = validation\.message/);
+  assert.match(html, /byId\(`manual-\$\{validation\.field\}`\)\.focus\(\)/);
 });
 
 test('removes quick presets and groups tools into a labeled right workspace', async () => {
@@ -707,7 +741,7 @@ test('exports and previews portable planner data from the header More menu', asy
   assert.match(html, /id="planner-transfer-status"[^>]*aria-live="polite"/);
   assert.match(html, /exportPlannerTransfer\(plannerStateSnapshot\(\)\)/);
   assert.match(html, /previewPlannerTransfer\(raw, plannerStateSnapshot\(\)\)/);
-  assert.match(html, /URL\.revokeObjectURL/);
+  assert.match(html, /setTimeout\(\(\) => URL\.revokeObjectURL\(url\), 0\)/);
   assert.match(html, /id="export-and-open-full"/);
 });
 
@@ -828,8 +862,13 @@ test('deletes only custom conditions and removes them from the profile', async (
 
 test('requires a screenshot before starting the private import', async () => {
   const html = await (await render()).text();
+  const handler = html.match(/byId\('import-screenshot'\)\.addEventListener\('click', async \(\) => \{([\s\S]*?)\n\}\);/)?.[1] || '';
   assert.match(html, /if \(!file\)/);
   assert.match(html, /請先選擇一張課程備選清單截圖/);
+  assert.ok(handler.indexOf("const [file] = byId('screenshot-input').files")
+    < handler.indexOf('const validation = validateScreenshotFile(file)'));
+  assert.ok(handler.indexOf('const validation = validateScreenshotFile(file)')
+    < handler.indexOf('const apiKey = requireApiKeyForAi(status)'));
 });
 
 test('renders the full NCCU period grid and spanning course blocks', async () => {

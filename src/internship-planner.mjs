@@ -9,10 +9,27 @@ export const DEFAULT_INTERNSHIP_SETTINGS = Object.freeze({
 });
 
 export function validateInternshipSettings(settings) {
-  if (toMinutes(settings.end) - toMinutes(settings.start) < 120) {
+  const validTime = (value) => typeof value === 'string'
+    && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+  if (!settings || typeof settings !== 'object'
+    || !validTime(settings.start)
+    || !validTime(settings.end)
+    || toMinutes(settings.end) - toMinutes(settings.start) < 120) {
     return {
       field: 'end',
       message: '實習結束時間必須晚於開始時間，且每日時段至少兩小時。',
+    };
+  }
+  const targetDays = Number(settings.targetDays);
+  const hasValidTarget = String(settings.targetDays ?? '').trim()
+    && Number.isFinite(targetDays)
+    && targetDays >= 0
+    && targetDays <= 5
+    && Number.isInteger(targetDays * 2);
+  if (!hasValidTarget) {
+    return {
+      field: 'target',
+      message: '每週實習目標必須是 0 到 5 天，並以半天為單位。',
     };
   }
   return null;

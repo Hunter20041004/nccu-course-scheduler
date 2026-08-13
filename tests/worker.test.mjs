@@ -178,3 +178,53 @@ test('marks invalid keys permanent while timeouts and upstream failures are retr
     assert.equal(JSON.stringify(payload).includes('secret'), false);
   }
 });
+
+test('redacts the submitted key from successful and failed AI responses', async () => {
+  const apiKey = 'leak-test-secret-123456789';
+  const successWorker = createWorker({
+    html: '<h1>ok</h1>',
+    recommendationService: async () => ({
+      summary: `accidental ${apiKey}`,
+      nested: { [apiKey]: [`again ${apiKey}`] },
+      plans: [],
+    }),
+  });
+  const successResponse = await successWorker.fetch(new Request('http://local/api/ai/recommend-plans', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ apiKey }),
+  }));
+
+  const failureWorker = createWorker({
+    html: '<h1>ok</h1>',
+    recommendationService: async () => {
+      const error = new Error(`upstream echoed ${apiKey}`);
+      error.status = 400;
+      error.code = 'UNSAFE_UPSTREAM_MESSAGE';
+      throw error;
+    },
+  });
+  const failureResponse = await failureWorker.fetch(new Request('http://local/api/ai/recommend-plans', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ apiKey }),
+  }));
+
+  assert.equal((await successResponse.text()).includes(apiKey), false);
+  assert.equal((await failureResponse.text()).includes(apiKey), false);
+});
+
+test('serves the app with a per-response CSP nonce and browser security headers', async () => {
+  const worker = createWorker({
+    html: '<style nonce="__CSP_NONCE__"></style><script nonce="__CSP_NONCE__"></script>',
+    createNonce: () => 'test_nonce',
+  });
+  const response = await worker.fetch(new Request('https://planner.example/'));
+  const csp = response.headers.get('content-security-policy') || '';
+  const body = await response.text();
+
+  assert.match(csp, /script-src 'nonce-test_nonce'/);
+  assert.match(csp, /style-src-elem 'nonce-test_nonce'/);
+  assert.match(csp, /connect-src 'self' https:\/\/es\.nccu\.edu\.tw/);
+  assert.match(body, /<script nonce="test_nonce"><\/script>/);
+  assert.doesNotMatch(body, /__CSP_NONCE__/);
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  assert.equal(response.headers.get('cross-origin-opener-policy'), 'same-origin');
+});

@@ -108,7 +108,7 @@ const outputDir = new URL('dist/server/', root);
 await rm(new URL('dist/', root), { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });
 await mkdir(new URL('dist/static/', root), { recursive: true });
-await writeFile(new URL('dist/static/index.html', root), html);
+await writeFile(new URL('dist/static/index.html', root), html.replaceAll('__CSP_NONCE__', 'static'));
 await writeFile(new URL('dist/static/.nojekyll', root), '');
 const serverScript = [
   stripModuleSyntax(nccuPeriods),
