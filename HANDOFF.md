@@ -1,7 +1,7 @@
 # HANDOFF — 政大排課系統（nccu-course-scheduler）
 
 > 兩個貼上區塊：規劃找 🧠 Claude、實作找 🖐 Codex。由 Codex 於 2026-08-20 更新。
-> 一句話現況：**701889001 的遠距／單次考試課表已修復並合併 `main`；待完成正式站發布驗收。**
+> 一句話現況：**701889001 的遠距／單次考試課表已修復、合併 `main` 並發布正式站；目前沒有進行中的工單。**
 > 專案全貌、網址、版本控制狀態一律看 `STATUS.md`，這裡不重複。
 
 ---
@@ -18,6 +18,7 @@
   單次考試提醒可見、重新載入保留出席選擇、console 0 error／warning。
 - 最終截圖：`.screenshots/one-time-exam/round-4/desktop.png`、
   `.screenshots/one-time-exam/round-4/mobile.png`。
+- 正式站已沿用原網址發布並完成真實搜尋、加入、重載與 console 驗收。
 
 上一輪（2026-08-12）：API Key 防護、QA 與復原提示點擊問題已修復並發布 Sites 第 24 版。
 
