@@ -1188,3 +1188,10 @@ test('styles and teaches the private shared AI profile', async () => {
   assert.match(html, /兩項 AI 功能共用同一份個人資料/);
   assert.doesNotMatch(html, /localStorage\.setItem\([^)]*(ai-profile|profileText|futureDirection|semesterGoals|preferences)/);
 });
+
+test('exposes one-time schedule correction helpers to the browser bundle', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /const \{[^}]*formatCourseEventReminder[^}]*\} = __plannerCore/s);
+  assert.match(html, /const \{[^}]*applyVerifiedScheduleCorrections[^}]*\} = __nccuCourseAdapter/s);
+});

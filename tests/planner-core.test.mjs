@@ -188,6 +188,13 @@ test('keeps a synchronous exam as a hard conflict for an asynchronously attended
   ]);
 });
 
+test('formats a week-only course event reminder without an undefined date', () => {
+  assert.equal(core.formatCourseEventReminder(
+    { title: '生成式 AI：文字與圖像生成的原理與實務' },
+    { week: 11, label: '第 11 週上機考' },
+  ), '生成式 AI：文字與圖像生成的原理與實務：第 11 週上機考');
+});
+
 test('counts two full internship days and two free half-days for the concentrated plan', () => {
   const selected = [
     { id: 'ml', schedule: { day: 1, start: 790, end: 960 }, attendance: 'physical' },
@@ -249,6 +256,19 @@ test('keeps a locked required course in the selection', () => {
 test('adds an available optional course to the selection', () => {
   const optional = { id: 'hci', title: '人機互動', asyncAllowed: false };
   assert.deepEqual(core.toggleCourse([], optional), [{ ...optional, attendance: 'physical' }]);
+});
+
+test('preserves a verified asynchronous default when adding a course', () => {
+  const remoteCourse = {
+    id: 'ai-701889001',
+    title: '生成式 AI：文字與圖像生成的原理與實務',
+    asyncAllowed: true,
+    attendance: 'async',
+    schedule: null,
+    meetings: [],
+  };
+
+  assert.deepEqual(core.toggleCourse([], remoteCourse), [remoteCourse]);
 });
 
 test('removes a selected optional course', () => {

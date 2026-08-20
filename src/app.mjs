@@ -515,7 +515,7 @@ function collectScheduleReminders() {
     if (course.optionStatus === 'pending' || course.optionStatus === 'flexible') {
       items.push(`${course.title}：${course.optionMessage}`);
     }
-    (course.events || []).forEach((event) => items.push(`${course.title}：${event.date} ${event.label}`));
+    (course.events || []).forEach((event) => items.push(formatCourseEventReminder(course, event)));
   });
   return items;
 }
