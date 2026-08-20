@@ -48,10 +48,44 @@ export function eligibilityRuleFromOfficialRestriction(course) {
   }];
 }
 
+const VERIFIED_SCHEDULE_CORRECTIONS = Object.freeze({
+  '701889001': Object.freeze({
+    deliveryNote: '官方 115-1 課綱：第 1–10、12–16 週為遠距，第 11 週為上機考。',
+    event: Object.freeze({
+      label: '第 11 週上機考',
+      week: 11,
+      day: 2,
+      start: 970,
+      end: 1140,
+    }),
+  }),
+});
+
+export function applyVerifiedScheduleCorrections(candidate) {
+  const correction = VERIFIED_SCHEDULE_CORRECTIONS[String(candidate?.sectionCode || '')];
+  const verified1151Source = candidate?.source === 'nccu-verified-import'
+    && /\/teaschm\/1151\//.test(trustedNccuUrl(candidate.sourceUrl));
+  if (!correction || !verified1151Source) return candidate;
+  const events = (candidate.events || []).filter((event) => (
+    event.label !== correction.event.label || event.week !== correction.event.week
+  ));
+  return {
+    ...candidate,
+    schedule: null,
+    meetings: [],
+    asyncAllowed: true,
+    deliveryMode: 'asynchronous',
+    attendance: 'async',
+    scheduleCorrectionId: 'nccu-1151-701889001-one-time-exam',
+    deliveryNotes: [...new Set([...(candidate.deliveryNotes || []), correction.deliveryNote])],
+    events: [...events, { ...correction.event }],
+  };
+}
+
 export function nccuCourseToCandidate(course, { checkedAt = null } = {}) {
   const meetings = meetingsFromNccuText(course.scheduleText);
   const officialNotes = classifyOfficialNotes(course);
-  return {
+  return applyVerifiedScheduleCorrections({
     id: `ai-${course.courseCode}`,
     title: course.title,
     credits: course.credits,
@@ -76,7 +110,7 @@ export function nccuCourseToCandidate(course, { checkedAt = null } = {}) {
     ...officialNotes,
     eligibilityRules: officialNotes.eligibilityRules,
     sections: [`${course.courseCode}｜${course.scheduleText || '時間未定'}`],
-  };
+  });
 }
 
 export function sanitizeOfficialEligibilityRules(course = {}) {

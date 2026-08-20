@@ -125,6 +125,15 @@ export function findConflicts(selected) {
   return conflicts;
 }
 
+export function formatCourseEventReminder(course, event) {
+  const label = String(event?.label || '').trim();
+  const weekLabel = event?.week && !label.includes(`第 ${event.week} 週`)
+    ? `第 ${event.week} 週`
+    : '';
+  const timing = String(event?.date || weekLabel).trim();
+  return `${course.title}：${[timing, label].filter(Boolean).join(' ')}`;
+}
+
 export function calculateInternshipAvailability(selected) {
   const fullDays = [];
   const halfDays = [];
@@ -177,7 +186,10 @@ export function lockCandidateCourse(selected, lockedCourseIds, course, profile) 
 export function toggleCourse(selected, course, lockedCourseIds = []) {
   const isSelected = selected.some((item) => item.id === course.id);
   if (isSelected && lockedCourseIds.includes(course.id)) return selected;
-  if (!isSelected) return [...selected, { ...course, attendance: 'physical' }];
+  if (!isSelected) {
+    const attendance = course.asyncAllowed && course.attendance === 'async' ? 'async' : 'physical';
+    return [...selected, { ...course, attendance }];
+  }
   return selected.filter((item) => item.id !== course.id);
 }
 
