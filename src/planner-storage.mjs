@@ -1,5 +1,8 @@
 import { profileConditionIds } from './eligibility-conditions.mjs';
-import { sanitizeOfficialEligibilityRules } from './nccu-course-adapter.mjs';
+import {
+  applyVerifiedScheduleCorrections,
+  sanitizeOfficialEligibilityRules,
+} from './nccu-course-adapter.mjs';
 import { buildCandidateCatalog } from './planner-core.mjs';
 import { officialSyllabusState } from './syllabus-state.mjs';
 
@@ -32,16 +35,24 @@ export function serializePlannerState(state) {
 
 export function migratePlannerState(state) {
   if (!state || typeof state !== 'object') return state;
+  const correctedAttendanceIds = [];
   const addedCourses = (state.addedCourses || []).map((course) => {
-    if (course.source !== 'nccu-verified-import' || course.syllabus) return course;
-    return {
-      ...course,
-      syllabus: officialSyllabusState({
-        sourceUrl: course.sourceUrl,
-        lookupStatus: course.sourceUrl ? 'success' : 'legacy',
-        checkedAt: null,
-      }),
-    };
+    const hadRecurringSchedule = Boolean(course.schedule || course.meetings?.length);
+    const migratedCourse = course.source !== 'nccu-verified-import' || course.syllabus
+      ? course
+      : {
+        ...course,
+        syllabus: officialSyllabusState({
+          sourceUrl: course.sourceUrl,
+          lookupStatus: course.sourceUrl ? 'success' : 'legacy',
+          checkedAt: null,
+        }),
+      };
+    const correctedCourse = applyVerifiedScheduleCorrections(migratedCourse);
+    if (hadRecurringSchedule && correctedCourse.scheduleCorrectionId) {
+      correctedAttendanceIds.push(correctedCourse.id);
+    }
+    return correctedCourse;
   });
   const courseOptions = Object.fromEntries(Object.entries(state.courseOptions || {}).map(([courseId, option]) => {
     if (!option?.variantId) return [courseId, option];
@@ -56,6 +67,12 @@ export function migratePlannerState(state) {
   return {
     ...state,
     ...(Object.hasOwn(state, 'addedCourses') ? { addedCourses } : {}),
+    ...(state.attendance ? {
+      attendance: {
+        ...state.attendance,
+        ...Object.fromEntries(correctedAttendanceIds.map((id) => [id, 'async'])),
+      },
+    } : {}),
     ...(state.courseOptions ? { courseOptions } : {}),
   };
 }

@@ -67,13 +67,14 @@ const script = [
     'toggleSelectableCourse', 'applyPreset', 'resolveCourseOption', 'applyCourseOption',
     'restoreOfficialCatalog', 'deleteCandidateCourse', 'buildCandidateCatalog',
     'validateManualCourse', 'createManualCourse', 'candidateScheduleSummary',
+    'formatCourseEventReminder',
   ]),
   wrapModule(planValidator, '__planValidator', ['validatePlan']),
   wrapModule(nccuCourseAdapter, '__nccuCourseAdapter', [
     'buildNccuCourseUrl', 'normalizeNccuRows', 'searchNccuCourses',
     'meetingsFromNccuText', 'eligibilityRuleFromOfficialRestriction',
     'sanitizeOfficialEligibilityRules', 'trustedOfficialSyllabusUrl',
-    'nccuCourseToCandidate', 'candidateIncludesCourseCode',
+    'nccuCourseToCandidate', 'candidateIncludesCourseCode', 'applyVerifiedScheduleCorrections',
   ]),
   wrapModule(plannerStorage, '__plannerStorage', [
     'STORAGE_KEY', 'serializePlannerState', 'parsePlannerState', 'createStartupCatalog',
