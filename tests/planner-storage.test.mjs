@@ -202,6 +202,70 @@ test('migrates a legacy official course without source evidence to unverified', 
   assert.equal(migrated.attendance['ai-703055001'], 'async');
 });
 
+test('migrates the saved remote course from a recurring slot to its one-time exam', () => {
+  const stored = JSON.stringify({
+    version: 6,
+    state: {
+      selectedIds: ['ai-701889001'],
+      lockedCourseIds: ['ai-701889001'],
+      attendance: { 'ai-701889001': 'physical' },
+      addedCourses: [{
+        id: 'ai-701889001',
+        sectionCode: '701889001',
+        title: '生成式 AI：文字與圖像生成的原理與實務',
+        source: 'nccu-verified-import',
+        sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/example.html',
+        userNote: '優先修',
+        schedule: { day: 2, start: 970, end: 1140, label: '二78E' },
+        meetings: [{ day: 2, start: 970, end: 1140, label: '二78E' }],
+        asyncAllowed: false,
+      }],
+    },
+  });
+
+  const migrated = parsePlannerState(stored, null);
+  const [course] = migrated.addedCourses;
+
+  assert.equal(course.id, 'ai-701889001');
+  assert.equal(course.userNote, '優先修');
+  assert.equal(course.schedule, null);
+  assert.deepEqual(course.meetings, []);
+  assert.equal(course.attendance, 'async');
+  assert.deepEqual(course.events, [{
+    label: '第 11 週上機考',
+    week: 11,
+    day: 2,
+    start: 970,
+    end: 1140,
+  }]);
+  assert.equal(migrated.attendance['ai-701889001'], 'async');
+  assert.deepEqual(migrated.selectedIds, ['ai-701889001']);
+  assert.deepEqual(migrated.lockedCourseIds, ['ai-701889001']);
+});
+
+test('keeps a user attendance override once the one-time exam correction is already stored', () => {
+  const state = {
+    selectedIds: ['ai-701889001'],
+    attendance: { 'ai-701889001': 'physical' },
+    addedCourses: [{
+      id: 'ai-701889001',
+      sectionCode: '701889001',
+      title: '生成式 AI：文字與圖像生成的原理與實務',
+      source: 'nccu-verified-import',
+      sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/example.html',
+      schedule: null,
+      meetings: [],
+      asyncAllowed: true,
+      attendance: 'physical',
+      scheduleCorrectionId: 'nccu-1151-701889001-one-time-exam',
+    }],
+  };
+
+  const saved = JSON.parse(serializePlannerState(state)).state;
+
+  assert.equal(saved.attendance['ai-701889001'], 'physical');
+});
+
 test('migrates legacy AI project variant choices into atomic section choices', () => {
   const state = {
     selectedIds: ['ai-practical-project'],

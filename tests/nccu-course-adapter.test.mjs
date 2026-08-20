@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  applyVerifiedScheduleCorrections,
   buildNccuCourseUrl,
   candidateIncludesCourseCode,
   eligibilityRuleFromOfficialRestriction,
@@ -56,6 +57,48 @@ test('converts official periods and restrictions into a schedulable conditional 
     url: 'https://newdoc.nccu.edu.tw/example.html',
     checkedAt: '2026-07-17T18:00:00.000Z',
   });
+});
+
+test('keeps the remote generative AI course free of a weekly slot while retaining its one-time week-11 exam', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '701889001',
+    title: '生成式 AI：文字與圖像生成的原理與實務',
+    teacher: '蔡炎龍',
+    credits: 3,
+    scheduleText: '二78E',
+    restrictionText: '',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/example.html',
+  });
+
+  assert.equal(candidate.schedule, null);
+  assert.deepEqual(candidate.meetings, []);
+  assert.equal(candidate.asyncAllowed, true);
+  assert.equal(candidate.deliveryMode, 'asynchronous');
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.events, [{
+    label: '第 11 週上機考',
+    week: 11,
+    day: 2,
+    start: 970,
+    end: 1140,
+  }]);
+});
+
+test('requires official 115-1 source evidence before applying the schedule correction', () => {
+  const manualCourse = {
+    sectionCode: '701889001',
+    source: 'manual',
+    sourceUrl: '',
+    schedule: { day: 2, start: 970, end: 1140 },
+  };
+  const futureOfficialCourse = {
+    ...manualCourse,
+    source: 'nccu-verified-import',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1152/example.html',
+  };
+
+  assert.equal(applyVerifiedScheduleCorrections(manualCourse), manualCourse);
+  assert.equal(applyVerifiedScheduleCorrections(futureOfficialCourse), futureOfficialCourse);
 });
 
 test('detects an existing NCCU section code regardless of import source', () => {
