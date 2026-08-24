@@ -85,6 +85,20 @@ test('states the unofficial boundary and course correction workflow up front', (
   assert.match(readme, /不會.*套用到其他學期/s);
 });
 
+test('scans full repository history for secrets on pushes and pull requests', () => {
+  const workflow = readText('.github/workflows/secret-scan.yml');
+
+  assert.match(workflow, /push:/);
+  assert.match(workflow, /pull_request:/);
+  assert.match(workflow, /fetch-depth:\s*0/);
+  assert.match(workflow, /gitleaks\/gitleaks-action@[0-9a-f]{40}/);
+  assert.match(workflow, /GITLEAKS_VERSION:\s*["']?8\.30\.1/);
+  assert.match(workflow, /redacted output/i);
+  assert.match(workflow, /GITLEAKS_ENABLE_COMMENTS:\s*["']?false/);
+  assert.match(workflow, /GITLEAKS_ENABLE_UPLOAD_ARTIFACT:\s*["']?false/);
+  assert.match(workflow, /GITLEAKS_ENABLE_SUMMARY:\s*["']?false/);
+});
+
 test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
