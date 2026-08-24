@@ -1,8 +1,30 @@
 import assert from 'node:assert/strict';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+
+test('keeps internal coordination files out of the public repository', () => {
+  const gitignore = readText('.gitignore');
+  const trackedInternalFiles = execFileSync('git', [
+    'ls-files', '--cached', '--', 'HANDOFF.md', 'STATUS.md', 'docs/history',
+  ], { cwd: new URL('..', import.meta.url) }).toString().trim();
+
+  assert.equal(trackedInternalFiles, '');
+  for (const path of ['/HANDOFF.md', '/STATUS.md', '/docs/history/']) {
+    assert.match(gitignore, new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'm'));
+  }
+});
+
+test('keeps local home-directory paths out of tracked public files', () => {
+  const result = spawnSync('git', [
+    'grep', '--fixed-strings', '--line-number', '/Users/your-name', '--', '.',
+    ':(exclude)tests/release-docs.test.mjs',
+  ], { cwd: new URL('..', import.meta.url), encoding: 'utf8' });
+
+  assert.equal(result.status, 1, result.stdout);
+});
 
 test('documents contribution setup, TDD, and official course evidence', () => {
   const contributing = readText('CONTRIBUTING.md');

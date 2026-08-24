@@ -46,3 +46,6 @@ next-env.d.ts
 
 # Codex 工作區周邊檔案（非專案原始碼）
 _workspace/
+/HANDOFF.md
+/STATUS.md
+/docs/history/
