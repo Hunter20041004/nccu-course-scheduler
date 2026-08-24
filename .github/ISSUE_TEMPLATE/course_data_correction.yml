@@ -1,0 +1,62 @@
+name: 課程資料更正
+description: 以政大公開資料回報特定學期的課程時段、出席形式或固定義務
+title: "[課程更正] "
+labels:
+  - course-data
+body:
+  - type: markdown
+    attributes:
+      value: |
+        課程修正會綁定學期與精確課號，不會自動套用到其他學期。請只提供可公開查閱的政大官方證據，並移除個資與登入後才能看到的內容。
+  - type: input
+    id: term
+    attributes:
+      label: 學期
+      description: 例如 115-1。
+      placeholder: 115-1
+    validations:
+      required: true
+  - type: input
+    id: course-code
+    attributes:
+      label: 九碼課號
+      description: 請提供完整 section code，不要只填六碼科目代碼。
+      placeholder: "070424001"
+    validations:
+      required: true
+  - type: input
+    id: official-url
+    attributes:
+      label: 政大官方網址
+      description: 可公開直接開啟的正式課綱、課程查詢頁或公告網址。
+      placeholder: https://newdoc.nccu.edu.tw/...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 官方證據
+      description: 貼上必要的短句或忠實摘述，並說明它支持哪項更正；若官方來源互相矛盾，請全部列出。
+    validations:
+      required: true
+  - type: textarea
+    id: schedule-attendance
+    attributes:
+      label: 固定時段與出席形式
+      description: 說明預期的星期、時間，以及實體、同步遠距、非同步遠距或可切換形式。
+    validations:
+      required: true
+  - type: textarea
+    id: obligations
+    attributes:
+      label: 考試、展示或其他固定義務
+      description: 列出已確認的日期、星期與時間；若時間未公布，請明確寫「時間待確認」，不要推測衝堂時段。
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: 送出前確認
+      options:
+        - label: 我已提供直接官方來源，且內容不含 API Key、學生個資、選課帳密或私人截圖。
+          required: true

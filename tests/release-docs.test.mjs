@@ -42,6 +42,19 @@ test('collects reproducible bug reports without private data', () => {
   ]) assert.match(template, new RegExp(required));
 });
 
+test('collects official evidence for course data corrections', () => {
+  const template = readText('.github/ISSUE_TEMPLATE/course_data_correction.yml');
+
+  for (const required of [
+    '學期',
+    '九碼課號',
+    '政大官方網址',
+    '官方證據',
+    '固定時段與出席形式',
+    '考試、展示或其他固定義務',
+  ]) assert.match(template, new RegExp(required));
+});
+
 test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
