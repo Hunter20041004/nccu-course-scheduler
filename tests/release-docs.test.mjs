@@ -55,6 +55,23 @@ test('collects official evidence for course data corrections', () => {
   ]) assert.match(template, new RegExp(required));
 });
 
+test('requires pull request evidence, privacy checks, and UI screenshots', () => {
+  const template = readText('.github/pull_request_template.md');
+
+  for (const required of [
+    '摘要',
+    '關聯 issue',
+    'Red',
+    'Green',
+    'npm run verify',
+    '官方來源',
+    '隱私',
+    '桌機',
+    '手機',
+    '剩餘限制',
+  ]) assert.match(template, new RegExp(required, 'i'));
+});
+
 test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
