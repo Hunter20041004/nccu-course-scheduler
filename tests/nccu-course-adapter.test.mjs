@@ -251,6 +251,17 @@ test('does not infer asynchronous attendance from a flexible intensive course ti
   assert.equal(candidate.attendance, undefined);
 });
 
+test('does not infer asynchronous attendance for the flexible AI practical project', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '783006001', title: '人工智慧實務專題', teacher: '魏綾音', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '上課時間地點另以教學大綱公告為準。',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=783006&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.asyncAllowed, false);
+  assert.equal(candidate.attendance, undefined);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
