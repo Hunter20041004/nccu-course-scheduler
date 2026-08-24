@@ -366,7 +366,7 @@ Commit message: `Add flexible schedule activities and locking`.
 ### Task 8: Deliver folder, private deployment, Coda project, and Chrome QA
 
 **Files:**
-- Create: `/Users/your-name/Documents/Codex/2026-07-13/new-chat/outputs/nccu-course-planner/`
+- Create: `outputs/nccu-course-planner/`
 - Modify through deployment: `.openai/hosting.json` only if Sites requires it.
 
 **Interfaces:**

@@ -19,7 +19,7 @@ test('keeps internal coordination files out of the public repository', () => {
 
 test('keeps local home-directory paths out of tracked public files', () => {
   const result = spawnSync('git', [
-    'grep', '--fixed-strings', '--line-number', '/Users/your-name', '--', '.',
+    'grep', '--extended-regexp', '--line-number', '/Users/[^/]+/', '--', '.',
     ':(exclude)tests/release-docs.test.mjs',
   ], { cwd: new URL('..', import.meta.url), encoding: 'utf8' });
 
