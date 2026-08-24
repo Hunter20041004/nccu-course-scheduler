@@ -1,0 +1,56 @@
+name: Bug 回報
+description: 回報可重現的排課、顯示或資料問題
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        謝謝你協助改善專案。請先移除 API Key、學生個資、選課帳密與未遮蔽的私人截圖；安全問題請依 SECURITY.md 私下回報。
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 重現步驟
+      description: 從空白頁面開始，依序列出每次點擊、輸入與選擇。
+      placeholder: |
+        1. 開啟…
+        2. 搜尋…
+        3. 點擊…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 預期結果
+      description: 你原本預期看到什麼？
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 實際結果
+      description: 實際發生什麼？可附已遮蔽私人資料的截圖或 console 錯誤。
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 瀏覽器與裝置
+      description: 例如 Safari 20 / macOS，或 Chrome / Android。
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: 發生問題的網址
+      description: 請貼上 GitHub Pages、Live Demo 或本機網址，不要附帶含私人資料的 query string。
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: 隱私確認
+      options:
+        - label: 我已確認內容不含 API Key、學生個資、選課帳密或未遮蔽的私人截圖。
+          required: true

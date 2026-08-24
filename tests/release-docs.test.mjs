@@ -28,6 +28,20 @@ test('documents community conduct and a private enforcement route', () => {
   assert.match(conduct, /私下回報/);
 });
 
+test('collects reproducible bug reports without private data', () => {
+  const template = readText('.github/ISSUE_TEMPLATE/bug_report.yml');
+
+  for (const required of [
+    '重現步驟',
+    '預期結果',
+    '實際結果',
+    '瀏覽器與裝置',
+    '發生問題的網址',
+    'API Key',
+    '學生個資',
+  ]) assert.match(template, new RegExp(required));
+});
+
 test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
