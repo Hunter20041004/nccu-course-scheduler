@@ -107,6 +107,33 @@ test('defaults verified TAICA fintech to asynchronous while retaining its synchr
   assert.equal(candidate.scheduleCorrectionId, 'nccu-1151-taica-070424001');
 });
 
+test('maps verified TAICA 070421001 to asynchronous attendance and its official obligations', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070421001',
+    title: '資料探勘與應用',
+    teacher: '詳備註',
+    credits: 3,
+    scheduleText: '未定或彈性',
+    restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070421&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{
+    day: 1,
+    start: 540,
+    end: 720,
+    label: '週一 09:00–12:00',
+  }]);
+  assert.deepEqual(candidate.events, [{
+    label: '實體考試',
+    date: '2026-12-14',
+    day: 1,
+    start: 540,
+    end: 720,
+  }]);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
