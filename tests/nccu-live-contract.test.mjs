@@ -4,6 +4,42 @@ import { nccuCourseToCandidate, searchNccuCourses } from '../src/nccu-course-ada
 import { fetchOfficialSyllabus } from '../src/nccu-syllabus.mjs';
 import { createWorker } from '../src/worker.mjs';
 
+test('live NCCU 115-1 TAICA search exposes the complete official course set', { timeout: 20_000 }, async () => {
+  const rows = await searchNccuCourses({ term: '115-1', keyword: 'TAICA' });
+  const courseCodes = rows.map(({ courseCode }) => courseCode).sort();
+
+  assert.deepEqual(courseCodes, [
+    '070421001',
+    '070422001',
+    '070423001',
+    '070424001',
+    '070425001',
+    '070426001',
+    '070427001',
+    '070450001',
+    '070455001',
+  ]);
+  assert.ok(courseCodes.includes('070424001'));
+});
+
+test('live TAICA fintech syllabus explicitly permits asynchronous attendance', { timeout: 20_000 }, async () => {
+  const rows = await searchNccuCourses({ term: '115-1', keyword: '070424001' });
+  const course = rows.find((row) => row.courseCode === '070424001');
+  const syllabus = await fetchOfficialSyllabus({ url: course.sourceUrl });
+
+  assert.match(syllabus.text, /可接受非同步授課/);
+  assert.match(syllabus.text, /星期三\s*9:10~12:10/);
+});
+
+test('live TAICA physical AI syllabus remains synchronous-only', { timeout: 20_000 }, async () => {
+  const rows = await searchNccuCourses({ term: '115-1', keyword: '070450001' });
+  const course = rows.find((row) => row.courseCode === '070450001');
+  const syllabus = await fetchOfficialSyllabus({ url: course.sourceUrl });
+
+  assert.match(syllabus.text, /同步遠距/);
+  assert.doesNotMatch(syllabus.text, /可接受非同步授課/);
+});
+
 test('live NCCU endpoint exposes the fields used by the adapter', { timeout: 20_000 }, async () => {
   const rows = await searchNccuCourses({ term: '115-1', keyword: '遊戲引擎應用開發' });
   assert.ok(rows.some((row) => row.courseCode === '781063001' && row.title === '遊戲引擎應用開發'));
