@@ -188,6 +188,18 @@ test('reports conflicting official dates for TAICA 070425001', () => {
   assert.ok(candidate.informationNotes.includes('週二 13:20–15:10 optional recitation'));
 });
 
+test('maps verified TAICA 070426001 showcase reminder', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070426001', title: '智慧人機互動', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070426&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{ day: 4, start: 790, end: 960, label: '週四 13:10–16:00' }]);
+  assert.deepEqual(candidate.events, [{ label: '共同展示交流', date: '2026-12-26' }]);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
