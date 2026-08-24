@@ -84,6 +84,29 @@ test('keeps the remote generative AI course free of a weekly slot while retainin
   }]);
 });
 
+test('defaults verified TAICA fintech to asynchronous while retaining its synchronous meeting', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070424001',
+    title: '金融科技導論',
+    teacher: '詳備註',
+    credits: 3,
+    scheduleText: '未定或彈性',
+    restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070424&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.asyncAllowed, true);
+  assert.equal(candidate.deliveryMode, 'asynchronous-optional');
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{
+    day: 3,
+    start: 550,
+    end: 730,
+    label: '週三 09:10–12:10',
+  }]);
+  assert.equal(candidate.scheduleCorrectionId, 'nccu-1151-taica-070424001');
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',

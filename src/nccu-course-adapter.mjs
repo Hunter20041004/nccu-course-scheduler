@@ -50,14 +50,25 @@ export function eligibilityRuleFromOfficialRestriction(course) {
 
 const VERIFIED_SCHEDULE_CORRECTIONS = Object.freeze({
   '701889001': Object.freeze({
+    correctionId: 'nccu-1151-701889001-one-time-exam',
+    deliveryMode: 'asynchronous',
+    meetings: Object.freeze([]),
     deliveryNote: '官方 115-1 課綱：第 1–10、12–16 週為遠距，第 11 週為上機考。',
-    event: Object.freeze({
+    events: Object.freeze([Object.freeze({
       label: '第 11 週上機考',
       week: 11,
       day: 2,
       start: 970,
       end: 1140,
-    }),
+    })]),
+  }),
+  '070424001': Object.freeze({
+    correctionId: 'nccu-1151-taica-070424001',
+    deliveryMode: 'asynchronous-optional',
+    meetings: Object.freeze([
+      Object.freeze({ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }),
+    ]),
+    deliveryNote: '官方 115-1 課綱：可接受非同步授課；同步遠距為週三 09:10–12:10。',
   }),
 });
 
@@ -66,19 +77,24 @@ export function applyVerifiedScheduleCorrections(candidate) {
   const verified1151Source = candidate?.source === 'nccu-verified-import'
     && /\/teaschm\/1151\//.test(trustedNccuUrl(candidate.sourceUrl));
   if (!correction || !verified1151Source) return candidate;
-  const events = (candidate.events || []).filter((event) => (
-    event.label !== correction.event.label || event.week !== correction.event.week
+  const meetings = correction.meetings.map((meeting) => ({ ...meeting }));
+  const correctionEvents = correction.events || [];
+  const correctedEventKeys = new Set(correctionEvents.map((event) => (
+    `${event.label}|${event.date || ''}|${event.week || ''}`
+  )));
+  const events = (candidate.events || []).filter((event) => !correctedEventKeys.has(
+    `${event.label}|${event.date || ''}|${event.week || ''}`,
   ));
   return {
     ...candidate,
-    schedule: null,
-    meetings: [],
+    schedule: meetings[0] || null,
+    meetings,
     asyncAllowed: true,
-    deliveryMode: 'asynchronous',
+    deliveryMode: correction.deliveryMode,
     attendance: 'async',
-    scheduleCorrectionId: 'nccu-1151-701889001-one-time-exam',
+    scheduleCorrectionId: correction.correctionId,
     deliveryNotes: [...new Set([...(candidate.deliveryNotes || []), correction.deliveryNote])],
-    events: [...events, { ...correction.event }],
+    events: [...events, ...correctionEvents.map((event) => ({ ...event }))],
   };
 }
 
