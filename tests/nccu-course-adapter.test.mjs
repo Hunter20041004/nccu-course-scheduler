@@ -104,6 +104,10 @@ test('defaults verified TAICA fintech to asynchronous while retaining its synchr
     end: 730,
     label: '週三 09:10–12:10',
   }]);
+  assert.deepEqual(candidate.events, [{
+    label: '實體期末考，時間待確認',
+    date: '2026-12-23',
+  }]);
   assert.equal(candidate.scheduleCorrectionId, 'nccu-1151-taica-070424001');
 });
 

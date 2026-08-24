@@ -285,6 +285,10 @@ test('keeps a saved TAICA sync override and migration idempotent after correctio
   const migrated = migratePlannerState(state);
 
   assert.equal(migrated.attendance['ai-070424001'], 'sync');
+  assert.deepEqual(migrated.addedCourses[0].events, [{
+    label: '實體期末考，時間待確認',
+    date: '2026-12-23',
+  }]);
   assert.deepEqual(migratePlannerState(migrated), migrated);
 });
 
