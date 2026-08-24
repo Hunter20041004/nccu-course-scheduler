@@ -144,7 +144,7 @@ h3 { margin: 0; font-size: .9rem; }
 .async-section, .warning-section { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .async-section h3, .warning-section h3 { margin-bottom: 8px; }
 .async-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.async-list button { min-height: 44px; border: 1px solid #C8BCE0; border-radius: 6px; background: var(--violet-soft); color: var(--ink); padding: 6px 9px; text-align: left; cursor: pointer; }
+.async-list button { min-height: 44px; border: 1px solid #C8BCE0; border-radius: 6px; background: var(--violet-soft); color: var(--ink); padding: 6px 9px; text-align: left; cursor: pointer; transition: transform 120ms var(--ease-out); }
 .warning-section ul { margin: 0; padding-left: 20px; color: var(--muted); font-size: .8rem; }
 .warning-section li + li { margin-top: 6px; }
 

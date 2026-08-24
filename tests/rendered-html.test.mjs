@@ -43,6 +43,13 @@ test('keeps schedule view and asynchronous course controls at least 44 pixels ta
   assert.match(html, /\.async-list button\s*\{[^}]*min-height:\s*44px/);
 });
 
+test('limits asynchronous course button motion to its press transform', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /\.async-list button\s*\{[^}]*transition:\s*transform 120ms var\(--ease-out\)/s);
+  assert.doesNotMatch(html, /\.async-list button\s*\{[^}]*transition:\s*all/s);
+});
+
 test('keeps the schedule eyebrow readable beside actions on narrow phones', async () => {
   const html = await (await render()).text();
 
