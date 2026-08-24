@@ -228,6 +228,18 @@ test('maps verified TAICA 070455001 pending-time exam', () => {
   }]);
 });
 
+test('keeps TAICA physical AI synchronous-only despite remote and TAICA notes', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070450001', title: '實體人工智慧', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性',
+    restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】TAICA衛星課程，遠距上課使用NTUCOOL平台。',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070450&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.asyncAllowed, false);
+  assert.equal(candidate.attendance, undefined);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
