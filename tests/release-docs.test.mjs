@@ -4,6 +4,19 @@ import test from 'node:test';
 
 const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
+test('documents contribution setup, TDD, and official course evidence', () => {
+  const contributing = readText('CONTRIBUTING.md');
+
+  for (const required of [
+    'npm install',
+    'npm run verify',
+    'Red → Green → Refactor',
+    '九碼課號',
+    '官方課綱',
+    '不要提交 API Key',
+  ]) assert.match(contributing, new RegExp(required));
+});
+
 test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
