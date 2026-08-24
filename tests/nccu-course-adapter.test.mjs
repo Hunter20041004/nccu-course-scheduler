@@ -214,6 +214,20 @@ test('maps verified TAICA 070427001 physical exam', () => {
   }]);
 });
 
+test('maps verified TAICA 070455001 pending-time exam', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070455001', title: '機器學習', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070455&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }]);
+  assert.deepEqual(candidate.events, [{
+    label: '實體同步考試，時間待確認', date: '2026-12-09',
+  }]);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
