@@ -240,6 +240,17 @@ test('keeps TAICA physical AI synchronous-only despite remote and TAICA notes', 
   assert.equal(candidate.attendance, undefined);
 });
 
+test('does not infer asynchronous attendance from a flexible intensive course time', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070401001', title: '劇本寫作與AI協作', teacher: '吳彥杰', credits: 1,
+    scheduleText: '未定或彈性', restrictionText: '本課為9/12、9/19兩天密集授課。',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070401&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.asyncAllowed, false);
+  assert.equal(candidate.attendance, undefined);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
