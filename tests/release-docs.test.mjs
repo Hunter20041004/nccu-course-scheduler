@@ -17,6 +17,17 @@ test('documents contribution setup, TDD, and official course evidence', () => {
   ]) assert.match(contributing, new RegExp(required));
 });
 
+test('documents community conduct and a private enforcement route', () => {
+  const conduct = readText('CODE_OF_CONDUCT.md');
+
+  assert.match(conduct, /Contributor Covenant/);
+  assert.match(conduct, /可接受的行為/);
+  assert.match(conduct, /不可接受的行為/);
+  assert.match(conduct, /執行準則/);
+  assert.match(conduct, /GitHub Security Advisories/);
+  assert.match(conduct, /私下回報/);
+});
+
 test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
