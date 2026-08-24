@@ -243,6 +243,51 @@ test('migrates the saved remote course from a recurring slot to its one-time exa
   assert.deepEqual(migrated.lockedCourseIds, ['ai-701889001']);
 });
 
+test('migrates legacy TAICA fintech to its verified asynchronous default', () => {
+  const stored = JSON.stringify({
+    version: 6,
+    state: {
+      selectedIds: ['ai-070424001'],
+      attendance: { 'ai-070424001': 'physical' },
+      addedCourses: [{
+        id: 'ai-070424001', sectionCode: '070424001', title: '金融科技導論',
+        source: 'nccu-verified-import',
+        sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070424&gop=00&s=1.html',
+        schedule: null, meetings: [], asyncAllowed: false,
+      }],
+    },
+  });
+
+  const migrated = parsePlannerState(stored, null);
+  const [course] = migrated.addedCourses;
+
+  assert.equal(course.scheduleCorrectionId, 'nccu-1151-taica-070424001');
+  assert.equal(course.attendance, 'async');
+  assert.deepEqual(course.meetings, [{ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }]);
+  assert.equal(migrated.attendance['ai-070424001'], 'async');
+});
+
+test('keeps a saved TAICA sync override and migration idempotent after correction', () => {
+  const state = {
+    selectedIds: ['ai-070424001'],
+    attendance: { 'ai-070424001': 'sync' },
+    addedCourses: [{
+      id: 'ai-070424001', sectionCode: '070424001', title: '金融科技導論',
+      source: 'nccu-verified-import',
+      sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070424&gop=00&s=1.html',
+      attendance: 'sync', asyncAllowed: true,
+      scheduleCorrectionId: 'nccu-1151-taica-070424001',
+      schedule: { day: 3, start: 550, end: 730, label: '週三 09:10–12:10' },
+      meetings: [{ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }],
+    }],
+  };
+
+  const migrated = migratePlannerState(state);
+
+  assert.equal(migrated.attendance['ai-070424001'], 'sync');
+  assert.deepEqual(migratePlannerState(migrated), migrated);
+});
+
 test('keeps a user attendance override once the one-time exam correction is already stored', () => {
   const state = {
     selectedIds: ['ai-701889001'],

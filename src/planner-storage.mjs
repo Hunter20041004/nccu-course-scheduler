@@ -37,7 +37,6 @@ export function migratePlannerState(state) {
   if (!state || typeof state !== 'object') return state;
   const correctedAttendanceIds = [];
   const addedCourses = (state.addedCourses || []).map((course) => {
-    const hadRecurringSchedule = Boolean(course.schedule || course.meetings?.length);
     const migratedCourse = course.source !== 'nccu-verified-import' || course.syllabus
       ? course
       : {
@@ -49,7 +48,9 @@ export function migratePlannerState(state) {
         }),
       };
     const correctedCourse = applyVerifiedScheduleCorrections(migratedCourse);
-    if (hadRecurringSchedule && correctedCourse.scheduleCorrectionId) {
+    const receivedNewCorrection = correctedCourse.scheduleCorrectionId
+      && migratedCourse.scheduleCorrectionId !== correctedCourse.scheduleCorrectionId;
+    if (receivedNewCorrection) {
       correctedAttendanceIds.push(correctedCourse.id);
     }
     return correctedCourse;
