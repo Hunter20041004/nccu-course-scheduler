@@ -97,6 +97,9 @@ test('scans full repository history for secrets on pushes and pull requests', ()
   assert.match(workflow, /GITLEAKS_ENABLE_COMMENTS:\s*["']?false/);
   assert.match(workflow, /GITLEAKS_ENABLE_UPLOAD_ARTIFACT:\s*["']?false/);
   assert.match(workflow, /GITLEAKS_ENABLE_SUMMARY:\s*["']?false/);
+  assert.match(workflow, /gitleaks git --log-opts=["']--all["']/);
+  assert.match(workflow, /--redact=100/);
+  assert.match(workflow, /gitleaks_8\.30\.1_checksums\.txt/);
 });
 
 test('README presents the course scheduler as a maintained open-source project', () => {
