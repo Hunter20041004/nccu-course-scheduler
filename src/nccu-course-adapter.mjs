@@ -94,6 +94,17 @@ const VERIFIED_SCHEDULE_CORRECTIONS = Object.freeze({
     informationNotes: Object.freeze(['每週課間測驗，請依最新課綱確認同步要求']),
     deliveryNote: '官方 115-1 課綱：可接受非同步授課；同步遠距為週一 09:00–12:00。',
   }),
+  '070423001': Object.freeze({
+    correctionId: 'nccu-1151-taica-070423001',
+    deliveryMode: 'asynchronous-optional',
+    meetings: Object.freeze([
+      Object.freeze({ day: 4, start: 790, end: 960, label: '週四 13:10–16:00' }),
+    ]),
+    events: Object.freeze([
+      Object.freeze({ label: '實體同步考試', date: '2026-12-10', day: 4, start: 790, end: 960 }),
+    ]),
+    deliveryNote: '官方 115-1 課綱：可接受非同步授課；同步遠距為週四 13:10–16:00。',
+  }),
 });
 
 export function applyVerifiedScheduleCorrections(candidate) {

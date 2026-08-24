@@ -159,6 +159,20 @@ test('maps verified TAICA 070422001 obligations without fake times', () => {
   assert.ok(candidate.informationNotes.includes('每週課間測驗，請依最新課綱確認同步要求'));
 });
 
+test('maps verified TAICA 070423001 synchronous exam', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070423001', title: '人工智慧導論', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070423&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{ day: 4, start: 790, end: 960, label: '週四 13:10–16:00' }]);
+  assert.deepEqual(candidate.events, [{
+    label: '實體同步考試', date: '2026-12-10', day: 4, start: 790, end: 960,
+  }]);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
