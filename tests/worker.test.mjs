@@ -180,7 +180,7 @@ test('marks invalid keys permanent while timeouts and upstream failures are retr
 });
 
 test('redacts the submitted key from successful and failed AI responses', async () => {
-  const apiKey = 'leak-test-secret-123456789';
+  const apiKey = 'leak-test-secret-123456789'; // gitleaks:allow -- synthetic credential fixture for redaction testing
   const successWorker = createWorker({
     html: '<h1>ok</h1>',
     recommendationService: async () => ({
