@@ -173,6 +173,21 @@ test('maps verified TAICA 070423001 synchronous exam', () => {
   }]);
 });
 
+test('reports conflicting official dates for TAICA 070425001', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070425001', title: '統計學暨實習', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070425&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }]);
+  assert.deepEqual(candidate.events, [{
+    label: '考試日期官方資料不一致（10/28、12/16 或 12/23），待官方確認',
+  }]);
+  assert.ok(candidate.informationNotes.includes('週二 13:20–15:10 optional recitation'));
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
