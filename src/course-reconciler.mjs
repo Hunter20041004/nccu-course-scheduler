@@ -11,8 +11,8 @@ export function reconcileOfficialCandidate(existing, incoming) {
   for (const field of USER_OWNED_FIELDS) {
     if (Object.hasOwn(existing, field)) reconciled[field] = existing[field];
   }
-  const replacesStaleRecurringSchedule = incoming.scheduleCorrectionId
-    && (existing.schedule || existing.meetings?.length);
-  if (replacesStaleRecurringSchedule) reconciled.attendance = 'async';
+  const appliesNewCorrection = incoming.scheduleCorrectionId
+    && existing.scheduleCorrectionId !== incoming.scheduleCorrectionId;
+  if (appliesNewCorrection) reconciled.attendance = incoming.attendance;
   return reconciled;
 }

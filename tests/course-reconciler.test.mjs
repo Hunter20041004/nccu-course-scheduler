@@ -66,6 +66,7 @@ test('preserves an intentional attendance override after the schedule correction
     attendance: 'physical',
     schedule: null,
     meetings: [],
+    scheduleCorrectionId: 'nccu-1151-701889001-one-time-exam',
   };
   const incoming = nccuCourseToCandidate({
     courseCode: '701889001',
@@ -81,4 +82,41 @@ test('preserves an intentional attendance override after the schedule correction
   assert.equal(refreshed.attendance, 'physical');
   assert.equal(refreshed.schedule, null);
   assert.deepEqual(refreshed.meetings, []);
+});
+
+test('repairs legacy TAICA attendance when an official correction first arrives', () => {
+  const existing = {
+    id: 'ai-070424001',
+    sectionCode: '070424001',
+    attendance: 'physical',
+    schedule: null,
+    meetings: [],
+  };
+  const incoming = nccuCourseToCandidate({
+    courseCode: '070424001', title: '金融科技導論', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070424&gop=00&s=1.html',
+  });
+
+  const refreshed = reconcileOfficialCandidate(existing, incoming);
+
+  assert.equal(refreshed.attendance, 'async');
+  assert.equal(refreshed.asyncAllowed, true);
+  assert.equal(refreshed.scheduleCorrectionId, 'nccu-1151-taica-070424001');
+  assert.deepEqual(refreshed.meetings, [{ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }]);
+});
+
+test('preserves a TAICA attendance override after the correction marker is stored', () => {
+  const existing = {
+    id: 'ai-070424001', sectionCode: '070424001', attendance: 'sync',
+    scheduleCorrectionId: 'nccu-1151-taica-070424001',
+    meetings: [{ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }],
+  };
+  const incoming = nccuCourseToCandidate({
+    courseCode: '070424001', title: '金融科技導論', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070424&gop=00&s=1.html',
+  });
+
+  assert.equal(reconcileOfficialCandidate(existing, incoming).attendance, 'sync');
 });
