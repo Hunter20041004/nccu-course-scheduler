@@ -72,6 +72,19 @@ test('requires pull request evidence, privacy checks, and UI screenshots', () =>
   ]) assert.match(template, new RegExp(required, 'i'));
 });
 
+test('states the unofficial boundary and course correction workflow up front', () => {
+  const readme = readText('README.md');
+  const firstScreen = readme.slice(0, readme.indexOf('## Executive Summary'));
+
+  assert.match(firstScreen, /非政大官方服務/);
+  assert.match(readme, /政大正式選課系統.*系所公告.*最終依據/);
+  assert.match(readme, /## 課程資料更正/);
+  assert.match(readme, /學期.*九碼課號.*官方課綱/s);
+  assert.match(readme, /CONTRIBUTING\.md/);
+  assert.match(readme, /course_data_correction\.yml/);
+  assert.match(readme, /不會.*套用到其他學期/s);
+});
+
 test('README presents the course scheduler as a maintained open-source project', () => {
   const readme = readText('README.md');
 
