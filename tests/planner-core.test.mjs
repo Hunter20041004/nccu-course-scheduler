@@ -214,6 +214,32 @@ test('formats a week-only course event reminder without an undefined date', () =
   ), '生成式 AI：文字與圖像生成的原理與實務：第 11 週上機考');
 });
 
+test('formats a pending-time TAICA obligation without inventing a conflict time', () => {
+  assert.equal(core.formatCourseEventReminder(
+    { title: '機器學習' },
+    { date: '2026-12-09', label: '實體同步考試，時間待確認' },
+  ), '機器學習：2026-12-09 實體同步考試，時間待確認');
+});
+
+test('does not invent a conflict for a date-only TAICA obligation', () => {
+  const selected = [
+    {
+      id: 'ml',
+      title: '機器學習',
+      attendance: 'async',
+      events: [{ date: '2026-12-09', label: '實體同步考試，時間待確認' }],
+    },
+    {
+      id: 'other',
+      title: '星期三課程',
+      attendance: 'physical',
+      schedule: { day: 3, start: 550, end: 730 },
+    },
+  ];
+
+  assert.deepEqual(core.findConflicts(selected), []);
+});
+
 test('counts two full internship days and two free half-days for the concentrated plan', () => {
   const selected = [
     { id: 'ml', schedule: { day: 1, start: 790, end: 960 }, attendance: 'physical' },

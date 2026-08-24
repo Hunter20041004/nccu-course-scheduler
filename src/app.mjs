@@ -477,7 +477,7 @@ function renderSchedule() {
 
   const asynchronous = selected.filter((course) => course.attendance === 'async' || !meetingsForCourse(course).length);
   byId('async-lane').innerHTML = asynchronous.length
-    ? `<div class="async-list">${asynchronous.map((course) => `<button type="button" data-remove-course="${escapeHtml(course.id)}">${escapeHtml(course.title)} · ${course.attendance === 'async' ? '非同步' : '時間未定'}</button>`).join('')}</div>`
+    ? `<div class="async-list">${asynchronous.map((course) => `<button type="button" data-remove-course="${escapeHtml(course.id)}">${escapeHtml(course.title)} · ${course.attendance === 'async' ? '非同步遠距' : '時間未定'}</button>`).join('')}</div>`
     : '<p class="empty">目前沒有非同步或時間未定課程</p>';
 }
 
@@ -788,7 +788,7 @@ function renderScheduleWallpaper(canvas) {
   ctx.fillText('排課提醒', safeX + cardWidth + gap + 34, infoY + 64);
   ctx.fillStyle = colors.muted;
   ctx.font = '700 24px "Noto Sans TC", sans-serif';
-  const asyncList = asyncCourses.length ? asyncCourses.map((course) => `${course.title} · ${course.attendance === 'async' ? '非同步' : '時間未定'}`) : ['目前沒有非同步或時間未定課程'];
+  const asyncList = asyncCourses.length ? asyncCourses.map((course) => `${course.title} · ${course.attendance === 'async' ? '非同步遠距' : '時間未定'}`) : ['目前沒有非同步或時間未定課程'];
   asyncList.slice(0, 7).forEach((item, index) => drawWrappedText(ctx, item, safeX + 34, infoY + 112 + (index * 42), cardWidth - 68, 29, 1));
   const reminderList = reminders.length ? reminders : ['目前沒有需要處理的提醒'];
   reminderList.slice(0, 8).forEach((item, index) => drawWrappedText(ctx, item, safeX + cardWidth + gap + 34, infoY + 112 + (index * 38), cardWidth - 68, 27, 1));
@@ -1045,8 +1045,8 @@ function renderCatalog() {
         ? '手動新增'
         : course.source || '內建課程資料';
     const deliveryLabel = selectedCourse?.attendance === 'async'
-      ? '非同步'
-      : course.asyncAllowed ? '可切換實體／同步／非同步' : '實體／固定同步';
+      ? '非同步遠距'
+      : course.asyncAllowed ? '可同步／非同步遠距' : '實體／固定同步';
     const detailPanel = expanded ? `<section class="course-details-panel" id="course-details-${escapeHtml(course.id)}" aria-label="${escapeHtml(course.title)} 完整資料">
       <header class="course-details-heading">
         <div><p>COURSE DETAILS</p><h3>${escapeHtml(course.title)}</h3></div>

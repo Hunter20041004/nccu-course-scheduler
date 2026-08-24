@@ -1195,3 +1195,11 @@ test('exposes one-time schedule correction helpers to the browser bundle', async
   assert.match(html, /const \{[^}]*formatCourseEventReminder[^}]*\} = __plannerCore/s);
   assert.match(html, /const \{[^}]*applyVerifiedScheduleCorrections[^}]*\} = __nccuCourseAdapter/s);
 });
+
+test('labels selected and selectable asynchronous courses as remote learning', async () => {
+  const html = await (await render()).text();
+
+  assert.match(html, /course\.attendance === 'async' \? '非同步遠距' : '時間未定'/);
+  assert.match(html, /selectedCourse\?\.attendance === 'async'[\s\S]*\? '非同步遠距'/);
+  assert.match(html, /course\.asyncAllowed \? '可同步／非同步遠距' : '實體／固定同步'/);
+});
