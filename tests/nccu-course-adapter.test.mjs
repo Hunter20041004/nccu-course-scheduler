@@ -200,6 +200,20 @@ test('maps verified TAICA 070426001 showcase reminder', () => {
   assert.deepEqual(candidate.events, [{ label: '共同展示交流', date: '2026-12-26' }]);
 });
 
+test('maps verified TAICA 070427001 physical exam', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070427001', title: '自然語言處理', teacher: '詳備註', credits: 3,
+    scheduleText: '未定或彈性', restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070427&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{ day: 4, start: 540, end: 720, label: '週四 09:00–12:00' }]);
+  assert.deepEqual(candidate.events, [{
+    label: '實體考試', date: '2026-12-10', day: 4, start: 540, end: 720,
+  }]);
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
