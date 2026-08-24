@@ -81,6 +81,19 @@ const VERIFIED_SCHEDULE_CORRECTIONS = Object.freeze({
     ]),
     deliveryNote: '官方 115-1 課綱：可接受非同步授課；同步遠距為週一 09:00–12:00。',
   }),
+  '070422001': Object.freeze({
+    correctionId: 'nccu-1151-taica-070422001',
+    deliveryMode: 'asynchronous-optional',
+    meetings: Object.freeze([
+      Object.freeze({ day: 1, start: 540, end: 720, label: '週一 09:00–12:00' }),
+    ]),
+    events: Object.freeze([
+      Object.freeze({ label: '實體期中考，時間待確認', date: '2026-11-02' }),
+      Object.freeze({ label: '實體期末考，時間待確認', date: '2026-12-21' }),
+    ]),
+    informationNotes: Object.freeze(['每週課間測驗，請依最新課綱確認同步要求']),
+    deliveryNote: '官方 115-1 課綱：可接受非同步授課；同步遠距為週一 09:00–12:00。',
+  }),
 });
 
 export function applyVerifiedScheduleCorrections(candidate) {
@@ -105,6 +118,10 @@ export function applyVerifiedScheduleCorrections(candidate) {
     attendance: 'async',
     scheduleCorrectionId: correction.correctionId,
     deliveryNotes: [...new Set([...(candidate.deliveryNotes || []), correction.deliveryNote])],
+    informationNotes: [...new Set([
+      ...(candidate.informationNotes || []),
+      ...(correction.informationNotes || []),
+    ])],
     events: [...events, ...correctionEvents.map((event) => ({ ...event }))],
   };
 }

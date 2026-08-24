@@ -134,6 +134,31 @@ test('maps verified TAICA 070421001 to asynchronous attendance and its official 
   }]);
 });
 
+test('maps verified TAICA 070422001 obligations without fake times', () => {
+  const candidate = nccuCourseToCandidate({
+    courseCode: '070422001',
+    title: '基礎程式設計Ｃ＋＋',
+    teacher: '詳備註',
+    credits: 3,
+    scheduleText: '未定或彈性',
+    restrictionText: '【臺灣大專院校人工智慧學程聯盟課程】',
+    sourceUrl: 'https://newdoc.nccu.edu.tw/teaschm/1151/schmPrv.jsp-yy=115&smt=1&num=070422&gop=00&s=1.html',
+  });
+
+  assert.equal(candidate.attendance, 'async');
+  assert.deepEqual(candidate.meetings, [{
+    day: 1,
+    start: 540,
+    end: 720,
+    label: '週一 09:00–12:00',
+  }]);
+  assert.deepEqual(candidate.events, [
+    { label: '實體期中考，時間待確認', date: '2026-11-02' },
+    { label: '實體期末考，時間待確認', date: '2026-12-21' },
+  ]);
+  assert.ok(candidate.informationNotes.includes('每週課間測驗，請依最新課綱確認同步要求'));
+});
+
 test('requires official 115-1 source evidence before applying the schedule correction', () => {
   const manualCourse = {
     sectionCode: '701889001',
