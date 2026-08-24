@@ -167,6 +167,25 @@ test('does not reserve the weekly slot when an allowed remote course is taken as
   assert.deepEqual(core.findConflicts(selected), []);
 });
 
+test('restores a verified TAICA meeting to conflict checks when attendance switches to sync', () => {
+  const conflicts = core.findConflicts([
+    {
+      id: 'fintech', title: '金融科技導論', attendance: 'sync',
+      meetings: [{ day: 3, start: 550, end: 730 }],
+    },
+    {
+      id: 'other', title: '週三實體課', attendance: 'physical',
+      schedule: { day: 3, start: 610, end: 720 },
+    },
+  ]);
+
+  assert.deepEqual(conflicts, [{
+    type: 'weekly',
+    courseIds: ['fintech', 'other'],
+    message: '金融科技導論 與 週三實體課 每週時段重疊',
+  }]);
+});
+
 test('keeps a synchronous exam as a hard conflict for an asynchronously attended course', () => {
   const selected = [
     { id: 'agentic', title: 'Agentic AI', schedule: { day: 4, start: 790, end: 960 }, attendance: 'physical' },
@@ -269,6 +288,19 @@ test('preserves a verified asynchronous default when adding a course', () => {
   };
 
   assert.deepEqual(core.toggleCourse([], remoteCourse), [remoteCourse]);
+});
+
+test('adds a verified TAICA course with its asynchronous default and retained sync meeting', () => {
+  const course = {
+    id: 'ai-070424001',
+    title: '金融科技導論',
+    available: true,
+    asyncAllowed: true,
+    attendance: 'async',
+    meetings: [{ day: 3, start: 550, end: 730, label: '週三 09:10–12:10' }],
+  };
+
+  assert.deepEqual(core.toggleSelectableCourse([], course, profile), [course]);
 });
 
 test('removes a selected optional course', () => {
