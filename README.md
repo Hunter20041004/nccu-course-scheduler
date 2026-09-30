@@ -1,9 +1,6 @@
 # 政大排課｜NCCU Course Scheduler
 
-[![CI](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml)
-
-**[Share-safe Demo](https://hunter20041004.github.io/nccu-course-scheduler/)**
-· **[Live Demo](https://nccu-course-planner-1151.huntertseng.chatgpt.site)**
+**[Live Demo](https://nccu-course-planner-1151.huntertseng.chatgpt.site)**
 
 > **非政大官方服務。** 本專案由社群獨立維護，協助整理公開課程資訊與個人排課；它不代表國立政治大學，也不能取代正式選課或系所審核。
 
@@ -94,8 +91,9 @@ scripts/build.mjs           無外部相依的 build pipeline
 
 需求：Node.js 22.13 或更新版本。
 
+程式碼放在 Campusward repo 的 `nccu-course-scheduler/` 資料夾（原獨立 repo 已於 2026-09-30 刪除）。
+
 ```bash
-git clone https://github.com/Hunter20041004/nccu-course-scheduler.git
 cd nccu-course-scheduler
 npm install
 npm run dev
@@ -125,11 +123,7 @@ npm run test:contract:groq
 
 ## 部署
 
-GitHub Pages 靜態版適合傳給朋友測試一般排課流程，較不容易被 Instagram／LINE 內建瀏覽器攔截：
-
-[https://hunter20041004.github.io/nccu-course-scheduler/](https://hunter20041004.github.io/nccu-course-scheduler/)
-
-完整 Worker demo 部署於 OpenAI Sites：
+完整 Worker demo 部署於 OpenAI Sites（原本的 GitHub Pages 靜態版已隨舊 repo 一起刪除）：
 
 [https://nccu-course-planner-1151.huntertseng.chatgpt.site](https://nccu-course-planner-1151.huntertseng.chatgpt.site)
 

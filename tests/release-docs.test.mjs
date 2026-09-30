@@ -128,10 +128,7 @@ test('README presents the course scheduler as a maintained open-source project',
   const readme = readText('README.md');
 
   for (const required of [
-    '[![CI](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Hunter20041004/nccu-course-scheduler/actions/workflows/ci.yml)',
-    '**[Share-safe Demo](https://hunter20041004.github.io/nccu-course-scheduler/)**',
     '**[Live Demo](https://nccu-course-planner-1151.huntertseng.chatgpt.site)**',
-    'GitHub Pages 靜態版適合傳給朋友測試一般排課流程',
     '## Executive Summary',
     '## 功能重點',
     '## 60 秒 Demo',
@@ -141,6 +138,15 @@ test('README presents the course scheduler as a maintained open-source project',
     '## License',
   ]) {
     assert.match(readme, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+
+  // The standalone repository and its GitHub Pages site were deleted on 2026-09-30;
+  // the code now lives in the Campusward repository, so those links would be dead.
+  for (const deleted of [
+    /github\.com\/Hunter20041004\/nccu-course-scheduler/,
+    /hunter20041004\.github\.io\/nccu-course-scheduler/,
+  ]) {
+    assert.doesNotMatch(readme, deleted);
   }
 
   // The public framing is "an open-source tool people use", not "a portfolio piece".
