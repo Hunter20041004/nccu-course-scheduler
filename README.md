@@ -115,12 +115,6 @@ npm run verify
 - syntax checks；
 - 政大公開課程查詢 live contract test。
 
-若需要驗證舊版 Groq adapter 的真實邊界，可在安全環境注入 `GROQ_API_KEY` 後執行：
-
-```bash
-npm run test:contract:groq
-```
-
 ## 部署
 
 完整 Worker demo 部署於 OpenAI Sites（原本的 GitHub Pages 靜態版已隨舊 repo 一起刪除）：
