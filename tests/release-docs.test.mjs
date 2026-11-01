@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const readText = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -199,13 +199,12 @@ test('points every live-demo reference at the canonical original Sites project',
 
 test('release includes CI and a narrow MIT license', () => {
   const workflow = readText('.github/workflows/ci.yml');
-  const pagesWorkflow = readText('.github/workflows/pages.yml');
   const license = readText('LICENSE');
 
   assert.match(workflow, /npm run verify/);
   assert.match(workflow, /node-version: 22/);
-  assert.match(pagesWorkflow, /deploy-pages/);
-  assert.match(pagesWorkflow, /dist\/static/);
+  // 網站放在 ChatGPT Sites；GitHub Pages 沒有啟用，不能留部署流程，否則每次推送都失敗。
+  assert.equal(existsSync(new URL('../.github/workflows/pages.yml', import.meta.url)), false);
   assert.match(license, /MIT License/);
   assert.match(license, /Hunter Tseng/);
 });
