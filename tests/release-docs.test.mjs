@@ -96,15 +96,15 @@ test('requires pull request evidence, privacy checks, and UI screenshots', () =>
 
 test('states the unofficial boundary and course correction workflow up front', () => {
   const readme = readText('README.md');
-  const firstScreen = readme.slice(0, readme.indexOf('## Executive Summary'));
+  const firstScreen = readme.slice(0, readme.indexOf('## Background'));
 
   assert.match(firstScreen, /非政大官方服務/);
   assert.match(readme, /政大正式選課系統.*系所公告.*最終依據/);
-  assert.match(readme, /## 課程資料更正/);
-  assert.match(readme, /學期.*九碼課號.*官方課綱/s);
+  assert.match(readme, /## Course data corrections/);
+  assert.match(readme, /semester.*nine-digit course code.*official syllabus/s);
   assert.match(readme, /CONTRIBUTING\.md/);
   assert.match(readme, /course_data_correction\.yml/);
-  assert.match(readme, /不會.*套用到其他學期/s);
+  assert.match(readme, /never apply to other semesters/);
 });
 
 test('scans full repository history for secrets on pushes and pull requests', () => {
@@ -128,22 +128,20 @@ test('README presents the course scheduler as a maintained open-source project',
   const readme = readText('README.md');
 
   for (const required of [
-    '**[Live Demo](https://nccu-course-planner-1151.huntertseng.chatgpt.site)**',
-    '## Executive Summary',
-    '## 功能重點',
-    '## 60 秒 Demo',
-    '## 架構摘要',
-    '## AI 與資料安全邊界',
-    '## 驗證',
+    '## Background',
+    '## What it does',
+    '## Key decisions',
+    '## Results',
+    '## Run it locally',
+    '## 中文摘要',
     '## License',
+    'https://github.com/Hunter20041004/campusward-nccu',
   ]) {
     assert.match(readme, new RegExp(required.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   }
 
-  // The standalone repository and its GitHub Pages site were deleted on 2026-09-30;
-  // the code now lives in the Campusward repository, so those links would be dead.
+  // The old GitHub Pages copy was deleted on 2026-09-30, so links to it would be dead.
   for (const deleted of [
-    /github\.com\/Hunter20041004\/nccu-course-scheduler/,
     /hunter20041004\.github\.io\/nccu-course-scheduler/,
   ]) {
     assert.doesNotMatch(readme, deleted);
@@ -191,7 +189,9 @@ test('points every live-demo reference at the canonical original Sites project',
   const canonicalUrl = 'https://nccu-course-planner-1151.huntertseng.chatgpt.site';
 
   assert.equal(hosting.project_id, 'appgprj_6a5587c540b0819191572c9cb320c553');
-  for (const source of [readme, html, app]) {
+  // The hosted demo is offline, so the README no longer links to it; the app still names it.
+  assert.doesNotMatch(readme, /nccu-internship-scheduler\.abuzz-teal-2691\.chatgpt\.site/);
+  for (const source of [html, app]) {
     assert.match(source, new RegExp(canonicalUrl.replaceAll('.', '\\.')));
     assert.doesNotMatch(source, /nccu-internship-scheduler\.abuzz-teal-2691\.chatgpt\.site/);
   }

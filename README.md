@@ -1,141 +1,63 @@
-# 政大排課｜NCCU Course Scheduler
+# NCCU Course Scheduler
 
-**[Live Demo](https://nccu-course-planner-1151.huntertseng.chatgpt.site)**
+**An internship-friendly course planner for National Chengchi University students: search the official course catalog, build a weekly timetable, and let AI suggest plans that local rules must approve before you see them.**
 
-> **非政大官方服務。** 本專案由社群獨立維護，協助整理公開課程資訊與個人排課；它不代表國立政治大學，也不能取代正式選課或系所審核。
+政大學生的實習友善排課工具。**非政大官方服務**，課程與選課規則仍以政大正式選課系統為準。
 
-政大學生的實習友善排課系統。新訪客會從完全空白的個人工作區開始，再透過政大 115-1 課程庫搜尋、AI 截圖匯入或手動新增建立自己的候選清單。它把政大節次、課程資格、實習時段、非同步課程、個人行程與 AI 推薦整合在同一個課表工作台，讓使用者先檢查衝堂與條件，再做選課決策。
+> **Type** Personal project · **Status** Completed (2026-07 → 2026-10), succeeded by [Campusward](https://github.com/Hunter20041004/campusward-nccu) · **Role** Solo project · **Stack** JavaScript (no npm dependencies), Cloudflare Worker-compatible server, Gemini (bring your own key)
 
-## Executive Summary
+![Timetable with real NCCU courses, internship time blocks and credit summary](docs/screenshots/timetable.png)
 
-NCCU Course Scheduler is an open-source course-planning tool for students at National
-Chengchi University, deployed and usable at the demo links above. It supports
-click-to-schedule course blocks, NCCU period-grid rendering, eligibility-condition
-tracking, internship availability planning, screenshot-based course imports, AI-assisted
-route recommendations, and phone-wallpaper schedule export.
+## Background
 
-Beyond its own campus, the repository is a working reference for two patterns that are
-easy to describe and hard to find implemented in the open:
+Built for NCCU students who also hold internships and need to keep certain weekdays free while choosing courses. This was my first course planner. Its lessons now continue in [Campusward](https://github.com/Hunter20041004/campusward-nccu), a rebuilt version.
 
-- **AI proposes, local rules decide.** The model generates candidate schedules; a
-  deterministic validator rejects any plan that breaks a time conflict, an eligibility
-  rule, a credit floor, a locked course, or an internship-day commitment. Plans that
-  fail validation are never shown. Hallucinated courses cannot reach the user.
-- **Bring-your-own-key with nothing persisted server-side.** Users supply their own
-  Gemini API key for AI features. The key stays in the current browser session, and the
-  server keeps neither uploaded screenshots nor planning prompts.
+## What it does
 
-## 功能重點
+- **Searches the official NCCU 115-1 catalog** by course name, teacher or nine-digit course code, with no API key.
+- **Builds a timetable on NCCU's own period grid** (A/B/1–8/C/D/E–H, Monday to Sunday) and flags time conflicts.
+- **Plans around internships**: find free days automatically or block fixed internship hours, keeping "confirmed" and "to be confirmed" days apart.
+- **Tracks eligibility rules** generated from official course restrictions, plus your own programme or prerequisite conditions.
+- **AI helpers with your own Gemini key**: read a screenshot of your course list, and suggest up to three plans.
+- **Exports a phone wallpaper** of your timetable, and lets you undo clears and deletions within 15 seconds.
 
-- **完整學生決策流程**：候選課程 → 資格檢查 → 課表排入 → 衝堂提醒 → 實習空檔評估。
-- **空白且個人化的起點**：朋友第一次進站不會看到作者的課程；同一個網址、同一個瀏覽器會自動保留自己的候選清單與課表。
-- **直接查詢官方課程**：可依課名、教師或九碼課號搜尋政大 115-1 公開課程，加入候選清單不需要 API Key。
-- **政大語境建模**：使用政大節次 A/B/1/2/…/H 與週一到週日方格式課表。
-- **AI 輔助但不盲信**：AI 可辨識備選清單截圖、產生三個推薦方案；系統仍會用本地規則過濾幻覺課程、衝堂方案與不合理學分配置。
-- **確定性排課驗證**：推薦方案必須保留鎖定課、符合最低學分與實習天數，且不能含衝堂、未開課或不合法的非同步選擇；不合格方案不會顯示。
-- **可客製化資格條件**：從官方課程限制產生可勾選條件，也允許使用者新增自己的學程、系級或先修條件。
-- **實習友善規劃**：支援自動找實習空檔，也支援固定幾天、幾點到幾點的實習時段；未定課程會分成「已確認」與「待確認」，不會過度承諾可實習天數。
-- **跨裝置與可復原**：可匯出／匯入不含金鑰的排課 JSON；清空、刪除與套用方案後可在 15 秒內復原。
-- **手機優先閱讀**：窄螢幕預設為行程檢視，仍可切回完整政大方格；候選課程的次要動作集中於 More 選單。
-- **隱私與安全邊界**：不提交 API key、不保存使用者金鑰、不長期保存原始截圖。
-- **可驗證品質門檻**：unit tests、rendered HTML tests、NCCU live contract test 與 CI workflow。
+## Key decisions
 
-## 60 秒 Demo
+| Decision | Why |
+| --- | --- |
+| AI proposes, local rules decide | A deterministic validator rejects any AI plan with a time conflict, ineligible course, too few credits, a dropped locked course or a broken internship day, so made-up courses never reach the user. |
+| Bring your own key, nothing kept on the server | The Gemini key lives only in the current tab's memory, and screenshots and prompts aren't stored. |
+| A blank personal workspace for every visitor | Friends opening the link see their own empty plan, never the author's, and progress stays in their own browser. |
+| No npm dependencies | The whole app builds into one Worker bundle that is easy to audit and deploy. |
 
-1. 打開 Share-safe Demo；新訪客的候選清單與課表都是空白的。
-2. 到「匯入／新增」，直接搜尋政大 115-1 課程庫，也可用 AI 截圖辨識或手動新增課程、社團與個人行程。
-3. 回到「候選課程」，點選課程加入左側政大方格式課表。
-4. 按「詳細」核對完整資料與資格理由；課綱、鎖定、刪除在每門課的 `•••` 選單。
-5. 切到「選課條件」，勾選自己符合的系級、學程、雙主修或先修限制。
-6. 在「實習設定」調整希望保留的實習天數與時段，分辨已確認與待確認的空檔。
-7. 到「AI 推薦」輸入背景、目標與偏好，產生最多三個通過規則驗證的方案。
-8. 排好後使用「匯出手機桌布」，輸出雨後日光 × 輕夢核風格課表圖；要換裝置可從「更多操作」匯出排課資料。
+## Results
 
-排課資料只保存在瀏覽器本機；使用同一個網址與同一個瀏覽器再次開啟時會接續上次進度。換裝置、換瀏覽器、清除網站資料，或改用另一個部署網址，會得到新的空白工作區。
+- 229 commits; 364 automated tests (unit, rendered-HTML and safety) plus a live contract test against NCCU's public course search, with CI and full-history secret scanning.
 
-## 架構摘要
+## Run it locally
 
-```text
-src/index.html              單頁應用 HTML、教學中心與主要介面骨架
-src/styles.css              Sunbreak / 輕夢核視覺系統與 responsive layout
-src/app.mjs                 前端狀態、課表互動、匯入、AI 推薦與匯出桌布
-src/course-data.mjs         舊有儲存資料與截圖核對所需的課程 metadata（不會預載給新訪客）
-src/planner-core.mjs        選課、鎖定、刪除、衝堂與實習空檔核心邏輯
-src/plan-validator.mjs      AI 推薦方案的衝堂、資格、學分、鎖定與實習驗證
-src/planner-storage.mjs     版本化本機儲存與舊資料遷移
-src/planner-transfer.mjs    不含敏感資訊的跨站排課 JSON
-src/planner-undo.mjs        15 秒單步復原狀態
-src/schedule-agenda.mjs     手機行程檢視資料建構
-src/eligibility-conditions.mjs  課程資格條件正規化
-src/nccu-periods.mjs        政大節次與時間區間
-src/nccu-course-adapter.mjs 政大公開課程查詢資料轉換
-src/ai-service.mjs          AI 截圖匯入與推薦方案服務
-src/gemini-client.mjs       Gemini BYOK request / validation client
-src/worker.mjs              Cloudflare Worker-compatible HTTP entrypoint
-tests/                      Unit、rendered HTML、contract 與 safety tests
-scripts/build.mjs           無外部相依的 build pipeline
-```
-
-成品是 `dist/server/index.js` 的 Cloudflare Worker-compatible bundle，不依賴外部 npm 套件即可部署。
-
-## AI 與資料安全邊界
-
-- AI 功能使用 **Bring Your Own Key**：使用者貼上自己的 Gemini API Key。
-- API Key 只保存在目前分頁的記憶體中；重新整理或關閉分頁即清除。
-- Gemini key 會送到本服務的 API endpoint 進行單次請求代理，不寫入 repository、localStorage、sessionStorage 或伺服器長期儲存。
-- 截圖匯入會把使用者選取的課程清單截圖送到 Gemini 辨識；辨識後仍以政大 115-1 公開課程資料核對。
-- AI 推薦結果會被本地規則重新檢查：不存在的課程、不可非同步卻被標成非同步、以及衝堂方案都會被修正或排除。
-- 本 repo 不包含任何真實 API key、學生個資、選課帳密或私有課程資料。
-
-## 本機開發
-
-需求：Node.js 22.13 或更新版本。
-
-程式碼放在 Campusward repo 的 `nccu-course-scheduler/` 資料夾（原獨立 repo 已於 2026-09-30 刪除）。
+Requires Node.js 22.13 or newer.
 
 ```bash
+git clone https://github.com/Hunter20041004/nccu-course-scheduler.git
 cd nccu-course-scheduler
 npm install
 npm run dev
 ```
 
-開啟終端顯示的本機網址即可使用。政大 115-1 課程搜尋、一般排課、手動新增、衝堂檢查與桌布匯出都不需要 key；只有 AI 截圖辨識與 AI 推薦需要使用者在介面中貼上自己的 Gemini API Key。
+Course search, scheduling, conflict checks and wallpaper export work without a key; only AI screenshot import and AI suggestions need your own Gemini API key. Full checks: `npm run verify`. Architecture and design notes: [`docs/`](docs/).
 
-## 驗證
+## Course data corrections
 
-```bash
-npm run verify
-```
+If a course's time, attendance mode or exam note differs from official data, report it with the [course data correction form](.github/ISSUE_TEMPLATE/course_data_correction.yml), including the semester, the full nine-digit course code, a publicly reachable official syllabus or announcement, and the expected fix. See [CONTRIBUTING.md](CONTRIBUTING.md). Verified corrections are tied to one semester and one exact course code, so they never apply to other semesters or courses.
 
-`npm run verify` 會執行：
+## Notes
 
-- Node test runner unit tests；
-- production build；
-- rendered HTML / browser bundle contract tests；
-- syntax checks；
-- 政大公開課程查詢 live contract test。
+Not an official NCCU service. Course data and model availability can change. AI suggestions are decision support and do not guarantee graduation requirements or department approval. The hosted demo has been taken offline; run it locally to try it.
 
-## 部署
+## 中文摘要
 
-完整 Worker demo 部署於 OpenAI Sites（原本的 GitHub Pages 靜態版已隨舊 repo 一起刪除）：
-
-[https://nccu-course-planner-1151.huntertseng.chatgpt.site](https://nccu-course-planner-1151.huntertseng.chatgpt.site)
-
-部署平台只保存網站版本與必要 runtime 設定；使用者自己的 Gemini API Key 不由網站長期保存。
-
-## 課程資料更正
-
-如果課程的時段、出席形式或考試提醒與官方資料不符，請使用 [課程資料更正表單](.github/ISSUE_TEMPLATE/course_data_correction.yml) 回報，並附上適用學期、完整九碼課號、可公開直接開啟的官方課綱或正式公告，以及預期修正內容。實作與測試方式見 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-已驗證的課程修正會綁定特定學期與精確課號，不會因為課名或「TAICA」、「遠距」、「彈性」等文字套用到其他學期或其他課程。官方來源若互相矛盾，系統會保留待確認提示，不自行猜測。
-
-## Limitations
-
-- 政大課程資料、模型可用性與免費額度可能變動；Live Demo 反映部署時的公開課程資料與目前可用模型。
-- 政大 115-1 課程庫搜尋使用政大公開查詢資料；課程異動仍應回正式選課系統確認。
-- AI 推薦是決策輔助，不保證符合每位學生的畢業門檻、學分抵免或系所人工審核。
-- GitHub Pages 版是靜態備用網址，適合測試排課、條件、實習設定與桌布匯出；需要 Worker API 的 AI 匯入／推薦功能請使用 Live Demo 或改用自有後端部署。
-- 使用者仍應以政大正式選課系統、系所公告與授課教師最新通知作為最終依據。
+給同時在實習的政大學生用的排課工具。新訪客會從完全空白的個人工作區開始，可直接用政大 115-1 課程庫搜尋課名、教師或九碼課號，排進政大節次方格課表、檢查衝堂與修課條件，並保留實習空檔。同一個網址、同一個瀏覽器會接續上次進度。AI 截圖匯入與推薦使用自己的 Gemini 金鑰，推薦方案一定要通過本地規則檢查才會顯示。這是 Campusward 的前一版；請以政大正式選課系統、系所公告與授課教師最新通知作為最終依據。
 
 ## License
 
